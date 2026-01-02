@@ -33,15 +33,11 @@ const ChatView = ({ selectedUser, onBack }: ChatViewProps) => {
   useEffect(() => {
     if (!currentUser || !selectedUser) return;
 
-    // Create a composite ID for the chat to simplify querying if we were using a subcollection,
-    // but for now we'll query the top-level 'messages' collection with compound queries.
-    // Note: This might require a composite index in Firestore. 
-    // To avoid index creation during development, we can do client-side filtering or 
-    // use a chat room ID approach. Let's use a chat room ID approach for simplicity and scalability.
-    
+    // Refactored to use a single top-level collection with chatId field
+    // This requires a composite index on 'chatId' and 'timestamp'
     const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-    const messagesRef = collection(db, "chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("timestamp", "asc"));
+    const messagesRef = collection(db, "messages");
+    const q = query(messagesRef, where("chatId", "==", chatId), orderBy("timestamp", "asc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({
@@ -53,7 +49,7 @@ const ChatView = ({ selectedUser, onBack }: ChatViewProps) => {
       // Mark unseen messages as seen
       msgs.forEach(async (msg: any) => {
         if (msg.receiverId === currentUser.uid && !msg.seen) {
-          const msgRef = doc(db, "chats", chatId, "messages", msg.id);
+          const msgRef = doc(db, "messages", msg.id);
           await updateDoc(msgRef, {
             seen: true,
             seenAt: serverTimestamp()
@@ -76,9 +72,10 @@ const ChatView = ({ selectedUser, onBack }: ChatViewProps) => {
     if (!newMessage.trim() || !currentUser) return;
 
     const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-    const messagesRef = collection(db, "chats", chatId, "messages");
+    const messagesRef = collection(db, "messages");
 
     await addDoc(messagesRef, {
+      chatId,
       text: newMessage,
       senderId: currentUser.uid,
       receiverId: selectedUser.uid,

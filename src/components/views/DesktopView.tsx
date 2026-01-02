@@ -34,9 +34,10 @@ import { Label } from "@/components/ui/label";
 import { auth, rtdb, db } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { ref, onValue, onDisconnect, set, serverTimestamp as rtdbServerTimestamp } from "firebase/database";
-import { collectionGroup, query, where, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
 import ChatView from "./ChatView";
 import SettingsView from "./SettingsView";
+import DesignView from "./DesignView";
 
 const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const [activeSection, setActiveSection] = useState("My Workspace");
@@ -56,26 +57,55 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   // Start Session on Login
   useEffect(() => {
-    if (currentUser && !isPreview && !sessionId) {
-      const startSession = async () => {
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/sessions/start`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.uid })
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setSessionId(data._id);
-            setSessionStartTime(new Date(data.startTime));
-          }
-        } catch (error) {
-          console.error("Failed to start session", error);
+    if (currentUser && !isPreview) {
+      const storedSession = localStorage.getItem('currentSession');
+      let shouldStartNew = true;
+
+      if (storedSession) {
+        const { id, startTime } = JSON.parse(storedSession);
+        const start = new Date(startTime);
+        // If session is from today (less than 12 hours old for safety), resume it
+        if (new Date().getTime() - start.getTime() < 12 * 60 * 60 * 1000) {
+          setSessionId(id);
+          setSessionStartTime(start);
+          shouldStartNew = false;
         }
-      };
-      startSession();
+      }
+
+      if (shouldStartNew && !sessionId) {
+        const startSession = async () => {
+          if (!currentUser?.uid) {
+            console.error("Cannot start session: User ID is missing");
+            return;
+          }
+          try {
+            console.log("Starting session for user:", currentUser.uid);
+            const response = await fetch(`${API_BASE_URL}/api/sessions/start`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: currentUser.uid })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              setSessionId(data._id);
+              setSessionStartTime(new Date(data.startTime));
+              localStorage.setItem('currentSession', JSON.stringify({
+                id: data._id,
+                startTime: data.startTime
+              }));
+            } else {
+              const errorData = await response.json();
+              console.error("Failed to start session:", response.status, errorData);
+            }
+          } catch (error) {
+            console.error("Failed to start session (network error):", error);
+          }
+        };
+        startSession();
+      }
     }
-  }, [currentUser, isPreview, sessionId]);
+  }, [currentUser, isPreview]);
 
   // Timer & Heartbeat
   useEffect(() => {
@@ -102,9 +132,29 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       }
     }, 60000); // Every minute
 
+    // Save on close
+    const handleBeforeUnload = () => {
+      if (sessionId) {
+        // Use navigator.sendBeacon for reliable request on unload
+        const url = `${API_BASE_URL}/api/sessions/${sessionId}`;
+        const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
+        navigator.sendBeacon(url, blob); // PUT request might not work with sendBeacon easily without blob, but usually POST. 
+        // Since our backend expects PUT for update, sendBeacon might be tricky if it only does POST.
+        // However, for simple heartbeat, we can try fetch with keepalive
+        fetch(url, { 
+          method: 'PUT', 
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       clearInterval(timerInterval);
       clearInterval(heartbeatInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [sessionStartTime, sessionId]);
 
@@ -149,7 +199,11 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
         });
       });
 
-      return () => unsubscribe();
+      return () => {
+        unsubscribe();
+        set(userStatusDatabaseRef, isOfflineForDatabase);
+        onDisconnect(userStatusDatabaseRef).cancel();
+      };
     }
   }, [currentUser, isPreview]);
 
@@ -171,7 +225,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     // Listen for messages sent TO the current user that are NOT yet delivered
     // This marks them as delivered as long as the user is online (DesktopView is mounted)
     const q = query(
-      collectionGroup(db, "messages"),
+      collection(db, "messages"),
       where("receiverId", "==", currentUser.uid),
       where("delivered", "==", false)
     );
@@ -304,7 +358,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       { label: "Roadmap" },
       { label: "Schedule" },
     ]},
-    { icon: Star, label: "Favorites", active: activeSection === "Favorites" },
+    { icon: Star, label: "Design", active: activeSection === "Design" },
     { icon: FolderOpen, label: "My Projects", active: activeSection === "My Projects" },
     { icon: CheckSquare, label: "Tasks", active: activeSection === "Tasks" },
     { icon: FileText, label: "Notes", active: activeSection === "Notes" },
@@ -582,6 +636,9 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             </Button>
           </div>
         );
+
+      case "Design":
+        return <DesignView />;
 
       case "Settings":
         return <SettingsView />;

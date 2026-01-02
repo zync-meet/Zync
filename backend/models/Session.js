@@ -26,11 +26,10 @@ const sessionSchema = new mongoose.Schema({
 });
 
 // Calculate duration before saving
-sessionSchema.pre('save', function(next) {
+sessionSchema.pre('save', async function() {
   if (this.endTime && this.startTime) {
     this.duration = Math.round((this.endTime - this.startTime) / 1000);
   }
-  next();
 });
 
 module.exports = mongoose.model('Session', sessionSchema);

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,15 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        navigate("/dashboard");
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -25,7 +34,7 @@ const Login = () => {
         title: "Success",
         description: "Logged in successfully",
       });
-      navigate("/dashboard");
+      // Navigation handled by onAuthStateChanged
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -46,7 +55,7 @@ const Login = () => {
         title: "Success",
         description: "Logged in with GitHub successfully",
       });
-      navigate("/dashboard");
+      // Navigation handled by onAuthStateChanged
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -67,7 +76,7 @@ const Login = () => {
         title: "Success",
         description: "Logged in with Google successfully",
       });
-      navigate("/dashboard");
+      // Navigation handled by onAuthStateChanged
     } catch (error: any) {
       toast({
         variant: "destructive",

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,15 @@ const Signup = () => {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        navigate("/dashboard");
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -32,7 +41,7 @@ const Signup = () => {
         title: "Success",
         description: "Account created successfully",
       });
-      navigate("/dashboard");
+      // Navigation handled by onAuthStateChanged
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -53,7 +62,7 @@ const Signup = () => {
         title: "Success",
         description: "Signed up with GitHub successfully",
       });
-      navigate("/dashboard");
+      // Navigation handled by onAuthStateChanged
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -74,7 +83,7 @@ const Signup = () => {
         title: "Success",
         description: "Signed up with Google successfully",
       });
-      navigate("/dashboard");
+      // Navigation handled by onAuthStateChanged
     } catch (error: any) {
       toast({
         variant: "destructive",

@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 5000;
 const projectRoutes = require('./routes/projectRoutes');
 const userRoutes = require('./routes/userRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
+const designRoutes = require('./routes/designRoutes');
 
 app.use(cors());
 app.use(express.json());
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/projects', projectRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/design', designRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)

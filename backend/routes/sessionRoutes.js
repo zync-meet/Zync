@@ -4,10 +4,21 @@ const Session = require('../models/Session');
 
 // Start a new session
 router.post('/start', async (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ message: 'User ID required' });
-
   try {
+    console.log('POST /api/sessions/start body:', req.body);
+    
+    if (!req.body) {
+      console.error('Request body is missing');
+      return res.status(400).json({ message: 'Request body is missing' });
+    }
+
+    const { userId } = req.body;
+    
+    if (!userId) {
+      console.error('User ID is missing in request body');
+      return res.status(400).json({ message: 'User ID required' });
+    }
+
     const today = new Date().toISOString().split('T')[0];
     
     const session = new Session({
@@ -18,10 +29,14 @@ router.post('/start', async (req, res) => {
     });
 
     await session.save();
+    console.log('Session started successfully:', session._id);
     res.status(201).json(session);
   } catch (error) {
     console.error('Error starting session:', error);
-    res.status(500).json({ message: 'Server error' });
+    // Ensure we don't try to send a response if one was already sent (though unlikely here)
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
   }
 });
 
