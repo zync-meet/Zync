@@ -48,6 +48,84 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
   const [userStatuses, setUserStatuses] = useState<Record<string, any>>({});
 
+  // Session Timer State
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [elapsedTime, setElapsedTime] = useState("00:00:00");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+
+  // Start Session on Login
+  useEffect(() => {
+    if (currentUser && !isPreview && !sessionId) {
+      const startSession = async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/sessions/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.uid })
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setSessionId(data._id);
+            setSessionStartTime(new Date(data.startTime));
+          }
+        } catch (error) {
+          console.error("Failed to start session", error);
+        }
+      };
+      startSession();
+    }
+  }, [currentUser, isPreview, sessionId]);
+
+  // Timer & Heartbeat
+  useEffect(() => {
+    if (!sessionStartTime) return;
+
+    const timerInterval = setInterval(() => {
+      const now = new Date();
+      const diff = Math.floor((now.getTime() - sessionStartTime.getTime()) / 1000);
+      
+      const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
+      const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+      const seconds = (diff % 60).toString().padStart(2, '0');
+      
+      setElapsedTime(`${hours}:${minutes}:${seconds}`);
+    }, 1000);
+
+    const heartbeatInterval = setInterval(async () => {
+      if (sessionId) {
+        try {
+          await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, { method: 'PUT' });
+        } catch (error) {
+          console.error("Heartbeat failed", error);
+        }
+      }
+    }, 60000); // Every minute
+
+    return () => {
+      clearInterval(timerInterval);
+      clearInterval(heartbeatInterval);
+    };
+  }, [sessionStartTime, sessionId]);
+
+  // Fetch Activity Logs
+  useEffect(() => {
+    if (activeSection === "Activity log" && currentUser && !isPreview) {
+      const fetchLogs = async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`);
+          if (response.ok) {
+            const data = await response.json();
+            setActivityLogs(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch activity logs", error);
+        }
+      };
+      fetchLogs();
+    }
+  }, [activeSection, currentUser, isPreview]);
+
   // Presence Logic
   useEffect(() => {
     if (currentUser && !isPreview) {
@@ -440,6 +518,54 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           </div>
         );
 
+      case "Activity log":
+        return (
+          <div className="p-6 h-full overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6">Activity Log</h2>
+            <Card>
+              <CardHeader>
+                <CardTitle>Session History</CardTitle>
+                <CardDescription>Track your active time on the platform.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-4 p-4 font-medium border-b bg-muted/50">
+                    <div>Date</div>
+                    <div>Start Time</div>
+                    <div>End Time</div>
+                    <div>Duration</div>
+                  </div>
+                  {activityLogs.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">No activity logs found.</div>
+                  ) : (
+                    activityLogs.map((log) => {
+                      const start = new Date(log.startTime);
+                      const end = new Date(log.endTime);
+                      const durationSeconds = log.duration || Math.round((end.getTime() - start.getTime()) / 1000);
+                      const hours = Math.floor(durationSeconds / 3600);
+                      const minutes = Math.floor((durationSeconds % 3600) / 60);
+                      const seconds = durationSeconds % 60;
+
+                      return (
+                        <div key={log._id} className="grid grid-cols-4 p-4 border-b last:border-0 hover:bg-muted/20">
+                          <div>{log.date}</div>
+                          <div>{start.toLocaleTimeString()}</div>
+                          <div>{end.toLocaleTimeString()}</div>
+                          <div className="font-mono">
+                            {hours.toString().padStart(2, '0')}:
+                            {minutes.toString().padStart(2, '0')}:
+                            {seconds.toString().padStart(2, '0')}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
       case "Meet":
         return (
           <div className="flex-1 w-full flex flex-col items-center justify-center h-full p-6 text-center space-y-6">
@@ -646,7 +772,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-full">
               <Clock className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">01:27:31</span>
+              <span className="text-sm font-medium text-foreground">{elapsedTime}</span>
             </div>
             <Search className="w-5 h-5 text-muted-foreground cursor-pointer" />
             <Bell className="w-5 h-5 text-muted-foreground cursor-pointer" />
