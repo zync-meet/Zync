@@ -20,6 +20,12 @@ const userSchema = new mongoose.Schema({
   countryCode: String,
   birthday: Date,
   phoneNumber: String,
+  isPhoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  phoneVerificationCode: String,
+  phoneVerificationCodeExpires: Date,
   preferences: {
     theme: { type: String, default: 'system' },
     notifications: {

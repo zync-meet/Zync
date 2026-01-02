@@ -1,6 +1,33 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const nodemailer = require('nodemailer');
+
+// Configure Nodemailer (Mock for now, replace with real credentials)
+const transporter = nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    auth: {
+        user: 'ethereal.user@ethereal.email',
+        pass: 'ethereal.pass'
+    }
+});
+
+// Helper to send email
+const sendVerificationEmail = async (email, code) => {
+    console.log(`[MOCK EMAIL] Sending verification code ${code} to ${email}`);
+    // In production, uncomment this:
+    /*
+    await transporter.sendMail({
+        from: '"Zync Support" <support@zync.com>',
+        to: email,
+        subject: 'Phone Verification Code',
+        text: `Your verification code is: ${code}`,
+        html: `<b>Your verification code is: ${code}</b>`
+    });
+    */
+    return true;
+};
 
 // Sync user (create or update)
 router.post('/sync', async (req, res) => {
@@ -84,6 +111,59 @@ router.delete('/:uid', async (req, res) => {
   }
 });
 
-module.exports = router;
+// Request Phone Verification
+router.post('/verify-phone/request', async (req, res) => {
+  const { uid, phoneNumber } = req.body;
+  try {
+    const user = await User.findOne({ uid });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Save code and temp phone number to user
+    user.phoneVerificationCode = code;
+    user.phoneVerificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+    user.phoneNumber = phoneNumber; // Update phone number, but not verified yet
+    user.isPhoneVerified = false;
+    await user.save();
+
+    // Send email
+    await sendVerificationEmail(user.email, code);
+
+    res.status(200).json({ message: 'Verification code sent to email' });
+  } catch (error) {
+    console.error('Error requesting verification:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Confirm Phone Verification
+router.post('/verify-phone/confirm', async (req, res) => {
+  const { uid, code } = req.body;
+  try {
+    const user = await User.findOne({ uid });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.phoneVerificationCode !== code) {
+      return res.status(400).json({ message: 'Invalid code' });
+    }
+
+    if (user.phoneVerificationCodeExpires < Date.now()) {
+      return res.status(400).json({ message: 'Code expired' });
+    }
+
+    // Mark as verified
+    user.isPhoneVerified = true;
+    user.phoneVerificationCode = undefined;
+    user.phoneVerificationCodeExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Phone number verified successfully' });
+  } catch (error) {
+    console.error('Error verifying phone:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;
