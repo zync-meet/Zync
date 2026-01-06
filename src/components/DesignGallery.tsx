@@ -1,0 +1,83 @@
+import React, { useEffect, useState } from 'react';
+
+type Item = {
+  id: string;
+  source: string;
+  title?: string;
+  image?: string | null;
+  thumb?: string | null;
+  photographer?: string;
+  photographerProfile?: string;
+  link?: string | null;
+};
+
+export default function DesignGallery({ query = 'web design' }: { query?: string }) {
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setError(null);
+    const url = `http://localhost:5000/api/design/behance?q=${encodeURIComponent(query)}`;
+    
+    // Explicitly make a simple fetch without custom auth headers
+    fetch(url, { headers: { 'Content-Type': 'application/json' } }) 
+      .then(res => res.json())
+      .then(data => {
+        if (!mounted) return;
+        // Handle array response from /api/design/behance or object from /api/inspiration
+        const list = Array.isArray(data) ? data : (data.items || []);
+        setItems(list);
+        if (list.length === 0) setError('No results found');
+      })
+      .catch(err => { if (mounted) setError(err.message); })
+      .finally(() => { if (mounted) setLoading(false); });
+
+    return () => { mounted = false; };
+  }, [query]);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h2 style={{ margin: 0 }}>Design Inspiration</h2>
+        <div style={{ fontSize: 12, color: '#666' }}>{items.length} items</div>
+      </div>
+
+      {loading && <div>Loading...</div>}
+      {error && <div style={{ color: 'red' }}>{error}</div>}
+
+      <div style={masonryContainerStyle}>
+        {items.map(it => (
+          <a key={it.id} href={it.link || '#'} target="_blank" rel="noreferrer" style={cardStyle}>
+            {it.image ? (
+              <img src={it.image} alt={it.title || ''} style={{ width: '100%', display: 'block', borderRadius: 8 }} />
+            ) : (
+              <div style={{ height: 140, background: '#eee', borderRadius: 8 }} />
+            )}
+            <div style={{ padding: '8px 6px' }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{it.title}</div>
+              <div style={{ fontSize: 12, color: '#666' }}>{it.source}{it.photographer ? ` — ${it.photographer}` : ''}</div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const masonryContainerStyle: React.CSSProperties = {
+  columnCount: 3,
+  columnGap: '1rem',
+  // responsive
+  // smaller screens handled via media queries inline not available; rely on CSS elsewhere
+};
+
+const cardStyle: React.CSSProperties = {
+  display: 'inline-block',
+  width: '100%',
+  marginBottom: '1rem',
+  textDecoration: 'none',
+  color: 'inherit',
+};

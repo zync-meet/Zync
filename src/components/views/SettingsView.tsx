@@ -152,10 +152,13 @@ const SettingsView = () => {
       return;
     }
 
+    // Removed verification check: allow saving unverified numbers
+    /*
     if (profileForm.phoneNumber && !isPhoneVerified) {
         toast({ title: "Error", description: "Please verify your phone number before saving.", variant: "destructive" });
         return;
     }
+    */
 
     setLoading(true);
     try {
@@ -350,18 +353,22 @@ const SettingsView = () => {
                           disabled={!profileForm.countryCode}
                         />
                       </div>
-                      {/* Verification UI */}
-                      {profileForm.phoneNumber && profileForm.phoneNumber.length >= 7 && !isPhoneVerified && !showPhoneVerify && (
-                         <Button 
-                           type="button" 
-                           variant="secondary" 
-                           size="sm" 
-                           className="w-full mt-2"
-                           onClick={initiatePhoneVerification}
-                         >
-                           Verify Phone Number
-                         </Button>
+                      
+                      {/* Unverified Indicator */}
+                      {profileForm.phoneNumber && !isPhoneVerified && (
+                        <div className="flex items-center gap-2 mt-2">
+                           <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                           <span className="text-sm text-yellow-600 dark:text-yellow-400">
+                             Unverified (Saved as metadata)
+                           </span>
+                        </div>
                       )}
+
+                      {/* Verification UI Hidden/Removed */}
+                      {/* 
+                        Verification logic removed to support optional unverified phone numbers.
+                      */}
+                      {/* 
                       {showPhoneVerify && (
                         <div className="mt-2 space-y-2 p-2 border rounded-md bg-muted/50">
                           <Label className="text-xs">Enter Verification Code</Label>
@@ -377,6 +384,7 @@ const SettingsView = () => {
                           <p className="text-xs text-muted-foreground">Check your email for the verification code.</p>
                         </div>
                       )}
+                      */}
                       {isPhoneVerified && profileForm.phoneNumber && (
                         <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
                           <Check className="w-3 h-3" /> Verified

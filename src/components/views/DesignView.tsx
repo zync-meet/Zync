@@ -1,32 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search, ExternalLink, Loader2, Heart } from "lucide-react";
-import { API_BASE_URL } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Search, ExternalLink, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface DribbbleShot {
-  id: number;
+interface DesignItem {
+  id: string;
+  source: string;
   title: string;
-  images: {
-    hidpi: string | null;
-    normal: string;
-    teaser: string;
-  };
-  html_url: string;
-  user: {
-    name: string;
-    avatar_url: string;
-    html_url: string;
-  };
+  image: string | null;
+  link: string | null;
 }
 
+const STORAGE_KEY = "zync-design-view-state";
+
 const DesignView = () => {
-  const [query, setQuery] = useState("");
-  const [shots, setShots] = useState<DribbbleShot[]>([]);
+  // Initialize state from sessionStorage if available
+  const savedState = (() => {
+    try {
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [query, setQuery] = useState(savedState?.query || "web design");
+  const [items, setItems] = useState<DesignItem[]>(savedState?.items || []);
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Save state to sessionStorage whenever it changes
+  useEffect(() => {
+    const stateToSave = {
+      query,
+      items,
+      scrollTop: scrollRef.current?.scrollTop || 0
+    };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+  }, [query, items]);
+
+  // Save scroll position specifically on scroll
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const currentScroll = scrollRef.current.scrollTop;
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        parsed.scrollTop = currentScroll;
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+    }
+  };
+
+  // Restore scroll position after mount and when items are loaded
+  useLayoutEffect(() => {
+    if (savedState?.scrollTop && scrollRef.current) {
+      scrollRef.current.scrollTop = savedState.scrollTop;
+    }
+  }, [items]); // Re-run when items populate to ensuring scrolling happens after content exists
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,12 +68,35 @@ const DesignView = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/design/search?q=${encodeURIComponent(query)}`);
+      // Use the unified endpoint which returns { ok: true, items: [...] } 
+      // OR direct array depending on how getInspiration is structured.
+      // Based on previous code, getInspiration returns { ok: true, count, items: [] }
+      const response = await fetch(`http://localhost:5000/api/design/search?q=${encodeURIComponent(query)}`);
+      
       if (!response.ok) {
         throw new Error("Failed to fetch designs");
       }
       const data = await response.json();
-      setShots(data);
+      
+      // Handle both { ok: true, items: [...] } and plain array formats
+      let results: DesignItem[] = [];
+      if (data.items && Array.isArray(data.items)) {
+        results = data.items;
+      } else if (Array.isArray(data)) {
+        results = data;
+      }
+      setItems(results);
+      
+      if (results.length === 0) {
+        toast({
+          title: "No results",
+          description: "No designs found. Try a different search term.",
+        });
+      }
+      
+      // Reset scroll on new search
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+
     } catch (error) {
       console.error(error);
       toast({
@@ -53,86 +110,72 @@ const DesignView = () => {
   };
 
   return (
-    <div className="flex-1 h-full flex flex-col bg-background p-6 overflow-hidden">
-      <div className="max-w-5xl mx-auto w-full flex flex-col h-full">
-        <div className="mb-8 text-center space-y-4">
-          <h1 className="text-4xl font-bold tracking-tight">Design Inspiration</h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Find the perfect design ideas for your next project. Powered by Dribbble.
-          </p>
-          
-          <form onSubmit={handleSearch} className="flex w-full max-w-lg mx-auto items-center space-x-2 mt-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Search for UI, mobile apps, branding..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-10 h-12"
-              />
-            </div>
-            <Button type="submit" size="lg" disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
-            </Button>
-          </form>
-        </div>
-
-        <div className="flex-1 overflow-y-auto pr-2">
-          {shots.length === 0 && !loading ? (
-            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-              <Search className="w-12 h-12 mb-4 opacity-20" />
-              <p>Enter a keyword to start exploring designs</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8">
-              {shots.map((shot) => (
-                <Card key={shot.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-border/50">
-                  <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                    <img
-                      src={shot.images.normal}
-                      alt={shot.title}
-                      className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
-                      <a
-                        href={shot.html_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-white rounded-full text-black hover:bg-gray-200 transition-colors"
-                        title="View on Dribbble"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </a>
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold truncate mb-2" title={shot.title}>
-                      {shot.title}
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <a 
-                        href={shot.user.html_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <img 
-                          src={shot.user.avatar_url} 
-                          alt={shot.user.name} 
-                          className="w-5 h-5 rounded-full"
-                        />
-                        <span className="truncate max-w-[120px]">{shot.user.name}</span>
-                      </a>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+    <div 
+      ref={scrollRef} 
+      className="h-full space-y-6 p-6 overflow-y-auto scroll-smooth"
+      onScroll={handleScroll}
+    >
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Design Inspiration</h1>
+        <p className="text-muted-foreground">
+          Find the perfect design ideas from Behance and Unsplash.
+        </p>
       </div>
+
+      <form onSubmit={handleSearch} className="flex gap-4 max-w-lg">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search for designs..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        <Button type="submit" disabled={loading}>
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Search
+        </Button>
+      </form>
+
+      {/* Masonry Layout using simple CSS columns */}
+      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+        {items.map((item) => (
+          <div key={item.id} className="break-inside-avoid relative group rounded-lg overflow-hidden border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow">
+            <a href={item.link || '#'} target="_blank" rel="noopener noreferrer" className="block">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                  style={{ display: "block" }} 
+                />
+              ) : (
+                <div className="w-full h-48 bg-muted flex items-center justify-center text-muted-foreground">
+                  No Image
+                </div>
+              )}
+              
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                <div className="text-white font-medium line-clamp-2 mb-2">{item.title}</div>
+                <div className="flex justify-between items-center">
+                  <Badge variant="secondary" className="capitalize bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm">
+                    {item.source}
+                  </Badge>
+                  <ExternalLink className="h-4 w-4 text-white" />
+                </div>
+              </div>
+            </a>
+          </div>
+        ))}
+      </div>
+
+      {!loading && items.length === 0 && (
+         <div className="text-center py-12 text-muted-foreground">
+           Search for something to see results.
+         </div>
+      )}
     </div>
   );
 };

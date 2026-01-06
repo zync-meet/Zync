@@ -40,8 +40,8 @@ router.post('/start', async (req, res) => {
   }
 });
 
-// Update session (heartbeat)
-router.put('/:id', async (req, res) => {
+// Update session (heartbeat) - Support both PUT and POST (for sendBeacon)
+const updateSession = async (req, res) => {
   try {
     const session = await Session.findById(req.params.id);
     if (!session) return res.status(404).json({ message: 'Session not found' });
@@ -54,7 +54,10 @@ router.put('/:id', async (req, res) => {
     console.error('Error updating session:', error);
     res.status(500).json({ message: 'Server error' });
   }
-});
+};
+
+router.put('/:id', updateSession);
+router.post('/:id', updateSession);
 
 // Get user sessions
 router.get('/:userId', async (req, res) => {

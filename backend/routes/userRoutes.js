@@ -37,7 +37,7 @@ const sendVerificationEmail = async (email, code) => {
 
 // Sync user (create or update)
 router.post('/sync', async (req, res) => {
-  const { uid, email, displayName, photoURL } = req.body;
+  const { uid, email, displayName, photoURL, phoneNumber } = req.body;
 
   try {
     let user = await User.findOne({ uid });
@@ -47,6 +47,7 @@ router.post('/sync', async (req, res) => {
       user.email = email;
       user.displayName = displayName;
       user.photoURL = photoURL;
+      if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
       user.status = 'online';
       user.lastSeen = Date.now();
       await user.save();
@@ -57,6 +58,7 @@ router.post('/sync', async (req, res) => {
         email,
         displayName,
         photoURL,
+        phoneNumber,
         status: 'online',
         lastSeen: Date.now(),
       });

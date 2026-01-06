@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Github } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { API_BASE_URL } from "@/lib/utils";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,12 +38,26 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Collect phone number as unverified metadata
+      await fetch(`${API_BASE_URL}/api/users/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName || email.split("@")[0],
+          photoURL: result.user.photoURL,
+          phoneNumber: phoneNumber || undefined // Pass phone number if entered
+        })
+      });
+
       toast({
         title: "Success",
         description: "Account created successfully",
       });
-      // Navigation handled by onAuthStateChanged
+      navigate("/dashboard");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -126,6 +142,18 @@ const Signup = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number (Optional)</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+1 234 567 8900"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">Used for account recovery. Verification not required.</p>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Sign Up"}

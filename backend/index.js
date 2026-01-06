@@ -10,14 +10,19 @@ const projectRoutes = require('./routes/projectRoutes');
 const userRoutes = require('./routes/userRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const designRoutes = require('./routes/designRoutes');
+const inspirationRoutes = require('./routes/inspirationRoutes');
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:8080'],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use('/api/projects', projectRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/design', designRoutes);
+app.use('/api/inspiration', inspirationRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)

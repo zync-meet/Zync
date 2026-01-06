@@ -135,17 +135,21 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     // Save on close
     const handleBeforeUnload = () => {
       if (sessionId) {
-        // Use navigator.sendBeacon for reliable request on unload
         const url = `${API_BASE_URL}/api/sessions/${sessionId}`;
+        
+        // Use sendBeacon for reliable execution during unload
+        // sendBeacon sends a POST request by default
         const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
-        navigator.sendBeacon(url, blob); // PUT request might not work with sendBeacon easily without blob, but usually POST. 
-        // Since our backend expects PUT for update, sendBeacon might be tricky if it only does POST.
-        // However, for simple heartbeat, we can try fetch with keepalive
-        fetch(url, { 
-          method: 'PUT', 
-          keepalive: true,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        const success = navigator.sendBeacon(url, blob);
+        
+        if (!success) {
+           // Fallback if sendBeacon fails or data is too large (unlikely here)
+           fetch(url, { 
+             method: 'POST', 
+             keepalive: true,
+             headers: { 'Content-Type': 'application/json' }
+           });
+        }
       }
     };
 
@@ -598,17 +602,18 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
                       const durationSeconds = log.duration || Math.round((end.getTime() - start.getTime()) / 1000);
                       const hours = Math.floor(durationSeconds / 3600);
                       const minutes = Math.floor((durationSeconds % 3600) / 60);
-                      const seconds = durationSeconds % 60;
+                      
+                      const formattedDuration = hours > 0 
+                        ? `${hours} hr ${minutes} min` 
+                        : `${minutes} min`;
 
                       return (
                         <div key={log._id} className="grid grid-cols-4 p-4 border-b last:border-0 hover:bg-muted/20">
                           <div>{log.date}</div>
                           <div>{start.toLocaleTimeString()}</div>
                           <div>{end.toLocaleTimeString()}</div>
-                          <div className="font-mono">
-                            {hours.toString().padStart(2, '0')}:
-                            {minutes.toString().padStart(2, '0')}:
-                            {seconds.toString().padStart(2, '0')}
+                          <div className="font-medium">
+                            {formattedDuration}
                           </div>
                         </div>
                       );
