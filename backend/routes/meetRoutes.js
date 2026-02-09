@@ -229,7 +229,7 @@ router.post('/invite', verifyToken, async (req, res) => {
         (async () => {
             try {
                 // Process each receiver
-                for (const receiver of receivers) {
+                await Promise.all(receivers.map(async (receiver) => {
                     // 1. Send Email (Using Nodemailer / Gmail)
                     if (receiver.email) {
                         try {
@@ -267,7 +267,7 @@ router.post('/invite', verifyToken, async (req, res) => {
                             console.error(`Failed to email ${receiver.email}:`, emailErr);
                         }
                     }
-                }
+                }));
             } catch (bgError) {
                 console.error("Background notification error:", bgError);
             }
