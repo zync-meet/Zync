@@ -61,7 +61,7 @@ app.use(
       useDefaults: false, // Disable defaults to ensure our overrides take full effect
       directives: {
         "default-src": ["'self'"],
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "https://apis.google.com", "https://www.googleapis.com", "https://www.gstatic.com"],
+        "script-src": ["'self'", "blob:", "https://apis.google.com", "https://www.googleapis.com", "https://www.gstatic.com"],
         "connect-src": ["'self'", "https://github.com", "https://api.github.com", "http://localhost:*", "https://*.firebaseio.com", "ws://localhost:*", "wss://*.glitch.me", "https://*.googleapis.com"],
         "img-src": ["'self'", "data:", "https://avatars.githubusercontent.com", "https://*.googleusercontent.com", "https://*.google.com", "blob:", "https://ui-avatars.com"],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
