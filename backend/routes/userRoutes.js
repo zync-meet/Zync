@@ -469,16 +469,6 @@ router.post('/delete/confirm', verifyToken, async (req, res) => {
   }
 });
 
-// DELETE route (Legacy removed or kept for admin usage?)
-// For now, removing the direct public delete endpoint or restricting it to admin only would be wise,
-// but to avoid breaking other flows completely, I'll comment it out or leave it for admins if needed.
-// For this task, we replace the user-initiated delete flow.
-/*
-router.delete('/:uid', async (req, res) => {
-  // ...
-});
-*/
-
 // Request Phone Verification
 router.post('/verify-phone/request', async (req, res) => {
   const { uid, phoneNumber } = req.body;
