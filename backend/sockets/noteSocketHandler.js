@@ -1,3 +1,5 @@
+const logger = require('../utils/logger');
+
 module.exports = (io) => {
   const notesNamespace = io.of('/notes'); // Dedicated namespace for notes
 
@@ -12,15 +14,15 @@ module.exports = (io) => {
     const userList = Array.from(users.values());
     
     // 🔍 DEBUG: Log broadcast data
-    console.log(`[NoteSocket] 📡 Broadcasting presence_update for note ${noteId}:`);
-    console.log(`[NoteSocket] 📡 User count: ${userList.length}`);
-    console.log(`[NoteSocket] 📡 Users:`, userList.map(u => ({ id: u.id, name: u.name })));
+    logger.debug(`[NoteSocket] 📡 Broadcasting presence_update for note ${noteId}:`);
+    logger.debug(`[NoteSocket] 📡 User count: ${userList.length}`);
+    logger.debug(`[NoteSocket] 📡 Users:`, userList.map(u => ({ id: u.id, name: u.name })));
     
     notesNamespace.to(noteId).emit('presence_update', userList);
   };
 
   notesNamespace.on('connection', (socket) => {
-    console.log('[NoteSocket] ✅ User connected:', socket.id);
+    logger.info('[NoteSocket] ✅ User connected:', socket.id);
 
     // ═══════════════════════════════════════════════════════════════════════
     // JOIN NOTE - User joins a note room and announces presence
@@ -28,7 +30,7 @@ module.exports = (io) => {
     
     socket.on('join_note', ({ noteId, userId, userName, userAvatar, userColor }) => {
       // 🔍 DEBUG: Log join request
-      console.log(`[NoteSocket] 🚪 join_note received:`, { noteId, userId, userName });
+      logger.debug(`[NoteSocket] 🚪 join_note received:`, { noteId, userId, userName });
       
       // Join the socket room
       socket.join(noteId);
@@ -51,8 +53,8 @@ module.exports = (io) => {
         lastActive: Date.now()
       });
 
-      console.log(`[NoteSocket] ✅ ${userName} (${userId}) joined note ${noteId}`);
-      console.log(`[NoteSocket] 📊 Total users in note ${noteId}: ${users.size}`);
+      logger.info(`[NoteSocket] ✅ ${userName} (${userId}) joined note ${noteId}`);
+      logger.debug(`[NoteSocket] 📊 Total users in note ${noteId}: ${users.size}`);
       
       // Broadcast updated presence to all users
       broadcastPresence(noteId);
@@ -94,10 +96,10 @@ module.exports = (io) => {
     
     socket.on('cursor_move', ({ noteId, userId, blockId }) => {
       // 🔍 DEBUG: Log incoming cursor_move
-      console.log(`[NoteSocket] 📍 cursor_move received:`, { noteId, userId, blockId });
+      logger.debug(`[NoteSocket] 📍 cursor_move received:`, { noteId, userId, blockId });
       
       if (!notePresence.has(noteId)) {
-        console.log(`[NoteSocket] ⚠️ No presence map for note ${noteId}`);
+        logger.warn(`[NoteSocket] ⚠️ No presence map for note ${noteId}`);
         return;
       }
 
@@ -107,8 +109,8 @@ module.exports = (io) => {
         user.blockId = blockId;
         user.lastActive = Date.now();
         
-        console.log(`[NoteSocket] 📍 Updated ${user.name}'s cursor to block ${blockId}`);
-        console.log(`[NoteSocket] 📍 Emitting cursor_update to all users in note ${noteId}`);
+        logger.debug(`[NoteSocket] 📍 Updated ${user.name}'s cursor to block ${blockId}`);
+        logger.debug(`[NoteSocket] 📍 Emitting cursor_update to all users in note ${noteId}`);
         
         // Broadcast cursor update to all users
         broadcastPresence(noteId);
@@ -116,7 +118,7 @@ module.exports = (io) => {
         // Also emit specific cursor event for real-time updates
         notesNamespace.to(noteId).emit('cursor_update', { userId, blockId });
       } else {
-        console.log(`[NoteSocket] ⚠️ User ${userId} not found in presence map`);
+        logger.warn(`[NoteSocket] ⚠️ User ${userId} not found in presence map`);
       }
     });
 
@@ -192,7 +194,7 @@ module.exports = (io) => {
         const users = notePresence.get(noteId);
         users.delete(odId);
         
-        console.log(`[NoteSocket] User ${odId} disconnected from note ${noteId}`);
+        logger.info(`[NoteSocket] User ${odId} disconnected from note ${noteId}`);
         
         broadcastPresence(noteId);
         notesNamespace.to(noteId).emit('user_left', odId);
