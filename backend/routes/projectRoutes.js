@@ -3,6 +3,7 @@ const router = express.Router();
 const { GoogleGenerativeAI } = require("@google/generative-ai"); // Changed from Groq
 const Project = require('../models/Project');
 const { sendZyncEmail } = require('../services/mailer');
+const { escapeRegExp } = require('../utils/regexUtils');
 const User = require('../models/User');
 // Prisma Client with Driver Adapter
 const prisma = require('../lib/prisma');
@@ -605,14 +606,21 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
 });
 
 // Search for tasks across all projects
-router.get('/tasks/search', async (req, res) => {
+router.get('/tasks/search', authMiddleware, async (req, res) => {
   try {
-    const { query, userId } = req.query;
+    const { query } = req.query;
+    const userId = req.user.uid;
+
     if (!query) return res.json([]);
 
-    // Find projects accessible to user (owned)
-    // Note: In a real app, also check collaborators
-    const projects = await Project.find({ ownerId: userId });
+    // Find projects accessible to user (owned or collaborator)
+    const projects = await Project.find({
+      $or: [
+        { ownerId: userId },
+        { team: userId },
+        { 'steps.tasks.assignedTo': userId }
+      ]
+    });
 
     const results = [];
     const escapedQuery = escapeRegExp(query);
