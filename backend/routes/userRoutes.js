@@ -7,7 +7,6 @@ const { encrypt } = require('../utils/encryption');
 const { escapeRegExp } = require('../utils/regexUtils');
 // const { sendEmail } = require('../utils/emailService'); // Replaced by mailer
 const { sendZyncEmail } = require('../services/mailer');
-const { escapeRegExp } = require('../utils/regexUtils');
 // const { Resend } = require('resend'); // Removed
 // const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -34,8 +33,9 @@ router.get('/me', verifyToken, async (req, res) => {
 });
 
 // Sync user (create or update)
-router.post('/sync', async (req, res) => {
-  const { uid, email, displayName, photoURL, phoneNumber, firstName, lastName } = req.body;
+router.post('/sync', verifyToken, async (req, res) => {
+  const { uid: bodyUid, email, displayName, photoURL, phoneNumber, firstName, lastName } = req.body;
+  const uid = req.user.uid;
 
   try {
     let user = await User.findOne({ uid });

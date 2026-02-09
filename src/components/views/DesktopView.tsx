@@ -548,10 +548,12 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       if (user && !isPreview) {
         // Sync user to backend
         try {
+          const token = await user.getIdToken();
           await fetch(`${API_BASE_URL}/api/users/sync`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
             },
             body: JSON.stringify({
               uid: user.uid,

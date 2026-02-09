@@ -130,7 +130,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/premsaik/Desktop/Projects/Zync/backend/prisma/generated/client",
+      "value": "/app/backend/prisma/generated/client",
       "fromEnvVar": null
     },
     "config": {
@@ -144,12 +144,11 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/premsaik/Desktop/Projects/Zync/backend/prisma/schema.prisma",
+    "sourceFilePath": "/app/backend/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../..",
   "clientVersion": "5.22.0",

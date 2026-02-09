@@ -39,11 +39,15 @@ const Signup = () => {
     setLoading(true);
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      const token = await result.user.getIdToken();
 
       // Collect phone number as unverified metadata
       await fetch(`${API_BASE_URL}/api/users/sync`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           uid: result.user.uid,
           email: result.user.email,
