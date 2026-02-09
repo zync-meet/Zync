@@ -14,10 +14,6 @@ The project uses two database ORMs simultaneously, which increases complexity an
 
 ## 2. Code Quality & Organization
 
-### Dead Code 💀
-*   **`backend/routes/githubRoutes.js`**: This file is **UNUSED**.
-    *   *Evidence*: `backend/index.js` imports `routes/github` (which resolves to `github.js`). `githubRoutes.js` is a duplicate/legacy file and should be deleted to avoid confusion.
-
 ### Architectural Patterns 🏗️
 *   **"Fat Routes" Anti-Pattern**:
     *   Most business logic (Project Generation, Meet Invite, GitHub OAuth) is written directly inside `backend/routes/*.js` files.
@@ -49,6 +45,5 @@ The project uses two database ORMs simultaneously, which increases complexity an
 
 ## 5. Action Plan
 
-1.  **Delete** `backend/routes/githubRoutes.js`.
-2.  **Move** `firebase-admin` from Root `dependencies` to Backend `dependencies` (if not already there) or `devDependencies` if used for scripts.
-3.  **Refactor** `projectRoutes.js` to extract the Gemini AI logic into `services/aiService.js`.
+1.  **Move** `firebase-admin` from Root `dependencies` to Backend `dependencies` (if not already there) or `devDependencies` if used for scripts.
+2.  **Refactor** `projectRoutes.js` to extract the Gemini AI logic into `services/aiService.js`.
