@@ -19,16 +19,17 @@ async function getInspiration(req, res) {
   console.log(`\n========== INSPIRATION REQUEST (HYBRID): "${query}" ==========`);
 
   try {
-    // 1. Check if cache exists
-    if (!fs.existsSync(DATA_FILE)) {
-      console.warn('WARN: Static cache file not found.');
-    }
-
-    // 2. Read Cache (if exists)
+    // 2. Read Cache (async)
     let allItems = [];
-    if (fs.existsSync(DATA_FILE)) {
-      const rawData = fs.readFileSync(DATA_FILE, 'utf-8');
+    try {
+      const rawData = await fs.promises.readFile(DATA_FILE, 'utf-8');
       allItems = JSON.parse(rawData);
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        console.warn('WARN: Static cache file not found.');
+      } else {
+        console.warn(`WARN: Failed to read cache file: ${err.message}`);
+      }
     }
 
     // 3. Filter if query is present
