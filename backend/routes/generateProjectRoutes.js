@@ -4,13 +4,15 @@ const { Groq } = require('groq-sdk');
 const mongoose = require('mongoose');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const verifyToken = require('../middleware/authMiddleware');
 
 // Initialize Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MODEL_NAME = "llama-3.3-70b-versatile";
 
-router.post('/', async (req, res) => {
-  const { name, description, ownerId } = req.body;
+router.post('/', verifyToken, async (req, res) => {
+  const { name, description } = req.body;
+  const ownerId = req.user.uid;
 
   if (!name || !description) {
     return res.status(400).json({ message: 'Project Name and Description are required' });
@@ -102,7 +104,7 @@ router.post('/', async (req, res) => {
     const newProject = new Project({
       name,
       description,
-      ownerId: ownerId || 'anonymous',
+      ownerId: ownerId,
       architecture: generatedData.architecture || {},
       steps: steps,
       team: [] // We can invite people later
