@@ -63,7 +63,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-// import { ref, onValue, onDisconnect, set, serverTimestamp as rtdbServerTimestamp } from "firebase/database";
 import { Switch } from "@/components/ui/switch";
 import { collection, query, where, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
 import ChatView from "./ChatView";
@@ -504,19 +503,6 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }
   };
 
-  // Presence Logic (RTDB Removed)
-  /*
-  useEffect(() => {
-    // RTDB Logic Removed
-  }, []);
-  */
-
-  // Listen for all users' status (RTDB Removed)
-  /*
-  useEffect(() => {
-    // RTDB Logic Removed
-  }, []);
-  */
 
   // Global Message Delivery Listener
   useEffect(() => {
