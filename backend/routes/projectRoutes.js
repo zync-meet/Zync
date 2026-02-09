@@ -604,14 +604,21 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
 });
 
 // Search for tasks across all projects
-router.get('/tasks/search', async (req, res) => {
+router.get('/tasks/search', authMiddleware, async (req, res) => {
   try {
-    const { query, userId } = req.query;
+    const { query } = req.query;
+    const userId = req.user.uid;
+
     if (!query) return res.json([]);
 
-    // Find projects accessible to user (owned)
-    // Note: In a real app, also check collaborators
-    const projects = await Project.find({ ownerId: userId });
+    // Find projects accessible to user (owned or collaborator)
+    const projects = await Project.find({
+      $or: [
+        { ownerId: userId },
+        { team: userId },
+        { 'steps.tasks.assignedTo': userId }
+      ]
+    });
 
     const results = [];
     const regex = new RegExp(query, 'i');
