@@ -10,7 +10,6 @@ const prisma = require('../lib/prisma');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const authMiddleware = require('../middleware/authMiddleware');
-const { escapeRegExp } = require('../utils/regexUtils');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
 // Reverting to stable model as requested (likely user meant 1.5-flash or 2.0-flash-exp but 1.5 is safer)
@@ -33,10 +32,16 @@ const decryptToken = (ciphertext) => {
 const fs = require('fs');
 const path = require('path');
 
+const logPath = path.join(__dirname, '../debug_architecture.log');
+const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+
+logStream.on('error', (err) => {
+  console.error('[DEBUG] Failed to write to log file:', err);
+});
+
 const logDebug = (message) => {
-  const logPath = path.join(__dirname, '../debug_architecture.log');
   const timestamp = new Date().toISOString();
-  fs.appendFileSync(logPath, `[${timestamp}] ${message}\n`);
+  logStream.write(`[${timestamp}] ${message}\n`);
   console.log(`[DEBUG] ${message}`);
 };
 
