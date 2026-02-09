@@ -69,15 +69,14 @@ module.exports = (io) => {
 
     socket.on('presence-join', ({ noteId, odId, displayName, photoURL, color }) => {
       socket.odId = odId;
-      socket.odId = identifier;
 
       if (!notePresence.has(noteId)) {
         notePresence.set(noteId, new Map());
       }
 
       const users = notePresence.get(noteId);
-      users.set(identifier, {
-        id: identifier,
+      users.set(odId, {
+        id: odId,
         name: displayName || 'Anonymous',
         avatarUrl: photoURL,
         color: color || '#3b82f6',
