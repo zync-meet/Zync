@@ -18,7 +18,6 @@ import { useActivityTracker } from "./hooks/use-activity-tracker";
 import { useChatNotifications } from "./hooks/use-chat-notifications";
 import { useUserSync } from "./hooks/use-user-sync";
 import { WakeUpService } from "@/components/WakeUpService";
-import { useTeamProtection } from "./hooks/use-team-protection";
 
 const queryClient = new QueryClient();
 
