@@ -4,6 +4,7 @@ const verifyToken = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Team = require('../models/Team');
 const { encrypt } = require('../utils/encryption');
+const { escapeRegExp } = require('../utils/regexUtils');
 // const { sendEmail } = require('../utils/emailService'); // Replaced by mailer
 const { sendZyncEmail } = require('../services/mailer');
 // const { Resend } = require('resend'); // Removed
@@ -145,7 +146,8 @@ router.get('/search', verifyToken, async (req, res) => {
   if (!query) return res.json([]);
 
   try {
-    const searchRegex = new RegExp(query, 'i'); // Case-insensitive
+    const escapedQuery = escapeRegExp(query);
+    const searchRegex = new RegExp(escapedQuery, 'i'); // Case-insensitive
     const currentUserUid = req.user.uid;
 
     // Find users matching query, excluding current user
