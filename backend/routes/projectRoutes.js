@@ -60,21 +60,26 @@ const fetchRepoContext = async (accessToken, owner, repo) => {
     // 2. Fetch specific interesting files
     const interestingFiles = ['package.json', 'requirements.txt', 'go.mod', 'README.md', 'schema.prisma', 'Genre.js', 'App.js', 'server.js', 'index.js'];
 
-    for (const file of interestingFiles) {
-      if (files.includes(file)) {
+    const filePromises = interestingFiles
+      .filter(file => files.includes(file))
+      .map(async (file) => {
         try {
           logDebug(`Fetching content of ${file}...`);
           const contentRes = await axios.get(`https://api.github.com/repos/${owner}/${repo}/contents/${file}`, { headers });
           if (contentRes.data.content) {
             const content = Buffer.from(contentRes.data.content, 'base64').toString('utf-8');
             // Truncate large files to avoid token limits
-            context += `\n--- Content of ${file} ---\n${content.substring(0, 5000)}\n----------------------\n`;
+            return `\n--- Content of ${file} ---\n${content.substring(0, 5000)}\n----------------------\n`;
           }
         } catch (e) {
           logDebug(`Failed to fetch ${file}: ${e.message}`);
+          return '';
         }
-      }
-    }
+        return '';
+      });
+
+    const fileContents = await Promise.all(filePromises);
+    context += fileContents.join('');
 
     logDebug(`Context prepared. Length: ${context.length} chars`);
     return context;
