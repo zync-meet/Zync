@@ -121,7 +121,7 @@ router.post('/schedule', verifyToken, async (req, res) => {
 
         // Send Invites (Async)
         (async () => {
-            for (const receiver of participants) {
+            await Promise.all(participants.map(async (receiver) => {
                 if (receiver.email) {
                     try {
                         const senderName = organizer.displayName || 'A colleague';
@@ -151,7 +151,7 @@ router.post('/schedule', verifyToken, async (req, res) => {
                         console.error("Invite email failed for", receiver.email, err);
                     }
                 }
-            }
+            }));
         })();
 
         res.status(201).json(newMeeting);
