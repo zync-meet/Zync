@@ -10,6 +10,7 @@ const prisma = require('../lib/prisma');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const authMiddleware = require('../middleware/authMiddleware');
+const { escapeRegExp } = require('../utils/regexUtils');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
 // Reverting to stable model as requested (likely user meant 1.5-flash or 2.0-flash-exp but 1.5 is safer)
@@ -622,7 +623,8 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
     });
 
     const results = [];
-    const regex = new RegExp(escapeRegExp(query), 'i');
+    const escapedQuery = escapeRegExp(query);
+    const regex = new RegExp(escapedQuery, 'i');
 
     projects.forEach(project => {
       project.steps.forEach(step => {
