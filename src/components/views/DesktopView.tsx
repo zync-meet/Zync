@@ -142,6 +142,14 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const navigate = useNavigate();
   const location = useLocation(); // Get current URL location
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const tokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      currentUser.getIdToken().then(t => tokenRef.current = t);
+    }
+  }, [currentUser]);
+
   const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
 
   // Handle custom chat open event
@@ -297,9 +305,13 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           }
           try {
             // console.log("Starting session for user:", currentUser.uid);
+            const token = await currentUser.getIdToken();
             const response = await fetch(`${API_BASE_URL}/api/sessions/start`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
               body: JSON.stringify({ userId: currentUser.uid })
             });
 
@@ -340,9 +352,13 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }, 1000);
 
     const heartbeatInterval = setInterval(async () => {
-      if (sessionId) {
+      if (sessionId && auth.currentUser) {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, { method: 'PUT' });
+          const token = await auth.currentUser.getIdToken();
+          const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
 
           // Self-healing: If session is not found (404), it means server restarted or session invalid.
           if (response.status === 404) {
@@ -360,22 +376,18 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
     // Save on close
     const handleBeforeUnload = () => {
-      if (sessionId) {
+      if (sessionId && tokenRef.current) {
         const url = `${API_BASE_URL}/api/sessions/${sessionId}`;
 
-        // Use sendBeacon for reliable execution during unload
-        // sendBeacon sends a POST request by default
-        const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
-        const success = navigator.sendBeacon(url, blob);
-
-        if (!success) {
-          // Fallback if sendBeacon fails or data is too large (unlikely here)
-          fetch(url, {
-            method: 'POST',
-            keepalive: true,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
+        fetch(url, {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokenRef.current}`
+          },
+          body: JSON.stringify({})
+        });
       }
     };
 
@@ -393,7 +405,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     if (activeSection === "Activity log" && currentUser && !isPreview) {
       const fetchLogs = async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`);
+          const token = await currentUser.getIdToken();
+          const response = await fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
           if (response.ok) {
             const data = await response.json();
             setActivityLogs(data);
@@ -439,10 +454,14 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     if (activeSection === "Activity log" && currentUser && !isPreview && usersList.length > 0) {
       const fetchTeamSessions = async () => {
         try {
+          const token = await currentUser.getIdToken();
           const userIds = usersList.map(u => u.uid);
           const response = await fetch(`${API_BASE_URL}/api/sessions/batch`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ userIds })
           });
           if (response.ok) {
@@ -469,9 +488,12 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   }, [activeSection, currentUser, isPreview, usersList]);
 
   const handleDeleteLog = async (logId: string) => {
+    if (!currentUser) return;
     try {
+      const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/sessions/${logId}`, {
         method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         setActivityLogs(prev => prev.filter(log => log._id !== logId));
@@ -488,8 +510,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const handleClearLogs = async () => {
     if (!currentUser) return;
     try {
+      const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/sessions/user/${currentUser.uid}`, {
         method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         setActivityLogs([]);
