@@ -34,6 +34,11 @@ router.get('/folders', async (req, res) => {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
+    // Validate userId is a string to prevent NoSQL injection
+    if (typeof userId !== 'string') {
+      return res.status(400).json({ error: 'Invalid User ID format' });
+    }
+
     // Fetch personal folders (owner) AND shared folders (collaborator)
     const folders = await Folder.find({
       $or: [
@@ -99,6 +104,16 @@ router.get('/', async (req, res) => {
     const { userId, folderId } = req.query;
     
     if (!userId) return res.status(400).json({ error: 'User ID is required' });
+
+    // Validate userId is a string to prevent NoSQL injection
+    if (typeof userId !== 'string') {
+      return res.status(400).json({ error: 'Invalid User ID format' });
+    }
+
+    // Validate folderId is a string if provided
+    if (folderId && typeof folderId !== 'string') {
+      return res.status(400).json({ error: 'Invalid Folder ID format' });
+    }
 
     let query = {};
 
