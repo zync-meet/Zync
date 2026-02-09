@@ -2,19 +2,26 @@ const express = require('express');
 const router = express.Router();
 const Note = require('../models/Note');
 const Folder = require('../models/Folder');
+const verifyToken = require('../middleware/authMiddleware');
 
 // --- Folders ---
 
 // Create a new folder
-router.post('/folders', async (req, res) => {
+router.post('/folders', verifyToken, async (req, res) => {
   try {
     const { name, ownerId, parentId, type, projectId, color } = req.body;
     
-    if (!ownerId) return res.status(400).json({ error: 'Owner ID is required' });
+    // Ensure the authenticated user is the owner
+    if (ownerId && ownerId !== req.user.uid) {
+      return res.status(403).json({ error: 'Unauthorized: Cannot create folder for another user' });
+    }
+    // If ownerId not provided, default to authenticated user?
+    // Current code required ownerId. Let's strictly enforce it matches or use req.user.uid.
+    const finalOwnerId = ownerId || req.user.uid;
 
     const folder = new Folder({
       name,
-      ownerId,
+      ownerId: finalOwnerId,
       parentId: parentId || null,
       type: type || 'personal',
       projectId: projectId || null,
@@ -29,15 +36,10 @@ router.post('/folders', async (req, res) => {
 });
 
 // Get all folders for a user
-router.get('/folders', async (req, res) => {
+router.get('/folders', verifyToken, async (req, res) => {
   try {
-    const { userId } = req.query;
-    if (!userId) return res.status(400).json({ error: 'User ID is required' });
-
-    // Validate userId is a string to prevent NoSQL injection
-    if (typeof userId !== 'string') {
-      return res.status(400).json({ error: 'Invalid User ID format' });
-    }
+    const userId = req.user.uid;
+    // We ignore req.query.userId to prevent IDOR
 
     // Fetch personal folders (owner) AND shared folders (collaborator)
     const folders = await Folder.find({
@@ -54,10 +56,18 @@ router.get('/folders', async (req, res) => {
 });
 
 // Share a folder
-router.post('/folders/:id/share', async (req, res) => {
+router.post('/folders/:id/share', verifyToken, async (req, res) => {
   try {
     const { collaboratorIds } = req.body; // Array of UIDs
     const { id } = req.params;
+
+    // Check ownership
+    const folderToCheck = await Folder.findById(id);
+    if (!folderToCheck) return res.status(404).json({ error: 'Folder not found' });
+
+    if (folderToCheck.ownerId !== req.user.uid) {
+      return res.status(403).json({ error: 'Unauthorized: Only owner can share folder' });
+    }
 
     const folder = await Folder.findByIdAndUpdate(
       id,
@@ -65,7 +75,6 @@ router.post('/folders/:id/share', async (req, res) => {
       { new: true }
     );
 
-    if (!folder) return res.status(404).json({ error: 'Folder not found' });
     res.json(folder);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -76,16 +85,20 @@ router.post('/folders/:id/share', async (req, res) => {
 // --- Notes ---
 
 // Create a new note
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
     const { title, content, ownerId, folderId, projectId, tags } = req.body;
 
-    if (!ownerId) return res.status(400).json({ error: 'Owner ID is required' });
+    // Enforce ownerId matches authenticated user
+    if (ownerId && ownerId !== req.user.uid) {
+       return res.status(403).json({ error: 'Unauthorized: Cannot create note for another user' });
+    }
+    const finalOwnerId = ownerId || req.user.uid;
 
     const note = new Note({
       title: title || 'Untitled',
       content: content || {},
-      ownerId,
+      ownerId: finalOwnerId,
       folderId: folderId || null,
       projectId: projectId || null,
       tags: tags || []
@@ -99,17 +112,12 @@ router.post('/', async (req, res) => {
 });
 
 // Get all notes for a user (optionally filtered by folder)
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const { userId, folderId } = req.query;
+    // SECURITY FIX: Use req.user.uid instead of req.query.userId
+    const userId = req.user.uid;
+    const { folderId } = req.query;
     
-    if (!userId) return res.status(400).json({ error: 'User ID is required' });
-
-    // Validate userId is a string to prevent NoSQL injection
-    if (typeof userId !== 'string') {
-      return res.status(400).json({ error: 'Invalid User ID format' });
-    }
-
     // Validate folderId is a string if provided
     if (folderId && typeof folderId !== 'string') {
       return res.status(400).json({ error: 'Invalid Folder ID format' });
@@ -132,7 +140,6 @@ router.get('/', async (req, res) => {
       } else {
           // Folder not found or looking for root notes?
           // If folderId is provided but not found, return empty or error.
-          // Assuming strict check:
            return res.status(404).json({ error: 'Folder not found' });
       }
     } else {
@@ -160,10 +167,36 @@ router.get('/', async (req, res) => {
 });
 
 // Get single note by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, async (req, res) => {
   try {
     const note = await Note.findById(req.params.id);
     if (!note) return res.status(404).json({ error: 'Note not found' });
+
+    // Check access: Owner or Collaborator or Shared
+    // (Assuming shared notes logic should exist, but sticking to basic ownership for now based on context)
+    // Note schema has `isShared`, `collaborators`
+
+    const isOwner = note.ownerId === req.user.uid;
+    const isCollaborator = note.collaborators && note.collaborators.includes(req.user.uid);
+    // If note is in a folder, check folder permissions?
+    // The main list query checks folder permissions. Here we check note permissions.
+    // Ideally we should also check folder permissions if note inherits them.
+    // But let's check basic note access first.
+
+    if (!isOwner && !isCollaborator && !note.isShared) {
+        // If it's in a shared folder, user should have access?
+        if (note.folderId) {
+             const folder = await Folder.findById(note.folderId);
+             if (folder && (folder.ownerId === req.user.uid || (folder.collaborators && folder.collaborators.includes(req.user.uid)))) {
+                 // Access granted via folder
+             } else {
+                 return res.status(403).json({ error: 'Access denied' });
+             }
+        } else {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+    }
+
     res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -171,11 +204,23 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update a note
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { title, content, folderId, isPinned, tags } = req.body;
     
-    const note = await Note.findByIdAndUpdate(
+    const note = await Note.findById(req.params.id);
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+
+    // Only owner can update? Or collaborators?
+    // Let's assume owner and collaborators can update content
+    const isOwner = note.ownerId === req.user.uid;
+    const isCollaborator = note.collaborators && note.collaborators.includes(req.user.uid);
+
+    if (!isOwner && !isCollaborator) {
+         return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const updatedNote = await Note.findByIdAndUpdate(
       req.params.id,
       { 
         ...(title && { title }),
@@ -187,18 +232,24 @@ router.put('/:id', async (req, res) => {
       { new: true }
     );
 
-    if (!note) return res.status(404).json({ error: 'Note not found' });
-    res.json(note);
+    res.json(updatedNote);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Delete a note
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    const note = await Note.findByIdAndDelete(req.params.id);
+    const note = await Note.findById(req.params.id);
     if (!note) return res.status(404).json({ error: 'Note not found' });
+
+    // Only owner can delete
+    if (note.ownerId !== req.user.uid) {
+        return res.status(403).json({ error: 'Unauthorized: Only owner can delete note' });
+    }
+
+    await Note.findByIdAndDelete(req.params.id);
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
