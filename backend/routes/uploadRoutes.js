@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const mime = require('mime-types');
 
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, '../uploads');
@@ -17,7 +18,8 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        const ext = mime.extension(file.mimetype) || 'bin';
+        cb(null, uniqueSuffix + '.' + ext);
     }
 });
 
@@ -35,7 +37,7 @@ const fileFilter = (req, file, cb) => {
         'application/x-zip-compressed'
     ];
     
-    if (allowedMimeTypes.includes(file.mimetype) || file.mimetype.startsWith('image/')) {
+    if (allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
         cb(new Error('Invalid file type. Only images, PDFs, Docs, Text and Zip files are allowed.'));
