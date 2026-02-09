@@ -62,36 +62,33 @@ async function generateTasksFromIdea(userId, idea, repoIds) {
     await prisma.$transaction(async (tx) => {
       // Get current count to generate sequential IDs (e.g., TASK-001)
       const lastTask = await tx.task.findFirst({
-        orderBy: { id: 'desc' }
+        orderBy: { displayId: 'desc' }
       });
 
-      let nextIdNum = lastTask ? lastTask.id + 1 : 1;
+      let nextIdNum = 1;
+      if (lastTask && lastTask.displayId) {
+        const match = lastTask.displayId.match(/TASK-(\d+)/);
+        if (match) {
+          nextIdNum = parseInt(match[1], 10) + 1;
+        }
+      }
 
-      for (const taskData of generatedTasks) {
-        const displayId = `TASK-${String(nextIdNum).padStart(3, '0')}`;
+      // Create the Task concurrently
+      const newTasks = await Promise.all(generatedTasks.map((taskData, index) => {
+        const currentIdNum = nextIdNum + index;
+        const displayId = `TASK-${String(currentIdNum).padStart(3, '0')}`;
 
-        // Create the Task
-        const newTask = await tx.task.create({
+        return tx.task.create({
           data: {
-            display_id: displayId,
+            displayId: displayId,
             description: `${taskData.title}: ${taskData.description}`,
             status: 'Backlog',
-            repositories: {
-              create: repoIds.map(repoId => ({
-                repository: {
-                  connect: { id: repoId }
-                }
-              }))
-            }
-          },
-          include: {
-            repositories: true
+            repoIds: repoIds
           }
         });
+      }));
 
-        createdTasks.push(newTask);
-        nextIdNum++;
-      }
+      createdTasks.push(...newTasks);
     });
 
     return createdTasks;
