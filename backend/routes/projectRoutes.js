@@ -3,6 +3,7 @@ const router = express.Router();
 const { GoogleGenerativeAI } = require("@google/generative-ai"); // Changed from Groq
 const Project = require('../models/Project');
 const { sendZyncEmail } = require('../services/mailer');
+const { escapeRegExp } = require('../utils/regexUtils');
 const User = require('../models/User');
 // Prisma Client with Driver Adapter
 const prisma = require('../lib/prisma');
@@ -614,7 +615,7 @@ router.get('/tasks/search', async (req, res) => {
     const projects = await Project.find({ ownerId: userId });
 
     const results = [];
-    const regex = new RegExp(query, 'i');
+    const regex = new RegExp(escapeRegExp(query), 'i');
 
     projects.forEach(project => {
       project.steps.forEach(step => {
