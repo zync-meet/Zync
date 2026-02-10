@@ -18,6 +18,7 @@ import { useActivityTracker } from "./hooks/use-activity-tracker";
 import { useChatNotifications } from "./hooks/use-chat-notifications";
 import { useUserSync } from "./hooks/use-user-sync";
 import { WakeUpService } from "@/components/WakeUpService";
+import { GlobalLoading } from "@/components/GlobalLoading";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const AppContent = () => {
   return (
     <>
       <WakeUpService />
+      <GlobalLoading />
       <AnimatePresence mode="wait">
         <motion.div
           key={location.pathname}
