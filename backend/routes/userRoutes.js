@@ -5,7 +5,6 @@ const User = require('../models/User');
 const Team = require('../models/Team');
 const { encrypt } = require('../utils/encryption');
 const { escapeRegExp } = require('../utils/regexUtils');
-// const { sendEmail } = require('../utils/emailService'); // Replaced by mailer
 const { sendZyncEmail } = require('../services/mailer');
 // const { Resend } = require('resend'); // Removed
 // const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;

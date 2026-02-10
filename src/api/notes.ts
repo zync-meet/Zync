@@ -4,6 +4,8 @@
  * Please do not use this for new features.
  */
 import { API_BASE_URL } from '../lib/utils';
+import { auth } from '../lib/firebase';
+
 const API_URL = `${API_BASE_URL}/api/notes`;
 
 export interface Folder {
@@ -27,16 +29,27 @@ export interface Note {
   isPinned?: boolean;
 }
 
+const getAuthHeaders = async () => {
+  const user = auth.currentUser;
+  const token = user ? await user.getIdToken() : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+};
+
 export const fetchFolders = async (userId: string): Promise<Folder[]> => {
-  const response = await fetch(`${API_URL}/folders?userId=${userId}`);
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/folders?userId=${userId}`, { headers });
   if (!response.ok) throw new Error('Failed to fetch folders');
   return response.json();
 };
 
 export const createFolder = async (data: { name: string; ownerId: string; parentId?: string; type?: string }) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_URL}/folders`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error('Failed to create folder');
@@ -44,9 +57,10 @@ export const createFolder = async (data: { name: string; ownerId: string; parent
 };
 
 export const shareFolder = async (folderId: string, collaboratorIds: string[]) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_URL}/folders/${folderId}/share`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ collaboratorIds }),
   });
   if (!response.ok) throw new Error('Failed to share folder');
@@ -54,18 +68,20 @@ export const shareFolder = async (folderId: string, collaboratorIds: string[]) =
 };
 
 export const fetchNotes = async (userId: string, folderId?: string): Promise<Note[]> => {
+  const headers = await getAuthHeaders();
   const url = folderId
     ? `${API_URL}?userId=${userId}&folderId=${folderId}`
     : `${API_URL}?userId=${userId}`;
-  const response = await fetch(url);
+  const response = await fetch(url, { headers });
   if (!response.ok) throw new Error('Failed to fetch notes');
   return response.json();
 };
 
 export const createNote = async (data: { title: string; ownerId: string; folderId?: string; content?: any }) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_URL}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error('Failed to create note');
@@ -73,9 +89,10 @@ export const createNote = async (data: { title: string; ownerId: string; folderI
 };
 
 export const updateNote = async (id: string, data: any) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_URL}/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error('Failed to update note');
@@ -83,8 +100,10 @@ export const updateNote = async (id: string, data: any) => {
 };
 
 export const deleteNote = async (id: string) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_URL}/${id}`, {
     method: 'DELETE',
+    headers
   });
   if (!response.ok) throw new Error('Failed to delete note');
   return response.json();

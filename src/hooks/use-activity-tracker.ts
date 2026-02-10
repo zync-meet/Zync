@@ -15,9 +15,13 @@ export const useActivityTracker = () => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
+          const token = await user.getIdToken();
           const res = await fetch(`${API_BASE_URL}/api/sessions/start`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ userId: user.uid }),
           });
           if (res.ok) {
@@ -59,14 +63,21 @@ export const useActivityTracker = () => {
         }
 
         // Send heartbeat
-        fetch(`${API_BASE_URL}/api/sessions/${sessionIdRef.current}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                lastAction: new Date(lastActionRef.current),
-                activeIncrement: increment
-            })
-        }).catch(err => console.error("Heartbeat failed", err));
+        if (auth.currentUser) {
+          auth.currentUser.getIdToken().then(token => {
+            fetch(`${API_BASE_URL}/api/sessions/${sessionIdRef.current}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    lastAction: new Date(lastActionRef.current),
+                    activeIncrement: increment
+                })
+            }).catch(err => console.error("Heartbeat failed", err));
+          });
+        }
 
     }, HEARTBEAT_INTERVAL);
 
