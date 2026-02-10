@@ -14,6 +14,10 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+if (!firebaseConfig.apiKey) {
+  console.error("CRITICAL: Firebase Configuration Missing. Please ensure .env file exists and contains VITE_FIREBASE_API_KEY.");
+}
+
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);

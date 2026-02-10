@@ -4,7 +4,8 @@ directories:
   output: dist_electron
   buildResources: build
 files:
-  - "electron/**/*"
+  - "dist-electron/**/*"
+  - "dist/**/*"
   - "package.json"
 
 win:

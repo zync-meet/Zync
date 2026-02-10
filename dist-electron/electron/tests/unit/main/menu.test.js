@@ -1,0 +1,612 @@
+/**
+ * =============================================================================
+ * Application Menu Tests — ZYNC Desktop Application
+ * =============================================================================
+ *
+ * Unit tests for the application menu builder module. These tests verify that:
+ *
+ * 1. The menu template is correctly built for each platform
+ * 2. Menu items have correct labels, roles, and accelerators
+ * 3. Click handlers properly send IPC messages to the renderer
+ * 4. Platform-specific menus are included/excluded appropriately
+ * 5. Submenus are properly nested
+ *
+ * @module electron/tests/unit/main/menu.test
+ * @author ZYNC Team
+ * @version 1.0.0
+ * @license MIT
+ * =============================================================================
+ */
+import { describe, it, expect, beforeEach, afterEach, vi, } from 'vitest';
+import { createMockWindow, captureConsole, } from '../../helpers';
+// =============================================================================
+// Mock Setup
+// =============================================================================
+/**
+ * Store for mock Menu behavior.
+ */
+let lastBuiltTemplate = [];
+let applicationMenu = null;
+/**
+ * Mock Electron modules.
+ */
+vi.mock('electron', () => ({
+    app: {
+        getVersion: vi.fn().mockReturnValue('1.0.0'),
+        getName: vi.fn().mockReturnValue('ZYNC'),
+        quit: vi.fn(),
+        isPackaged: false,
+    },
+    shell: {
+        openExternal: vi.fn().mockResolvedValue(undefined),
+    },
+    dialog: {
+        showMessageBox: vi.fn().mockResolvedValue({ response: 0 }),
+    },
+    Menu: {
+        buildFromTemplate: vi.fn((template) => {
+            lastBuiltTemplate = template;
+            return { items: template };
+        }),
+        setApplicationMenu: vi.fn((menu) => {
+            applicationMenu = menu;
+        }),
+        getApplicationMenu: vi.fn(() => applicationMenu),
+    },
+    BrowserWindow: vi.fn(),
+}));
+// Import after mocking
+import { buildApplicationMenu } from '../../../main/menu';
+import { Menu, shell } from 'electron';
+// =============================================================================
+// Test Helpers
+// =============================================================================
+/**
+ * Finds a menu item by label in a flat or nested menu structure.
+ */
+function findMenuItem(menu, path) {
+    let current = menu;
+    for (let i = 0; i < path.length; i++) {
+        const label = path[i];
+        const found = current.find((item) => item.label === label);
+        if (!found) {
+            return undefined;
+        }
+        if (i === path.length - 1) {
+            return found;
+        }
+        // Navigate into submenu
+        if (found.submenu) {
+            current = Array.isArray(found.submenu)
+                ? found.submenu
+                : found.submenu.items;
+        }
+        else {
+            return undefined;
+        }
+    }
+    return undefined;
+}
+/**
+ * Gets all menu items at the top level.
+ */
+function getTopLevelMenus(template) {
+    return template.map((item) => item.label || '').filter(Boolean);
+}
+/**
+ * Counts total menu items including nested items.
+ */
+function countAllMenuItems(items) {
+    let count = 0;
+    for (const item of items) {
+        count++;
+        if (item.submenu) {
+            const subItems = Array.isArray(item.submenu)
+                ? item.submenu
+                : item.submenu.items;
+            count += countAllMenuItems(subItems);
+        }
+    }
+    return count;
+}
+// =============================================================================
+// Test Suite: Application Menu
+// =============================================================================
+describe('Application Menu', () => {
+    /**
+     * Mock main window for testing.
+     */
+    let mockWindow;
+    /**
+     * Console spy for capturing log output.
+     */
+    let consoleSpy;
+    /**
+     * Original platform value.
+     */
+    let originalPlatform;
+    /**
+     * Set up before each test.
+     */
+    beforeEach(() => {
+        // Reset all mocks
+        vi.clearAllMocks();
+        lastBuiltTemplate = [];
+        applicationMenu = null;
+        // Create mock window
+        mockWindow = createMockWindow();
+        // Capture console
+        consoleSpy = captureConsole();
+        // Save original platform
+        originalPlatform = process.platform;
+    });
+    /**
+     * Clean up after each test.
+     */
+    afterEach(() => {
+        // Restore console
+        consoleSpy.restore();
+        // Restore platform
+        Object.defineProperty(process, 'platform', {
+            value: originalPlatform,
+        });
+    });
+    // ===========================================================================
+    // Test Group: Menu Creation
+    // ===========================================================================
+    describe('Menu Creation', () => {
+        it('should return a Menu object', () => {
+            const menu = buildApplicationMenu(mockWindow);
+            expect(menu).toBeDefined();
+            expect(Menu.buildFromTemplate).toHaveBeenCalled();
+        });
+        it('should call Menu.buildFromTemplate with an array', () => {
+            buildApplicationMenu(mockWindow);
+            expect(Menu.buildFromTemplate).toHaveBeenCalledWith(expect.any(Array));
+        });
+        it('should handle null main window', () => {
+            const menu = buildApplicationMenu(null);
+            expect(menu).toBeDefined();
+            expect(lastBuiltTemplate.length).toBeGreaterThan(0);
+        });
+        it('should create multiple top-level menus', () => {
+            buildApplicationMenu(mockWindow);
+            expect(lastBuiltTemplate.length).toBeGreaterThan(3);
+        });
+    });
+    // ===========================================================================
+    // Test Group: Platform Detection
+    // ===========================================================================
+    describe('Platform Detection', () => {
+        describe('macOS', () => {
+            beforeEach(() => {
+                Object.defineProperty(process, 'platform', {
+                    value: 'darwin',
+                });
+            });
+            it('should include app menu as first menu on macOS', () => {
+                buildApplicationMenu(mockWindow);
+                const firstMenu = lastBuiltTemplate[0];
+                expect(firstMenu.label).toBe('ZYNC');
+            });
+            it('should include About item in app menu on macOS', () => {
+                buildApplicationMenu(mockWindow);
+                const aboutItem = findMenuItem(lastBuiltTemplate, ['ZYNC', 'About ZYNC']);
+                expect(aboutItem).toBeDefined();
+                expect(aboutItem?.role).toBe('about');
+            });
+            it('should include Preferences item with Cmd+, on macOS', () => {
+                buildApplicationMenu(mockWindow);
+                const prefsItem = findMenuItem(lastBuiltTemplate, [
+                    'ZYNC',
+                    'Preferences...',
+                ]);
+                expect(prefsItem).toBeDefined();
+                expect(prefsItem?.accelerator).toBe('Cmd+,');
+            });
+            it('should include Services submenu on macOS', () => {
+                buildApplicationMenu(mockWindow);
+                const servicesItem = findMenuItem(lastBuiltTemplate, ['ZYNC', 'Services']);
+                expect(servicesItem).toBeDefined();
+                expect(servicesItem?.role).toBe('services');
+            });
+            it('should include Hide items on macOS', () => {
+                buildApplicationMenu(mockWindow);
+                const hideItem = findMenuItem(lastBuiltTemplate, ['ZYNC', 'Hide ZYNC']);
+                const hideOthersItem = findMenuItem(lastBuiltTemplate, [
+                    'ZYNC',
+                    'Hide Others',
+                ]);
+                const showAllItem = findMenuItem(lastBuiltTemplate, ['ZYNC', 'Show All']);
+                expect(hideItem?.role).toBe('hide');
+                expect(hideOthersItem?.role).toBe('hideOthers');
+                expect(showAllItem?.role).toBe('unhide');
+            });
+            it('should include Quit item at end of app menu on macOS', () => {
+                buildApplicationMenu(mockWindow);
+                const quitItem = findMenuItem(lastBuiltTemplate, ['ZYNC', 'Quit ZYNC']);
+                expect(quitItem).toBeDefined();
+                expect(quitItem?.role).toBe('quit');
+            });
+        });
+        describe('Windows/Linux', () => {
+            beforeEach(() => {
+                Object.defineProperty(process, 'platform', {
+                    value: 'win32',
+                });
+            });
+            it('should not include app-named menu as first on Windows', () => {
+                buildApplicationMenu(mockWindow);
+                const firstMenu = lastBuiltTemplate[0];
+                // On Windows, first menu should be File, not ZYNC
+                expect(firstMenu.label).not.toBe('ZYNC');
+            });
+            it('should include Exit in File menu on Windows', () => {
+                buildApplicationMenu(mockWindow);
+                const exitItem = findMenuItem(lastBuiltTemplate, ['File', 'Exit']);
+                expect(exitItem).toBeDefined();
+                expect(exitItem?.role).toBe('quit');
+            });
+            it('should not include macOS-specific Services menu on Windows', () => {
+                buildApplicationMenu(mockWindow);
+                // Services should not exist at top level or in File menu
+                const servicesInFile = findMenuItem(lastBuiltTemplate, [
+                    'File',
+                    'Services',
+                ]);
+                expect(servicesInFile).toBeUndefined();
+            });
+        });
+    });
+    // ===========================================================================
+    // Test Group: File Menu
+    // ===========================================================================
+    describe('File Menu', () => {
+        it('should include File menu', () => {
+            buildApplicationMenu(mockWindow);
+            const topMenus = getTopLevelMenus(lastBuiltTemplate);
+            expect(topMenus).toContain('File');
+        });
+        it('should include New Window item', () => {
+            buildApplicationMenu(mockWindow);
+            const newWindowItem = findMenuItem(lastBuiltTemplate, [
+                'File',
+                'New Window',
+            ]);
+            expect(newWindowItem).toBeDefined();
+            expect(newWindowItem?.accelerator).toBe('CmdOrCtrl+N');
+        });
+        it('should include Settings item', () => {
+            buildApplicationMenu(mockWindow);
+            const settingsItem = findMenuItem(lastBuiltTemplate, ['File', 'Settings']);
+            expect(settingsItem).toBeDefined();
+            expect(settingsItem?.accelerator).toBe('CmdOrCtrl+,');
+        });
+        it('should have click handler for New Window', () => {
+            buildApplicationMenu(mockWindow);
+            const newWindowItem = findMenuItem(lastBuiltTemplate, [
+                'File',
+                'New Window',
+            ]);
+            // Trigger click
+            newWindowItem?.click?.({}, undefined, {});
+            // Should send IPC message
+            expect(mockWindow.webContents.send).toHaveBeenCalledWith('fromMain', {
+                action: 'new-window',
+            });
+        });
+        it('should have click handler for Settings', () => {
+            buildApplicationMenu(mockWindow);
+            const settingsItem = findMenuItem(lastBuiltTemplate, ['File', 'Settings']);
+            // Trigger click
+            settingsItem?.click?.({}, undefined, {});
+            // Should send IPC message
+            expect(mockWindow.webContents.send).toHaveBeenCalledWith('fromMain', {
+                action: 'open-settings',
+            });
+        });
+    });
+    // ===========================================================================
+    // Test Group: Edit Menu
+    // ===========================================================================
+    describe('Edit Menu', () => {
+        it('should include Edit menu', () => {
+            buildApplicationMenu(mockWindow);
+            const topMenus = getTopLevelMenus(lastBuiltTemplate);
+            expect(topMenus).toContain('Edit');
+        });
+        it('should include standard edit items', () => {
+            buildApplicationMenu(mockWindow);
+            const editItems = [
+                { label: 'Undo', role: 'undo' },
+                { label: 'Redo', role: 'redo' },
+                { label: 'Cut', role: 'cut' },
+                { label: 'Copy', role: 'copy' },
+                { label: 'Paste', role: 'paste' },
+            ];
+            for (const expected of editItems) {
+                const item = findMenuItem(lastBuiltTemplate, ['Edit', expected.label]);
+                expect(item).toBeDefined();
+                expect(item?.role).toBe(expected.role);
+            }
+        });
+        it('should include Select All item', () => {
+            buildApplicationMenu(mockWindow);
+            const selectAllItem = findMenuItem(lastBuiltTemplate, [
+                'Edit',
+                'Select All',
+            ]);
+            expect(selectAllItem).toBeDefined();
+            expect(selectAllItem?.role).toBe('selectAll');
+        });
+        it('should have separator between redo and cut', () => {
+            buildApplicationMenu(mockWindow);
+            const editMenu = findMenuItem(lastBuiltTemplate, ['Edit']);
+            const submenu = Array.isArray(editMenu?.submenu)
+                ? editMenu.submenu
+                : editMenu?.submenu?.items;
+            // Find index of Redo and Cut
+            let redoIndex = -1;
+            let cutIndex = -1;
+            submenu?.forEach((item, index) => {
+                if (item.label === 'Redo')
+                    redoIndex = index;
+                if (item.label === 'Cut')
+                    cutIndex = index;
+            });
+            // There should be a separator between them
+            expect(cutIndex).toBeGreaterThan(redoIndex);
+            expect(submenu?.[redoIndex + 1]?.type).toBe('separator');
+        });
+    });
+    // ===========================================================================
+    // Test Group: View Menu
+    // ===========================================================================
+    describe('View Menu', () => {
+        it('should include View menu', () => {
+            buildApplicationMenu(mockWindow);
+            const topMenus = getTopLevelMenus(lastBuiltTemplate);
+            expect(topMenus).toContain('View');
+        });
+        it('should include Reload item', () => {
+            buildApplicationMenu(mockWindow);
+            const reloadItem = findMenuItem(lastBuiltTemplate, ['View', 'Reload']);
+            expect(reloadItem).toBeDefined();
+            expect(reloadItem?.role).toBe('reload');
+        });
+        it('should include Force Reload item', () => {
+            buildApplicationMenu(mockWindow);
+            const forceReloadItem = findMenuItem(lastBuiltTemplate, [
+                'View',
+                'Force Reload',
+            ]);
+            expect(forceReloadItem).toBeDefined();
+            expect(forceReloadItem?.role).toBe('forceReload');
+        });
+        it('should include Toggle Developer Tools item', () => {
+            buildApplicationMenu(mockWindow);
+            const devToolsItem = findMenuItem(lastBuiltTemplate, [
+                'View',
+                'Toggle Developer Tools',
+            ]);
+            expect(devToolsItem).toBeDefined();
+            expect(devToolsItem?.role).toBe('toggleDevTools');
+        });
+        it('should include zoom controls', () => {
+            buildApplicationMenu(mockWindow);
+            const zoomInItem = findMenuItem(lastBuiltTemplate, ['View', 'Zoom In']);
+            const zoomOutItem = findMenuItem(lastBuiltTemplate, ['View', 'Zoom Out']);
+            const resetZoomItem = findMenuItem(lastBuiltTemplate, [
+                'View',
+                'Reset Zoom',
+            ]);
+            expect(zoomInItem?.role).toBe('zoomIn');
+            expect(zoomOutItem?.role).toBe('zoomOut');
+            expect(resetZoomItem?.role).toBe('resetZoom');
+        });
+        it('should include Toggle Fullscreen item', () => {
+            buildApplicationMenu(mockWindow);
+            const fullscreenItem = findMenuItem(lastBuiltTemplate, [
+                'View',
+                'Toggle Fullscreen',
+            ]);
+            expect(fullscreenItem).toBeDefined();
+            expect(fullscreenItem?.role).toBe('togglefullscreen');
+        });
+    });
+    // ===========================================================================
+    // Test Group: Window Menu
+    // ===========================================================================
+    describe('Window Menu', () => {
+        it('should include Window menu', () => {
+            buildApplicationMenu(mockWindow);
+            const topMenus = getTopLevelMenus(lastBuiltTemplate);
+            expect(topMenus).toContain('Window');
+        });
+        it('should include Minimize item', () => {
+            buildApplicationMenu(mockWindow);
+            const minimizeItem = findMenuItem(lastBuiltTemplate, [
+                'Window',
+                'Minimize',
+            ]);
+            expect(minimizeItem).toBeDefined();
+            expect(minimizeItem?.role).toBe('minimize');
+        });
+        it('should include Close item', () => {
+            buildApplicationMenu(mockWindow);
+            const closeItem = findMenuItem(lastBuiltTemplate, ['Window', 'Close']);
+            expect(closeItem).toBeDefined();
+            expect(closeItem?.role).toBe('close');
+        });
+        describe('macOS', () => {
+            beforeEach(() => {
+                Object.defineProperty(process, 'platform', {
+                    value: 'darwin',
+                });
+            });
+            it('should include Zoom item on macOS', () => {
+                buildApplicationMenu(mockWindow);
+                const zoomItem = findMenuItem(lastBuiltTemplate, ['Window', 'Zoom']);
+                expect(zoomItem).toBeDefined();
+                expect(zoomItem?.role).toBe('zoom');
+            });
+            it('should include Front item on macOS', () => {
+                buildApplicationMenu(mockWindow);
+                const frontItem = findMenuItem(lastBuiltTemplate, [
+                    'Window',
+                    'Bring All to Front',
+                ]);
+                expect(frontItem).toBeDefined();
+                expect(frontItem?.role).toBe('front');
+            });
+        });
+    });
+    // ===========================================================================
+    // Test Group: Help Menu
+    // ===========================================================================
+    describe('Help Menu', () => {
+        it('should include Help menu', () => {
+            buildApplicationMenu(mockWindow);
+            const topMenus = getTopLevelMenus(lastBuiltTemplate);
+            expect(topMenus).toContain('Help');
+        });
+        it('should include documentation link', () => {
+            buildApplicationMenu(mockWindow);
+            const docsItem = findMenuItem(lastBuiltTemplate, ['Help', 'Documentation']);
+            expect(docsItem).toBeDefined();
+            expect(docsItem?.click).toBeDefined();
+        });
+        it('should open external URL when documentation is clicked', () => {
+            buildApplicationMenu(mockWindow);
+            const docsItem = findMenuItem(lastBuiltTemplate, ['Help', 'Documentation']);
+            // Trigger click
+            docsItem?.click?.({}, undefined, {});
+            // Should open external URL
+            expect(shell.openExternal).toHaveBeenCalled();
+        });
+        it('should include Report Issue link', () => {
+            buildApplicationMenu(mockWindow);
+            const issueItem = findMenuItem(lastBuiltTemplate, ['Help', 'Report Issue']);
+            expect(issueItem).toBeDefined();
+        });
+        it('should include About item on Windows/Linux', () => {
+            Object.defineProperty(process, 'platform', {
+                value: 'win32',
+            });
+            buildApplicationMenu(mockWindow);
+            const aboutItem = findMenuItem(lastBuiltTemplate, ['Help', 'About ZYNC']);
+            expect(aboutItem).toBeDefined();
+        });
+    });
+    // ===========================================================================
+    // Test Group: Keyboard Shortcuts
+    // ===========================================================================
+    describe('Keyboard Shortcuts', () => {
+        it('should use CmdOrCtrl for cross-platform shortcuts', () => {
+            buildApplicationMenu(mockWindow);
+            // Check that CmdOrCtrl is used for common shortcuts
+            const settingsItem = findMenuItem(lastBuiltTemplate, ['File', 'Settings']);
+            const newWindowItem = findMenuItem(lastBuiltTemplate, [
+                'File',
+                'New Window',
+            ]);
+            expect(settingsItem?.accelerator).toContain('CmdOrCtrl');
+            expect(newWindowItem?.accelerator).toContain('CmdOrCtrl');
+        });
+        it('should have Cmd prefix for macOS-only shortcuts', () => {
+            Object.defineProperty(process, 'platform', {
+                value: 'darwin',
+            });
+            buildApplicationMenu(mockWindow);
+            const prefsItem = findMenuItem(lastBuiltTemplate, [
+                'ZYNC',
+                'Preferences...',
+            ]);
+            expect(prefsItem?.accelerator).toBe('Cmd+,');
+        });
+    });
+    // ===========================================================================
+    // Test Group: Click Handlers
+    // ===========================================================================
+    describe('Click Handlers', () => {
+        it('should not throw when clicking with null window', () => {
+            const menu = buildApplicationMenu(null);
+            const newWindowItem = findMenuItem(lastBuiltTemplate, [
+                'File',
+                'New Window',
+            ]);
+            // Should not throw
+            expect(() => {
+                newWindowItem?.click?.({}, undefined, {});
+            }).not.toThrow();
+        });
+        it('should send correct IPC message for settings', () => {
+            buildApplicationMenu(mockWindow);
+            const settingsItem = findMenuItem(lastBuiltTemplate, ['File', 'Settings']);
+            settingsItem?.click?.({}, undefined, {});
+            expect(mockWindow.webContents.send).toHaveBeenCalledWith('fromMain', {
+                action: 'open-settings',
+            });
+        });
+        it('should send correct IPC message for new window', () => {
+            buildApplicationMenu(mockWindow);
+            const newWindowItem = findMenuItem(lastBuiltTemplate, [
+                'File',
+                'New Window',
+            ]);
+            newWindowItem?.click?.({}, undefined, {});
+            expect(mockWindow.webContents.send).toHaveBeenCalledWith('fromMain', {
+                action: 'new-window',
+            });
+        });
+    });
+    // ===========================================================================
+    // Test Group: Menu Structure
+    // ===========================================================================
+    describe('Menu Structure', () => {
+        it('should have separators to group related items', () => {
+            buildApplicationMenu(mockWindow);
+            let separatorCount = 0;
+            function countSeparators(items) {
+                for (const item of items) {
+                    if (item.type === 'separator') {
+                        separatorCount++;
+                    }
+                    if (item.submenu) {
+                        const subItems = Array.isArray(item.submenu)
+                            ? item.submenu
+                            : item.submenu.items;
+                        countSeparators(subItems);
+                    }
+                }
+            }
+            countSeparators(lastBuiltTemplate);
+            // Menu should have multiple separators for organization
+            expect(separatorCount).toBeGreaterThan(5);
+        });
+        it('should have reasonable total item count', () => {
+            buildApplicationMenu(mockWindow);
+            const totalItems = countAllMenuItems(lastBuiltTemplate);
+            // Should have a substantial number of menu items
+            expect(totalItems).toBeGreaterThan(20);
+            // But not too many
+            expect(totalItems).toBeLessThan(100);
+        });
+        it('should not have empty submenus', () => {
+            buildApplicationMenu(mockWindow);
+            function checkForEmptySubmenus(items) {
+                for (const item of items) {
+                    if (item.submenu) {
+                        const subItems = Array.isArray(item.submenu)
+                            ? item.submenu
+                            : item.submenu.items;
+                        expect(subItems.length).toBeGreaterThan(0);
+                        checkForEmptySubmenus(subItems);
+                    }
+                }
+            }
+            checkForEmptySubmenus(lastBuiltTemplate);
+        });
+    });
+});
+//# sourceMappingURL=menu.test.js.map

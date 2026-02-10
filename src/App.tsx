@@ -28,17 +28,26 @@ const AppContent = () => {
   useUserSync(); // Sync user data (names) globally
   const location = useLocation();
 
+  // Group all dashboard routes under a single key to prevent re-mounting the layout (sidebar)
+  const getPageKey = (pathname: string) => {
+    if (pathname.startsWith('/dashboard')) {
+      return 'dashboard-layout';
+    }
+    return pathname;
+  };
+
   return (
     <>
       <WakeUpService />
       <GlobalLoading />
       <AnimatePresence mode="wait">
         <motion.div
-          key={location.pathname}
+          key={getPageKey(location.pathname)}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
+          className="h-full w-full"
         >
           <Routes location={location}>
             <Route path="/" element={<Index />} />

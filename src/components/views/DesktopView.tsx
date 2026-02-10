@@ -600,11 +600,18 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   // Fetch Full User Data (including integrations)
   useEffect(() => {
-    if (currentUser?.uid) {
-      fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`)
-        .then(res => res.json())
-        .then(data => {
+    const fetchUserData = async () => {
+      if (currentUser?.uid) {
+        try {
+          const token = await currentUser.getIdToken();
+          const res = await fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`, {
+             headers: {
+                 'Authorization': `Bearer ${token}`
+             }
+          });
+          const data = await res.json();
           setUserData(data);
+
           // If connected to GitHub, fetch public profile
           if (data?.integrations?.github?.connected && data?.integrations?.github?.username) {
             const username = data.integrations.github.username;
@@ -613,9 +620,12 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
               .then(ghData => setGithubProfile(ghData))
               .catch(err => console.error("Failed to fetch GitHub profile:", err));
           }
-        })
-        .catch(err => console.error("Error fetching user details:", err));
-    }
+        } catch (err) {
+            console.error("Error fetching user details:", err);
+        }
+      }
+    };
+    fetchUserData();
   }, [currentUser, activeSection]); // Re-fetch when section changes or user loads
 
   // ... existing effects ...
@@ -864,7 +874,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             "bg-[#0F0F10] flex flex-col transition-all duration-300 ease-in-out h-full border-none",
             isCollapsed && "min-w-[70px]",
             // Animation logic: Hidden during landing, slides in when landing finishes
-            isLanding ? "opacity-0 invisible" : "animate-in slide-in-from-left-10 duration-1000 fade-in fill-mode-forwards"
+            isLanding ? "opacity-0 invisible" : ""
           )}
         >
           {/* Sidebar Content */}

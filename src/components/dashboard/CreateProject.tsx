@@ -27,11 +27,13 @@ const CreateProject = ({ onProjectCreated }: CreateProjectProps) => {
     try {
       const user = auth.currentUser;
       const ownerId = user ? user.uid : "anonymous";
+      const token = user ? await user.getIdToken() : "";
 
       const response = await fetch(`${API_BASE_URL}/api/generate-project`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           name: projectName,

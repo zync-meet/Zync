@@ -1,27 +1,3 @@
-/**
- * =============================================================================
- * ZYNC Desktop Application - Test Setup File
- * =============================================================================
- *
- * This file runs before each test file and sets up the testing environment.
- * It configures global mocks, utilities, and test fixtures that are commonly
- * needed across all Electron tests.
- *
- * This file is referenced in vitest.config.ts under `setupFiles`.
- *
- * =============================================================================
- * What This File Does
- * =============================================================================
- *
- * 1. Sets up Electron API mocks
- * 2. Configures global test utilities
- * 3. Sets up environment variables for testing
- * 4. Provides common matchers and assertions
- * 5. Handles cleanup between tests
- *
- * =============================================================================
- */
-
 import { vi, beforeEach, afterEach, beforeAll, afterAll, expect } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'node:fs';

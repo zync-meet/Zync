@@ -324,8 +324,15 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     if (!confirm("Are you sure you want to delete this project?")) return;
 
     try {
+      let headers: HeadersInit = {};
+      if (currentUser && typeof currentUser.getIdToken === 'function') {
+          const token = await currentUser.getIdToken();
+          headers = { 'Authorization': `Bearer ${token}` };
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
         method: 'DELETE',
+        headers
       });
 
       if (response.ok) {
@@ -353,22 +360,40 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
 
     const loadData = async () => {
       try {
+        let headers: HeadersInit = {};
+        if (currentUser && typeof currentUser.getIdToken === 'function') {
+           const token = await currentUser.getIdToken();
+           headers = { 'Authorization': `Bearer ${token}` };
+        }
+
         const ownerQuery = currentUser ? `?ownerId=${currentUser.uid}` : '';
-        const [projectsRes, notes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/projects${ownerQuery}`, { signal: controller.signal }),
-          currentUser ? fetchNotes(currentUser.uid) : Promise.resolve([])
+        const [projectsRes, notesRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/projects${ownerQuery}`, { 
+            headers,
+            signal: controller.signal 
+          }),
+          currentUser ? fetch(`${API_BASE_URL}/api/notes?userId=${currentUser.uid}`, { headers, signal: controller.signal }) : Promise.resolve(null)
         ]);
 
         if (projectsRes.ok) {
           const data = await projectsRes.json();
           setProjects(data);
+        } else if (projectsRes.status === 401) {
+            console.warn("Unauthorized fetch (likely token expired or missing)");
         } else {
           console.error("Projects fetch failed:", projectsRes.status);
           toast({ title: "Connection Error", description: "Could not fetch projects. Server might be down.", variant: "destructive" });
         }
 
+        let notes = [];
+        if (notesRes && notesRes.ok) {
+            notes = await notesRes.json();
+        } else if (notesRes) {
+             console.warn("Notes fetch failed:", notesRes.status);
+        }
+
         if (notes && Array.isArray(notes)) {
-          setPinnedNotes(notes.filter(n => n.isPinned));
+          setPinnedNotes(notes.filter((n: any) => n.isPinned));
         }
 
       } catch (error: any) {

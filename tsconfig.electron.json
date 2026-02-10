@@ -19,5 +19,6 @@
     },
     "types": ["node"]
   },
-  "include": ["electron/**/*.ts", "electron/**/*.tsx", "electron.vite.config.ts"]
+  "include": ["electron/**/*.ts", "electron/**/*.tsx"],
+  "exclude": ["electron/tests/**/*", "**/*.spec.ts", "**/*.test.ts", "electron/vitest.config.ts"]
 }
