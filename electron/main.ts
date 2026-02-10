@@ -67,16 +67,16 @@ const createWindow = (): void => {
    * In production, load the static app URL.
    */
   if (isDev) {
-    mainWindow.loadURL(devUrl).catch((err) => {
+    mainWindow?.loadURL(devUrl).catch((err) => {
       console.error('Failed to load dev server URL:', err);
       console.log('Falling back to production APP_URL');
-      mainWindow.loadURL(appUrl);
+      mainWindow?.loadURL(appUrl);
     });
 
     // Open the DevTools automatically in development mode for debugging
-    mainWindow.webContents.openDevTools();
+    mainWindow?.webContents.openDevTools();
   } else {
-    mainWindow.loadURL(appUrl).catch((err) => {
+    mainWindow?.loadURL(appUrl).catch((err) => {
       console.error('Failed to load application URL:', err);
     });
   }
@@ -164,7 +164,7 @@ const createMenu = (): void => {
         { label: 'Settings', click: createSettingsWindow },
         isMac ? { role: 'close' } : { role: 'quit' }
       ]
-    },
+    } as Electron.MenuItemConstructorOptions,
     // Edit Menu
     {
       label: 'Edit',
@@ -178,7 +178,7 @@ const createMenu = (): void => {
         { role: 'delete' },
         { role: 'selectAll' }
       ]
-    },
+    } as Electron.MenuItemConstructorOptions,
     // View Menu
     {
       label: 'View',
@@ -193,7 +193,7 @@ const createMenu = (): void => {
         { type: 'separator' },
         { role: 'togglefullscreen' }
       ]
-    },
+    } as Electron.MenuItemConstructorOptions,
     // Window Menu
     {
       label: 'Window',
@@ -209,7 +209,7 @@ const createMenu = (): void => {
           { role: 'close' }
         ])
       ]
-    },
+    } as Electron.MenuItemConstructorOptions,
     // Help Menu
     {
       role: 'help',
@@ -221,7 +221,7 @@ const createMenu = (): void => {
           }
         }
       ]
-    }
+    } as Electron.MenuItemConstructorOptions
   ];
 
   const menu = Menu.buildFromTemplate(template);

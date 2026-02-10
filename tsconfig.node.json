@@ -6,8 +6,15 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noEmit": true,
-    "types": ["node"]
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "types": [
+      "node"
+    ]
   },
-  "include": ["vite.config.ts", "scripts/**/*.ts", "electron.vite.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "scripts/**/*.ts",
+    "electron.vite.config.ts"
+  ]
 }
