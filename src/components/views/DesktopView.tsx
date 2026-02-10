@@ -134,7 +134,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   useEffect(() => {
     if (!isPreview) {
-      localStorage.setItem("zync-active-section", activeSection);
+      localStorage.setItem("ZYNC-active-section", activeSection);
     }
   }, [activeSection, isPreview]);
 
