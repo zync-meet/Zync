@@ -1,5 +1,5 @@
 /**
- * @file main.js
+ * @file main.ts
  * @description Main process entry point for the ZYNC Desktop Application.
  * This file is responsible for creating windows, handling IPC communication,
  * and managing the application lifecycle.
@@ -9,7 +9,7 @@
  * @license MIT
  */
 
-import { app, BrowserWindow, Menu, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, shell, IpcMainEvent } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,15 +19,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /**
  * Global reference to the main application window.
  * Kept global to prevent garbage collection.
- * @type {BrowserWindow | null}
  */
-let mainWindow = null;
+let mainWindow: BrowserWindow | null = null;
 
 /**
  * Global reference to the settings window.
- * @type {BrowserWindow | null}
  */
-let settingsWindow = null;
+let settingsWindow: BrowserWindow | null = null;
 
 /**
  * Creates the main application window.
@@ -36,7 +34,7 @@ let settingsWindow = null;
  *
  * @returns {void}
  */
-const createWindow = () => {
+const createWindow = (): void => {
   // Create the browser window with specified dimensions and preferences
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -96,7 +94,7 @@ const createWindow = () => {
  *
  * @returns {void}
  */
-const createSettingsWindow = () => {
+const createSettingsWindow = (): void => {
   // If the window already exists, bring it to focus instead of creating a new one
   if (settingsWindow) {
     if (settingsWindow.isMinimized()) settingsWindow.restore();
@@ -111,7 +109,7 @@ const createSettingsWindow = () => {
     title: 'ZYNC Settings',
     resizable: false,
     autoHideMenuBar: true,
-    parent: mainWindow, // Make it a child of the main window
+    parent: mainWindow || undefined, // Make it a child of the main window
     modal: false,       // Set to true if you want a modal dialog
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -138,10 +136,10 @@ const createSettingsWindow = () => {
  *
  * @returns {void}
  */
-const createMenu = () => {
+const createMenu = (): void => {
   const isMac = process.platform === 'darwin';
 
-  const template = [
+  const template: Electron.MenuItemConstructorOptions[] = [
     // App Menu (macOS only)
     ...(isMac ? [{
       label: app.name,
@@ -158,7 +156,7 @@ const createMenu = () => {
         { type: 'separator' },
         { role: 'quit' }
       ]
-    }] : []),
+    } as Electron.MenuItemConstructorOptions] : []),
     // File Menu
     {
       label: 'File',
@@ -275,7 +273,7 @@ app.on('window-all-closed', () => {
  * Sets up the Inter-Process Communication (IPC) handlers.
  * Listens for messages from the renderer process.
  */
-function setupIpcHandlers() {
+function setupIpcHandlers(): void {
   /**
    * Handler to open the settings window.
    */
@@ -290,7 +288,7 @@ function setupIpcHandlers() {
    * @param {IpcMainEvent} event - The IPC event.
    * @param {string} platform - The target platform ('win', 'mac', 'linux').
    */
-  ipcMain.on('download-platform', (event, platform) => {
+  ipcMain.on('download-platform', (event: IpcMainEvent, platform: string) => {
     console.log(`Received download request for platform: ${platform}`);
     let url = '';
 

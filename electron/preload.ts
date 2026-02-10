@@ -1,5 +1,5 @@
 /**
- * @file preload.js
+ * @file preload.ts
  * @description Preload script for the renderer process.
  * This script runs before the renderer process is loaded and has access to both
  * Node.js APIs and the DOM. It uses contextBridge to safely expose specific
@@ -10,7 +10,7 @@
  * @license MIT
  */
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
 /**
  * Expose protected methods that allow the renderer process to use
@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('electron', {
    *
    * @param {string} platform - The target platform ('win', 'mac', 'linux').
    */
-  downloadPlatform: (platform) => {
+  downloadPlatform: (platform: string): void => {
     // Validate the input to prevent arbitrary IPC calls
     const validPlatforms = ['win', 'mac', 'linux'];
     if (validPlatforms.includes(platform)) {
@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld('electron', {
    * Request to open the settings window.
    * Sends an IPC message to the main process.
    */
-  openSettings: () => {
+  openSettings: (): void => {
     ipcRenderer.send('open-settings');
   },
 
@@ -48,11 +48,11 @@ contextBridge.exposeInMainWorld('electron', {
    * @param {string} channel - The channel to listen on.
    * @param {function} func - The callback function.
    */
-  on: (channel, func) => {
+  on: (channel: string, func: (...args: unknown[]) => void): void => {
     const validChannels = ['fromMain']; // Whitelist channels
     if (validChannels.includes(channel)) {
       // Strip event as it includes sender
-      ipcRenderer.on(channel, (event, ...args) => func(...args));
+      ipcRenderer.on(channel, (_event: IpcRendererEvent, ...args: unknown[]) => func(...args));
     }
   },
 });
@@ -62,9 +62,9 @@ contextBridge.exposeInMainWorld('electron', {
  * Useful for debugging and displaying app info.
  */
 contextBridge.exposeInMainWorld('versions', {
-  node: () => process.versions.node,
-  chrome: () => process.versions.chrome,
-  electron: () => process.versions.electron,
+  node: (): string => process.versions.node,
+  chrome: (): string => process.versions.chrome,
+  electron: (): string => process.versions.electron,
   // Add application version if needed
   // app: () => process.env.npm_package_version,
 });

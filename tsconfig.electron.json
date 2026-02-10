@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "strict": true,
+    "sourceMap": true,
+    "outDir": "dist-electron",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@electron/*": ["./electron/*"],
+      "@config/*": ["./config/*"]
+    },
+    "types": ["node"]
+  },
+  "include": ["electron/**/*.ts", "electron/**/*.tsx", "electron.vite.config.ts"]
+}
