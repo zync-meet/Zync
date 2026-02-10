@@ -1,0 +1,251 @@
+# =============================================================================
+# ZYNC Desktop Application - Auto-Labeler Workflow
+# =============================================================================
+#
+# This GitHub Action automatically applies labels to pull requests based on
+# the files modified. This helps with:
+# - Routing PRs to the right reviewers
+# - Categorizing changes for release notes
+# - Filtering PRs by area of the codebase
+#
+# GitHub Action: actions/labeler
+# https://github.com/actions/labeler
+#
+# Label configuration is in .github/labeler.yml
+#
+# =============================================================================
+# How It Works
+# =============================================================================
+#
+# 1. When a PR is opened or updated, this workflow runs
+# 2. It checks which files are modified in the PR
+# 3. Based on the patterns in labeler.yml, it applies matching labels
+# 4. Labels are added but not removed (to preserve manually added labels)
+#
+# =============================================================================
+
+name: 🏷️ Auto-Label PRs
+
+# -----------------------------------------------------------------------------
+# Workflow Triggers
+# -----------------------------------------------------------------------------
+
+on:
+  # Run when a PR is opened, synchronized (pushed to), or reopened
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  
+  # Also run when the labeler config or this workflow changes
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/labeler.yml'
+      - '.github/workflows/labeler.yml'
+  
+  # Allow manual triggering for testing
+  workflow_dispatch:
+
+# -----------------------------------------------------------------------------
+# Permissions
+# -----------------------------------------------------------------------------
+# Needs write access to contents (to read file changes) and pull-requests
+# (to add labels).
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# -----------------------------------------------------------------------------
+# Concurrency
+# -----------------------------------------------------------------------------
+# Allow only one labeler run per PR to prevent race conditions.
+
+concurrency:
+  group: labeler-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# -----------------------------------------------------------------------------
+# Jobs
+# -----------------------------------------------------------------------------
+
+jobs:
+  # ===========================================================================
+  # Job: Label Pull Request
+  # ===========================================================================
+  
+  label:
+    name: 🏷️ Apply Labels
+    runs-on: ubuntu-latest
+    
+    # Only run on PRs, not on push events to main
+    if: github.event_name == 'pull_request'
+    
+    timeout-minutes: 5
+    
+    steps:
+      # -----------------------------------------------------------------------
+      # Step 1: Apply Labels Based on File Paths
+      # -----------------------------------------------------------------------
+      
+      - name: 🏷️ Apply Labels
+        uses: actions/labeler@v5
+        with:
+          # Use the default GITHUB_TOKEN
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Path to the labeler configuration file
+          configuration-path: .github/labeler.yml
+          
+          # Don't remove labels that were manually applied
+          sync-labels: false
+          
+          # Use v5 matching behavior (any match adds label)
+          dot: true
+
+      # -----------------------------------------------------------------------
+      # Step 2: Summary
+      # -----------------------------------------------------------------------
+      
+      - name: 📊 Summary
+        run: |
+          echo "## 🏷️ Auto-Labeler Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Labels have been automatically applied based on the files changed in this PR." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Title:** ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+
+  # ===========================================================================
+  # Job: Validate Labeler Config
+  # ===========================================================================
+  # This job runs when the labeler config is changed to ensure it's valid.
+  
+  validate:
+    name: ✅ Validate Config
+    runs-on: ubuntu-latest
+    
+    # Only run when labeler config is changed
+    if: |
+      github.event_name == 'push' || 
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.changed_files, '.github/labeler.yml'))
+    
+    timeout-minutes: 5
+    
+    steps:
+      # -----------------------------------------------------------------------
+      # Step 1: Checkout Repository
+      # -----------------------------------------------------------------------
+      
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Step 2: Validate YAML Syntax
+      # -----------------------------------------------------------------------
+      
+      - name: ✅ Validate YAML Syntax
+        run: |
+          echo "Validating .github/labeler.yml syntax..."
+          
+          # Check if file exists
+          if [ ! -f .github/labeler.yml ]; then
+            echo "❌ Error: .github/labeler.yml not found"
+            exit 1
+          fi
+          
+          # Use Python to validate YAML
+          python3 -c "
+          import yaml
+          import sys
+          
+          try:
+              with open('.github/labeler.yml', 'r') as f:
+                  config = yaml.safe_load(f)
+              
+              if not isinstance(config, dict):
+                  print('❌ Error: labeler.yml must be a dictionary')
+                  sys.exit(1)
+              
+              for label, rules in config.items():
+                  if not isinstance(label, str):
+                      print(f'❌ Error: Label must be a string: {label}')
+                      sys.exit(1)
+                  
+                  if not isinstance(rules, list):
+                      print(f'❌ Error: Rules for {label} must be a list')
+                      sys.exit(1)
+              
+              print(f'✅ Valid! Found {len(config)} label configurations')
+              
+          except yaml.YAMLError as e:
+              print(f'❌ YAML Error: {e}')
+              sys.exit(1)
+          except Exception as e:
+              print(f'❌ Error: {e}')
+              sys.exit(1)
+          "
+
+      # -----------------------------------------------------------------------
+      # Step 3: Summary
+      # -----------------------------------------------------------------------
+      
+      - name: 📊 Summary
+        run: |
+          echo "## ✅ Labeler Config Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The labeler configuration has been validated successfully." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Labels Configured:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`yaml" >> $GITHUB_STEP_SUMMARY
+          cat .github/labeler.yml | head -50 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+# =============================================================================
+# Workflow Documentation
+# =============================================================================
+#
+# This workflow automatically labels PRs to help with:
+#
+# 1. **Triage**: Quickly see what areas of the codebase a PR touches
+# 2. **Review Routing**: CODEOWNERS + labels help route to right reviewers
+# 3. **Release Notes**: Labels help categorize changes in changelogs
+# 4. **Filtering**: Search PRs by label in the GitHub UI
+#
+# The labeling rules are defined in .github/labeler.yml using glob patterns.
+# Each label has a list of patterns - if any file matches, the label is added.
+#
+# =============================================================================
+# Common Label Categories
+# =============================================================================
+#
+# Area Labels (what part of the codebase):
+# - area:electron - Electron main/preload process
+# - area:frontend - React frontend code
+# - area:backend - Node.js backend code
+# - area:ci - CI/CD and GitHub Actions
+# - area:docs - Documentation
+#
+# Type Labels (what kind of change):
+# - type:feature - New functionality
+# - type:bugfix - Bug fixes
+# - type:refactor - Code refactoring
+# - type:test - Test changes
+# - type:chore - Maintenance tasks
+#
+# Size Labels (how big is the change):
+# - size:XS - < 10 lines
+# - size:S - 10-50 lines
+# - size:M - 50-200 lines
+# - size:L - 200-500 lines
+# - size:XL - > 500 lines
+#
+# =============================================================================
+#
+# Last Updated: 2026-02-10
+# Maintained by: ZYNC DevOps Team
+#
+# =============================================================================

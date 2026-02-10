@@ -1,0 +1,446 @@
+# =============================================================================
+# ZYNC Desktop Application - Label Sync Workflow
+# =============================================================================
+#
+# This GitHub Action synchronizes repository labels from the labels.yml
+# configuration file. It ensures consistency in label names, colors, and
+# descriptions across the repository.
+#
+# The workflow runs when labels.yml is modified and can be triggered manually.
+#
+# GitHub Action: EndBug/label-sync
+# https://github.com/EndBug/label-sync
+#
+# =============================================================================
+# How It Works
+# =============================================================================
+#
+# 1. Reads label definitions from .github/labels.yml
+# 2. Compares with existing repository labels
+# 3. Creates new labels that don't exist
+# 4. Updates labels that have changed (color, description)
+# 5. Optionally deletes labels not in the config
+#
+# =============================================================================
+
+name: 🏷️ Sync Repository Labels
+
+# -----------------------------------------------------------------------------
+# Workflow Triggers
+# -----------------------------------------------------------------------------
+
+on:
+  # Run when labels.yml changes
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/labels.yml'
+  
+  # Run when this workflow changes
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/labels.yml'
+      - '.github/workflows/label-sync.yml'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode (no changes made)'
+        required: false
+        type: boolean
+        default: false
+      delete_extra:
+        description: 'Delete labels not in labels.yml'
+        required: false
+        type: boolean
+        default: false
+
+# -----------------------------------------------------------------------------
+# Permissions
+# -----------------------------------------------------------------------------
+
+permissions:
+  issues: write
+  pull-requests: write
+
+# -----------------------------------------------------------------------------
+# Concurrency
+# -----------------------------------------------------------------------------
+# Only run one sync at a time.
+
+concurrency:
+  group: label-sync-${{ github.repository }}
+  cancel-in-progress: true
+
+# -----------------------------------------------------------------------------
+# Jobs
+# -----------------------------------------------------------------------------
+
+jobs:
+  # ===========================================================================
+  # Job: Validate Labels Configuration
+  # ===========================================================================
+  
+  validate:
+    name: ✅ Validate Configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      # -----------------------------------------------------------------------
+      # Step 1: Checkout Repository
+      # -----------------------------------------------------------------------
+      
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Step 2: Validate YAML Structure
+      # -----------------------------------------------------------------------
+      
+      - name: ✅ Validate YAML Structure
+        run: |
+          echo "Validating .github/labels.yml..."
+          
+          python3 << 'EOF'
+          import yaml
+          import sys
+          import re
+          
+          def validate_color(color):
+              """Validate that color is a valid 6-character hex code."""
+              pattern = r'^[0-9a-fA-F]{6}$'
+              return bool(re.match(pattern, color))
+          
+          def validate_labels(config):
+              """Validate the labels configuration."""
+              errors = []
+              warnings = []
+              
+              if not isinstance(config, dict):
+                  errors.append("Configuration must be a dictionary")
+                  return errors, warnings
+              
+              labels = config.get('labels', [])
+              
+              if not isinstance(labels, list):
+                  errors.append("'labels' must be a list")
+                  return errors, warnings
+              
+              seen_names = set()
+              
+              for i, label in enumerate(labels):
+                  prefix = f"Label {i+1}"
+                  
+                  # Check for required fields
+                  if not isinstance(label, dict):
+                      errors.append(f"{prefix}: Must be a dictionary")
+                      continue
+                  
+                  name = label.get('name')
+                  if not name:
+                      errors.append(f"{prefix}: Missing 'name' field")
+                  elif not isinstance(name, str):
+                      errors.append(f"{prefix}: 'name' must be a string")
+                  elif name in seen_names:
+                      errors.append(f"{prefix}: Duplicate label name '{name}'")
+                  else:
+                      seen_names.add(name)
+                      prefix = f"Label '{name}'"
+                  
+                  color = label.get('color')
+                  if not color:
+                      errors.append(f"{prefix}: Missing 'color' field")
+                  elif not isinstance(color, str):
+                      errors.append(f"{prefix}: 'color' must be a string")
+                  elif not validate_color(color):
+                      errors.append(f"{prefix}: Invalid color '{color}' (must be 6-character hex)")
+                  
+                  description = label.get('description')
+                  if not description:
+                      warnings.append(f"{prefix}: Missing 'description' field")
+                  elif not isinstance(description, str):
+                      errors.append(f"{prefix}: 'description' must be a string")
+                  elif len(description) > 100:
+                      warnings.append(f"{prefix}: Description exceeds 100 characters")
+              
+              return errors, warnings
+          
+          try:
+              with open('.github/labels.yml', 'r') as f:
+                  config = yaml.safe_load(f)
+              
+              errors, warnings = validate_labels(config)
+              
+              if errors:
+                  print("❌ Validation FAILED:")
+                  for error in errors:
+                      print(f"  - {error}")
+                  sys.exit(1)
+              
+              if warnings:
+                  print("⚠️ Warnings:")
+                  for warning in warnings:
+                      print(f"  - {warning}")
+              
+              label_count = len(config.get('labels', []))
+              print(f"✅ Validation PASSED! Found {label_count} labels")
+              
+          except yaml.YAMLError as e:
+              print(f"❌ YAML Error: {e}")
+              sys.exit(1)
+          except Exception as e:
+              print(f"❌ Error: {e}")
+              sys.exit(1)
+          EOF
+
+      # -----------------------------------------------------------------------
+      # Step 3: Generate Summary
+      # -----------------------------------------------------------------------
+      
+      - name: 📊 Summary
+        run: |
+          echo "## ✅ Labels Configuration Valid" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count labels by category
+          python3 << 'EOF' >> $GITHUB_STEP_SUMMARY
+          import yaml
+          from collections import Counter
+          
+          with open('.github/labels.yml', 'r') as f:
+              config = yaml.safe_load(f)
+          
+          labels = config.get('labels', [])
+          
+          # Count by category
+          categories = Counter()
+          for label in labels:
+              name = label.get('name', '')
+              if ':' in name:
+                  category = name.split(':')[0]
+              else:
+                  category = 'other'
+              categories[category] += 1
+          
+          print("### Label Categories")
+          print("")
+          print("| Category | Count |")
+          print("|----------|-------|")
+          for category, count in sorted(categories.items()):
+              print(f"| {category} | {count} |")
+          print("")
+          print(f"**Total Labels: {len(labels)}**")
+          EOF
+
+  # ===========================================================================
+  # Job: Sync Labels to Repository
+  # ===========================================================================
+  
+  sync:
+    name: 🔄 Sync Labels
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    # Only sync on main branch push or manual trigger
+    if: github.event_name != 'pull_request'
+    
+    timeout-minutes: 10
+    
+    steps:
+      # -----------------------------------------------------------------------
+      # Step 1: Checkout Repository
+      # -----------------------------------------------------------------------
+      
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Step 2: Transform Config Format
+      # -----------------------------------------------------------------------
+      # The EndBug/label-sync action expects a different format,
+      # so we transform our labels.yml to match.
+      
+      - name: 🔄 Transform Configuration
+        run: |
+          python3 << 'EOF'
+          import yaml
+          import json
+          
+          with open('.github/labels.yml', 'r') as f:
+              config = yaml.safe_load(f)
+          
+          # Transform to the format expected by label-sync
+          labels = []
+          for label in config.get('labels', []):
+              labels.append({
+                  'name': label['name'],
+                  'color': label['color'],
+                  'description': label.get('description', '')
+              })
+          
+          with open('labels-sync-config.json', 'w') as f:
+              json.dump(labels, f, indent=2)
+          
+          print(f"Transformed {len(labels)} labels")
+          EOF
+
+      # -----------------------------------------------------------------------
+      # Step 3: Sync Labels
+      # -----------------------------------------------------------------------
+      
+      - name: 🏷️ Sync Labels
+        uses: EndBug/label-sync@v2
+        with:
+          # Configuration file (transformed)
+          config-file: labels-sync-config.json
+          
+          # Delete labels not in config? (controlled by input)
+          delete-other-labels: ${{ inputs.delete_extra || false }}
+          
+          # Dry run mode
+          dry-run: ${{ inputs.dry_run || false }}
+          
+          # Token for API access
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # -----------------------------------------------------------------------
+      # Step 4: Summary
+      # -----------------------------------------------------------------------
+      
+      - name: 📊 Summary
+        run: |
+          echo "## 🏷️ Label Sync Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Labels have been synchronized from \`.github/labels.yml\`." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dry Run | ${{ inputs.dry_run || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Delete Extra | ${{ inputs.delete_extra || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ===========================================================================
+  # Job: PR Preview
+  # ===========================================================================
+  # For pull requests, show what would change without actually changing.
+  
+  preview:
+    name: 👀 Preview Changes
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    # Only run on pull requests
+    if: github.event_name == 'pull_request'
+    
+    timeout-minutes: 10
+    
+    steps:
+      # -----------------------------------------------------------------------
+      # Step 1: Checkout Repository
+      # -----------------------------------------------------------------------
+      
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Step 2: Compare Labels
+      # -----------------------------------------------------------------------
+      
+      - name: 👀 Preview Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## 👀 Label Sync Preview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This is a preview of what would change if this PR is merged." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Get current labels from API
+          gh api repos/${{ github.repository }}/labels --paginate > current_labels.json
+          
+          # Compare with config
+          python3 << 'EOF' >> $GITHUB_STEP_SUMMARY
+          import yaml
+          import json
+          
+          with open('.github/labels.yml', 'r') as f:
+              config = yaml.safe_load(f)
+          
+          config_labels = {label['name']: label for label in config.get('labels', [])}
+          
+          with open('current_labels.json', 'r') as f:
+              current = json.load(f)
+          
+          current_labels = {label['name']: label for label in current}
+          
+          # Find differences
+          to_add = []
+          to_update = []
+          to_delete = []
+          
+          for name, label in config_labels.items():
+              if name not in current_labels:
+                  to_add.append(name)
+              else:
+                  current = current_labels[name]
+                  if current['color'].lower() != label['color'].lower() or current.get('description', '') != label.get('description', ''):
+                      to_update.append(name)
+          
+          for name in current_labels:
+              if name not in config_labels:
+                  to_delete.append(name)
+          
+          print("### Changes Summary")
+          print("")
+          print(f"- **Labels to add:** {len(to_add)}")
+          print(f"- **Labels to update:** {len(to_update)}")
+          print(f"- **Labels to remove:** {len(to_delete)} (if delete-extra enabled)")
+          print("")
+          
+          if to_add:
+              print("### New Labels")
+              print("")
+              for name in sorted(to_add):
+                  label = config_labels[name]
+                  print(f"- `{name}` (#{label['color']}): {label.get('description', 'No description')}")
+              print("")
+          
+          if to_update:
+              print("### Updated Labels")
+              print("")
+              for name in sorted(to_update):
+                  print(f"- `{name}`")
+              print("")
+          
+          if to_delete:
+              print("### Labels Not In Config (would be deleted)")
+              print("")
+              for name in sorted(to_delete):
+                  print(f"- `{name}`")
+              print("")
+          EOF
+
+# =============================================================================
+# Workflow Documentation
+# =============================================================================
+#
+# This workflow ensures:
+# 1. All labels are consistently defined
+# 2. Colors and descriptions match the specification
+# 3. New labels are automatically created when added to labels.yml
+# 4. PRs show a preview of label changes
+#
+# Manual triggers allow for:
+# - Dry-run mode to see what would change
+# - Option to delete labels not in config
+#
+# =============================================================================
+#
+# Last Updated: 2026-02-10
+# Maintained by: ZYNC Community Team
+#
+# =============================================================================

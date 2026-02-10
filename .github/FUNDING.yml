@@ -1,0 +1,205 @@
+# =============================================================================
+# ZYNC Desktop Application - GitHub Funding Configuration
+# =============================================================================
+#
+# This file configures the "Sponsor" button on the GitHub repository,
+# allowing users and organizations to financially support the ZYNC project.
+#
+# GitHub Documentation:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+#
+# =============================================================================
+# Funding Philosophy
+# =============================================================================
+#
+# ZYNC is an open-source project that relies on community support.
+# Financial contributions help us:
+#
+# - Dedicate more time to development and maintenance
+# - Cover infrastructure and hosting costs
+# - Support contributor bounties and rewards
+# - Fund security audits and accessibility reviews
+# - Provide better documentation and tutorials
+# - Organize community events and meetups
+#
+# =============================================================================
+# Sponsorship Tiers
+# =============================================================================
+#
+# We offer various sponsorship tiers to accommodate different budgets:
+#
+# Individual Tiers:
+# - $1/month  - Support ZYNC's continued development
+# - $5/month  - Early access to beta features
+# - $10/month - Name in README acknowledgments
+# - $25/month - Priority issue responses
+#
+# Organization Tiers:
+# - $100/month  - Logo on README
+# - $500/month  - Logo on website and documentation
+# - $1000/month - Dedicated support channel
+#
+# One-time Donations:
+# - Any amount - Buy us a coffee, support a feature, or just say thanks!
+#
+# =============================================================================
+# Transparency
+# =============================================================================
+#
+# We believe in transparency with our funding:
+#
+# - Monthly financial reports are published in GitHub Discussions
+# - Major spending decisions are discussed with sponsors
+# - All funded development is tracked publicly
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# GitHub Sponsors
+# -----------------------------------------------------------------------------
+# GitHub Sponsors is our primary funding platform. It integrates directly
+# with GitHub and allows for easy one-time and recurring donations.
+# 100% of sponsorships go directly to the project.
+
+github:
+  - zync-app      # Organization account
+  - founder-name  # Primary maintainer
+
+# -----------------------------------------------------------------------------
+# Open Collective
+# -----------------------------------------------------------------------------
+# Open Collective provides fiscal hosting and transparency for open source
+# projects. It's ideal for organizations that need invoices or prefer
+# collective management of funds.
+# Expenses and income are publicly visible.
+
+open_collective: zync
+
+# -----------------------------------------------------------------------------
+# Patreon
+# -----------------------------------------------------------------------------
+# Patreon is ideal for users who prefer a creator-focused platform.
+# It offers tier-based rewards and community features.
+# Good for ongoing support with monthly pledges.
+
+patreon: zync_app
+
+# -----------------------------------------------------------------------------
+# Ko-fi
+# -----------------------------------------------------------------------------
+# Ko-fi is great for one-time "buy me a coffee" style donations.
+# No platform fees on donations. Simple and quick for supporters.
+
+ko_fi: zync_app
+
+# -----------------------------------------------------------------------------
+# Buy Me a Coffee
+# -----------------------------------------------------------------------------
+# Similar to Ko-fi, Buy Me a Coffee is an easy way for supporters
+# to make small, casual contributions.
+
+buy_me_a_coffee: zync
+
+# -----------------------------------------------------------------------------
+# Liberapay
+# -----------------------------------------------------------------------------
+# Liberapay is a recurring donation platform for open source projects.
+# Non-profit and open source itself. Popular in the FOSS community.
+# No platform fees, just payment processor fees.
+
+liberapay: ZYNC
+
+# -----------------------------------------------------------------------------
+# IssueHunt
+# -----------------------------------------------------------------------------
+# IssueHunt allows users to fund specific issues. When a funded issue
+# is resolved, the bounty goes to the contributor who fixed it.
+# Great for incentivizing specific features or bug fixes.
+
+issuehunt: zync-app
+
+# -----------------------------------------------------------------------------
+# Polar
+# -----------------------------------------------------------------------------
+# Polar is a modern funding platform designed specifically for open source.
+# It supports issue funding, subscriptions, and reward-based funding.
+# Transparent and developer-friendly.
+
+polar: zync-app
+
+# -----------------------------------------------------------------------------
+# Custom URLs
+# -----------------------------------------------------------------------------
+# Additional funding links for platforms not directly supported by GitHub.
+# These appear as "Other ways to sponsor" in the GitHub UI.
+
+custom:
+  # Primary donation page with full information
+  - https://zync.app/donate
+  
+  # Bitcoin donations
+  - https://zync.app/donate/bitcoin
+  
+  # Corporate sponsorship inquiries
+  - https://zync.app/sponsorship
+  
+  # Merchandise store (proceeds support development)
+  - https://shop.zync.app
+
+# =============================================================================
+# Sponsor Acknowledgments
+# =============================================================================
+#
+# We acknowledge our sponsors in the following ways:
+#
+# README.md:
+# - Gold sponsors ($1000+/month): Large logo with link
+# - Silver sponsors ($500+/month): Medium logo with link
+# - Bronze sponsors ($100+/month): Small logo with link
+# - Individual sponsors ($10+/month): Name in supporters list
+#
+# Website (docs.zync.app):
+# - All organization sponsors featured on home page
+# - Dedicated sponsors page with full list
+#
+# In-App Credits:
+# - Major sponsors acknowledged in About dialog
+# - Option to disable if sponsor prefers
+#
+# =============================================================================
+# Sponsorship FAQs
+# =============================================================================
+#
+# Q: Where does the money go?
+# A: Primarily to maintainer time, infrastructure, and contributor bounties.
+#    See our monthly reports for detailed breakdowns.
+#
+# Q: Do sponsors get special privileges on issues/PRs?
+# A: Sponsors receive priority responses, but all contributions are
+#    evaluated on their merits. We don't merge sponsor code without review.
+#
+# Q: Can my company become a sponsor?
+# A: Absolutely! Contact sponsorship@zync.app for corporate packages.
+#
+# Q: Is my sponsorship tax-deductible?
+# A: Donations through Open Collective (fiscal host) may be tax-deductible.
+#    Please consult a tax professional for your specific situation.
+#
+# Q: Can I sponsor a specific feature?
+# A: Yes! Use IssueHunt to fund specific issues, or contact us directly
+#    for feature-specific sponsorship.
+#
+# =============================================================================
+# Contact
+# =============================================================================
+#
+# Sponsorship inquiries: sponsorship@zync.app
+# General questions: support@zync.app
+# Press/media: press@zync.app
+#
+# =============================================================================
+#
+# Last Updated: 2026-02-10
+# Maintained by: ZYNC Core Team
+#
+# =============================================================================

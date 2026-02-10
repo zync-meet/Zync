@@ -1,0 +1,453 @@
+# =============================================================================
+# ZYNC Desktop Application - Auto-Labeler Configuration
+# =============================================================================
+#
+# This file defines the rules for automatically labeling pull requests based
+# on the files they modify. It's used by the .github/workflows/labeler.yml
+# workflow with the actions/labeler GitHub Action.
+#
+# Documentation: https://github.com/actions/labeler
+#
+# =============================================================================
+# Configuration Syntax
+# =============================================================================
+#
+# Each top-level key is a label name. The value is a list of match rules.
+# A PR gets the label if ANY rule matches.
+#
+# Match types:
+# - changed-files: Match based on file changes
+#   - any-glob-to-any-file: Label if ANY changed file matches ANY pattern
+#   - any-glob-to-all-files: Label if ANY pattern matches ALL changed files
+#   - all-globs-to-any-file: Label if ALL patterns match at least one file
+#   - all-globs-to-all-files: Label if ALL patterns match ALL files
+#
+# Glob patterns:
+# - * matches any file in a directory
+# - ** matches any file in any subdirectory
+# - ! negates a pattern (exclude)
+#
+# =============================================================================
+
+# =============================================================================
+# AREA LABELS
+# =============================================================================
+# These labels indicate which area of the codebase the PR modifies.
+
+# -----------------------------------------------------------------------------
+# Electron
+# -----------------------------------------------------------------------------
+# Changes to the Electron desktop application layer.
+
+area:electron:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'electron/**/*'
+          - 'electron-builder.yml'
+          - 'tsconfig.electron.json'
+
+# Electron Main Process
+area:electron-main:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'electron/main.ts'
+          - 'electron/main/**/*'
+
+# Electron Preload
+area:electron-preload:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'electron/preload.ts'
+          - 'electron/preload/**/*'
+
+# Electron Renderer
+area:electron-renderer:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'electron/renderer/**/*'
+
+# Electron Services
+area:electron-services:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'electron/services/**/*'
+
+# Electron Utils
+area:electron-utils:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'electron/utils/**/*'
+
+# Electron Config
+area:electron-config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'electron/config/**/*'
+
+# Electron Settings UI
+area:electron-settings:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'electron/settings/**/*'
+
+# -----------------------------------------------------------------------------
+# Frontend
+# -----------------------------------------------------------------------------
+# Changes to the React/web frontend.
+
+area:frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/**/*'
+          - 'index.html'
+          - 'vite.config.ts'
+          - 'tailwind.config.ts'
+          - 'postcss.config.js'
+
+# Frontend Components
+area:frontend-components:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/components/**/*'
+
+# Frontend Pages
+area:frontend-pages:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/pages/**/*'
+
+# Frontend Hooks
+area:frontend-hooks:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/hooks/**/*'
+
+# Frontend Store (State Management)
+area:frontend-store:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/store/**/*'
+
+# Frontend API Layer
+area:frontend-api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/api/**/*'
+
+# Frontend Routes
+area:frontend-routes:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/routes/**/*'
+
+# Frontend Services
+area:frontend-services:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/services/**/*'
+
+# Frontend Types
+area:frontend-types:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/types/**/*'
+
+# Frontend Utils
+area:frontend-utils:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/utils/**/*'
+
+# -----------------------------------------------------------------------------
+# Backend
+# -----------------------------------------------------------------------------
+# Changes to the Node.js backend.
+
+area:backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/**/*'
+
+# Backend Routes
+area:backend-routes:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/routes/**/*'
+
+# Backend Controllers
+area:backend-controllers:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/controllers/**/*'
+
+# Backend Services
+area:backend-services:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/services/**/*'
+
+# Backend Models
+area:backend-models:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/models/**/*'
+
+# Backend Middleware
+area:backend-middleware:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/middleware/**/*'
+
+# Backend Sockets
+area:backend-sockets:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/sockets/**/*'
+
+# Database / Prisma
+area:database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/prisma/**/*'
+          - 'backend/lib/prisma.js'
+
+# -----------------------------------------------------------------------------
+# Testing
+# -----------------------------------------------------------------------------
+# Changes to test files.
+
+area:tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/**/*'
+          - 'backend/tests/**/*'
+          - '**/*.test.ts'
+          - '**/*.test.tsx'
+          - '**/*.test.js'
+          - '**/*.spec.ts'
+          - '**/*.spec.tsx'
+          - '**/*.spec.js'
+
+# E2E Tests
+area:tests-e2e:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/e2e/**/*'
+
+# Integration Tests
+area:tests-integration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/integration/**/*'
+
+# Unit Tests
+area:tests-unit:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/unit/**/*'
+
+# -----------------------------------------------------------------------------
+# CI/CD
+# -----------------------------------------------------------------------------
+# Changes to continuous integration and deployment.
+
+area:ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**/*'
+          - '.github/actions/**/*'
+
+# GitHub Configuration
+area:github:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**/*'
+
+# -----------------------------------------------------------------------------
+# Documentation
+# -----------------------------------------------------------------------------
+# Changes to documentation files.
+
+area:docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+          - '.github/ISSUE_TEMPLATE/**/*'
+          - '.github/PULL_REQUEST_TEMPLATE.md'
+
+# -----------------------------------------------------------------------------
+# Assets
+# -----------------------------------------------------------------------------
+# Changes to images, icons, fonts, and other assets.
+
+area:assets:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'assets/**/*'
+          - 'public/**/*'
+          - 'build/icons/**/*'
+
+# -----------------------------------------------------------------------------
+# Styles
+# -----------------------------------------------------------------------------
+# Changes to CSS, styling, and theming.
+
+area:styles:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/styles/**/*'
+          - 'src/**/*.css'
+          - 'tailwind.config.ts'
+          - 'postcss.config.js'
+
+# -----------------------------------------------------------------------------
+# Configuration
+# -----------------------------------------------------------------------------
+# Changes to project configuration files.
+
+area:config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tsconfig*.json'
+          - 'vite.config.ts'
+          - 'eslint.config.js'
+          - '.eslintrc.*'
+          - '.prettierrc*'
+          - '.editorconfig'
+          - 'components.json'
+          - '.env.example'
+
+# -----------------------------------------------------------------------------
+# Build
+# -----------------------------------------------------------------------------
+# Changes to build configuration and scripts.
+
+area:build:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'build/**/*'
+          - 'scripts/**/*'
+          - 'electron-builder.yml'
+
+# -----------------------------------------------------------------------------
+# Dependencies
+# -----------------------------------------------------------------------------
+# Changes to package dependencies.
+
+area:dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'package-lock.json'
+          - 'bun.lockb'
+          - 'backend/package.json'
+          - 'backend/package-lock.json'
+
+# -----------------------------------------------------------------------------
+# Localization / i18n
+# -----------------------------------------------------------------------------
+# Changes to translations and localization.
+
+area:i18n:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/locales/**/*'
+          - '**/*.i18n.*'
+
+# =============================================================================
+# TYPE LABELS
+# =============================================================================
+# These labels indicate the type of change in the PR.
+# Note: These are typically applied manually, but some can be auto-detected.
+
+# Security-related changes
+type:security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/security/**/*'
+          - '**/auth/**/*'
+          - 'electron/config/csp.ts'
+          - 'backend/middleware/authMiddleware.js'
+          - 'SECURITY.md'
+
+# Performance-related changes
+type:performance:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*performance*'
+          - '**/*perf*'
+          - '**/*benchmark*'
+
+# Accessibility-related changes
+type:a11y:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*accessibility*'
+          - '**/*a11y*'
+
+# =============================================================================
+# PLATFORM LABELS
+# =============================================================================
+# These labels indicate platform-specific changes.
+
+platform:windows:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*windows*'
+          - '**/*win32*'
+          - '**/*.exe'
+          - 'build/icons/*.ico'
+
+platform:macos:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*darwin*'
+          - '**/*macos*'
+          - '**/*mac*'
+          - '**/*.dmg'
+          - 'build/icons/*.icns'
+
+platform:linux:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*linux*'
+          - '**/*.deb'
+          - '**/*.rpm'
+          - '**/*.AppImage'
+          - 'backend/Dockerfile'
+          - 'backend/render-build.sh'
+
+# =============================================================================
+# SPECIAL LABELS
+# =============================================================================
+
+# Auto-generated files (may not need review)
+generated:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/generated/**/*'
+          - 'backend/prisma/generated/**/*'
+          - '**/*.generated.*'
+
+# Lock files (dependency updates)
+dependencies:lockfile:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package-lock.json'
+          - 'bun.lockb'
+          - 'backend/package-lock.json'
+
+# =============================================================================
+# Configuration Metadata
+# =============================================================================
+#
+# Last Updated: 2026-02-10
+# Maintained by: ZYNC DevOps Team
+#
+# To add a new label:
+# 1. Add the label configuration below with glob patterns
+# 2. Create the label in GitHub (Settings > Labels) with color/description
+# 3. Test by creating a PR that modifies matching files
+#
+# =============================================================================
