@@ -470,7 +470,6 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           }
 
           // Fetch Owned Teams
-          const token = await currentUser.getIdToken();
           const teamsRes = await fetch(`${API_BASE_URL}/api/teams/owned`, {
             headers: { Authorization: `Bearer ${token}` }
           });
