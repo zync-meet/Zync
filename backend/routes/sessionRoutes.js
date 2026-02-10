@@ -1,21 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const Session = require('../models/Session');
+const verifyToken = require('../middleware/authMiddleware');
+
+// Apply authentication middleware to all routes
+router.use(verifyToken);
 
 // Start a new session
 router.post('/start', async (req, res) => {
   try {
     // console.log('POST /api/sessions/start body:', req.body);
 
-    if (!req.body) {
-      console.error('Request body is missing');
-      return res.status(400).json({ message: 'Request body is missing' });
-    }
-
-    const { userId } = req.body;
+    // Secure: Use the authenticated user's ID
+    const userId = req.user.uid;
 
     if (!userId) {
-      console.error('User ID is missing in request body');
+      console.error('User ID missing from token');
       return res.status(400).json({ message: 'User ID required' });
     }
 
@@ -39,7 +39,10 @@ router.post('/start', async (req, res) => {
     }
   }
 });
+
 // Get sessions for multiple users (Batch)
+// Note: This route is authenticated but allows querying for any users.
+// Assuming this is used for team presence/activity where visibility is allowed.
 router.post('/batch', async (req, res) => {
   try {
     const { userIds } = req.body;
@@ -59,6 +62,11 @@ const updateSession = async (req, res) => {
   try {
     const session = await Session.findById(req.params.id);
     if (!session) return res.status(404).json({ message: 'Session not found' });
+
+    // Secure: Verify ownership
+    if (session.userId !== req.user.uid) {
+      return res.status(403).json({ message: 'Unauthorized access to session' });
+    }
 
     session.endTime = new Date();
 
@@ -85,6 +93,11 @@ router.post('/:id', updateSession);
 // Get user sessions
 router.get('/:userId', async (req, res) => {
   try {
+    // Secure: Verify user requests their own sessions
+    if (req.params.userId !== req.user.uid) {
+        return res.status(403).json({ message: 'Unauthorized access to user sessions' });
+    }
+
     const sessions = await Session.find({ userId: req.params.userId }).sort({ startTime: -1 });
     res.json(sessions);
   } catch (error) {
@@ -93,13 +106,21 @@ router.get('/:userId', async (req, res) => {
   }
 });
 
-
-
 // Delete a specific session
 router.delete('/:id', async (req, res) => {
   try {
-    const session = await Session.findByIdAndDelete(req.params.id);
-    if (!session) return res.status(404).json({ message: 'Session not found' });
+    // Secure: Find and delete only if owned by user
+    const session = await Session.findOneAndDelete({ _id: req.params.id, userId: req.user.uid });
+
+    if (!session) {
+        // Check if session exists but belongs to someone else to give correct error, or just 404
+        const exists = await Session.findById(req.params.id);
+        if (exists) {
+            return res.status(403).json({ message: 'Unauthorized to delete this session' });
+        }
+        return res.status(404).json({ message: 'Session not found' });
+    }
+
     res.json({ message: 'Session deleted' });
   } catch (error) {
     console.error('Error deleting session:', error);
@@ -110,6 +131,11 @@ router.delete('/:id', async (req, res) => {
 // Delete all sessions for a user
 router.delete('/user/:userId', async (req, res) => {
   try {
+    // Secure: Verify user requests clearing their own sessions
+    if (req.params.userId !== req.user.uid) {
+        return res.status(403).json({ message: 'Unauthorized action' });
+    }
+
     await Session.deleteMany({ userId: req.params.userId });
     res.json({ message: 'All sessions deleted' });
   } catch (error) {
