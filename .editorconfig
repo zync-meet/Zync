@@ -1,25 +1,206 @@
-# http://editorconfig.org
+# =============================================================================
+# EditorConfig — ZYNC Desktop Application
+# =============================================================================
+#
+# EditorConfig helps maintain consistent coding styles for multiple developers
+# working on the same project across various editors and IDEs. This file defines
+# the coding style rules that will be automatically applied by supported editors.
+#
+# For more information about EditorConfig, visit: https://editorconfig.org
+#
+# =============================================================================
 
+# This is the top-level EditorConfig file.
+# When an editor opens a file, it looks for .editorconfig files in the directory
+# of the opened file and in every parent directory. A search for .editorconfig
+# files will stop if the root filepath is reached or an EditorConfig file with
+# root=true is found.
 root = true
 
+# =============================================================================
+# Default Settings for All Files
+# =============================================================================
+#
+# These settings apply to every file in the project unless overridden by a
+# more specific section below. They establish the baseline formatting rules
+# that ensure consistency across the entire codebase.
+#
 [*]
-charset = utf-8
+
+# Use spaces for indentation instead of tabs.
+# Spaces ensure consistent alignment across all editors and terminal displays,
+# regardless of tab width settings. This is the industry standard for web
+# development projects.
 indent_style = space
+
+# Set the indentation size to 2 spaces.
+# Two spaces provide sufficient visual nesting while keeping lines short enough
+# to view side-by-side in editor split views. This is the standard for
+# JavaScript/TypeScript projects.
 indent_size = 2
+
+# Use Unix-style line endings (LF).
+# This ensures consistency across all platforms (Windows, macOS, Linux).
+# Git may be configured to convert line endings on checkout, but the canonical
+# format in the repository should be LF.
 end_of_line = lf
-insert_final_newline = true
+
+# Use UTF-8 character encoding for all files.
+# UTF-8 is the universal standard for text encoding and supports all Unicode
+# characters. This ensures that files with special characters (comments in
+# various languages, emoji, etc.) are handled correctly.
+charset = utf-8
+
+# Remove any trailing whitespace at the end of lines.
+# Trailing whitespace serves no purpose and can cause unnecessary changes
+# in version control diffs, making code review more difficult.
 trim_trailing_whitespace = true
 
-[*.md]
-insert_final_newline = false
-trim_trailing_whitespace = false
+# Ensure files end with a newline character.
+# POSIX standards define a "line" as ending with a newline character. Many
+# command-line tools and compilers expect this. Adding a final newline also
+# prevents "No newline at end of file" warnings in Git diffs.
+insert_final_newline = true
 
+# Set the maximum line length to 100 characters.
+# This provides a good balance between readability and screen real estate
+# utilization. Lines longer than this should be wrapped for readability.
+max_line_length = 100
+
+# =============================================================================
+# TypeScript and JavaScript Files
+# =============================================================================
+#
+# TypeScript and JavaScript files follow the default settings with 2-space
+# indentation. This is the standard convention for the JavaScript ecosystem
+# and is used by major projects like React, Angular, and Node.js.
+#
+[*.{ts,tsx,js,jsx,mjs,cjs}]
+indent_size = 2
+indent_style = space
+
+# =============================================================================
+# JSON Configuration Files
+# =============================================================================
+#
+# JSON files use 2-space indentation to match the rest of the project.
+# This includes package.json, tsconfig.json, and other configuration files.
+#
+[*.json]
+indent_size = 2
+indent_style = space
+
+# =============================================================================
+# YAML Configuration Files
+# =============================================================================
+#
+# YAML files use 2-space indentation, which is the standard for YAML format.
+# This includes GitHub Actions workflows, electron-builder configuration,
+# and Docker Compose files.
+#
+[*.{yml,yaml}]
+indent_size = 2
+indent_style = space
+
+# =============================================================================
+# HTML Files
+# =============================================================================
+#
+# HTML files use 2-space indentation to maintain consistency with the
+# JavaScript/TypeScript files they are associated with.
+#
+[*.html]
+indent_size = 2
+indent_style = space
+
+# =============================================================================
+# CSS and SCSS Files
+# =============================================================================
+#
+# CSS files use 2-space indentation. This includes both vanilla CSS and
+# any preprocessor files (SCSS, Less) that may be used in the project.
+#
+[*.{css,scss,less}]
+indent_size = 2
+indent_style = space
+
+# =============================================================================
+# Markdown Files
+# =============================================================================
+#
+# Markdown files have special handling for trailing whitespace. In Markdown,
+# two trailing spaces at the end of a line create a line break (<br>).
+# Therefore, we do NOT trim trailing whitespace in Markdown files to preserve
+# intentional line breaks.
+#
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+
+# =============================================================================
+# Makefile
+# =============================================================================
+#
+# Makefiles REQUIRE tabs for indentation. This is a hard requirement of the
+# Make build system — using spaces will cause syntax errors. This override
+# ensures that Makefiles always use tabs regardless of the default settings.
+#
 [Makefile]
 indent_style = tab
+indent_size = 4
 
-[*.bat]
+# =============================================================================
+# Shell Scripts
+# =============================================================================
+#
+# Shell scripts use 2-space indentation and Unix-style line endings.
+# This ensures scripts work correctly on Unix-based systems.
+#
+[*.{sh,bash,zsh}]
+indent_size = 2
+indent_style = space
+end_of_line = lf
+
+# =============================================================================
+# Windows Batch Files
+# =============================================================================
+#
+# Windows batch files must use Windows-style line endings (CRLF) to work
+# correctly on Windows systems.
+#
+[*.{bat,cmd}]
 end_of_line = crlf
-
-[*.{js,jsx,ts,tsx,json,css,scss,less,html,vue}]
 indent_style = space
 indent_size = 2
+
+# =============================================================================
+# Docker Files
+# =============================================================================
+#
+# Dockerfiles and Docker Compose files use standard indentation settings.
+#
+[Dockerfile*]
+indent_size = 2
+indent_style = space
+
+# =============================================================================
+# Git Configuration Files
+# =============================================================================
+#
+# Git-specific files (.gitignore, .gitattributes) use space indentation.
+#
+[.git*]
+indent_size = 2
+indent_style = space
+
+# =============================================================================
+# Environment Files
+# =============================================================================
+#
+# Environment files (.env, .env.example) should not have trailing whitespace
+# trimmed to avoid accidentally breaking variable values that may intentionally
+# contain trailing spaces (although this is rare).
+#
+[.env*]
+indent_size = 2
+trim_trailing_whitespace = false
