@@ -154,9 +154,10 @@ const analyzeWithGemini = async (repoContext, projectName) => {
 };
 
 // Create a new project manually (e.g. from GitHub import)
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { name, description, ownerId, githubRepoName, githubRepoOwner } = req.body;
+    const { name, description, githubRepoName, githubRepoOwner } = req.body;
+    const ownerId = req.user.uid;
 
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
@@ -189,13 +190,18 @@ router.post('/', async (req, res) => {
 });
 
 // Trigger Architecture Analysis On-Demand
-router.post('/:id/analyze-architecture', async (req, res) => {
+router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const project = await Project.findById(id);
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check Permissions
+    if (project.ownerId !== req.user.uid) {
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     const { githubRepoName, githubRepoOwner, ownerId } = project;
@@ -236,9 +242,10 @@ router.post('/:id/analyze-architecture', async (req, res) => {
   }
 });
 
-router.post('/generate', async (req, res) => {
+router.post('/generate', authMiddleware, async (req, res) => {
   try {
-    const { name, description, ownerId } = req.body;
+    const { name, description } = req.body;
+    const ownerId = req.user.uid;
 
     if (!name || !description) {
       return res.status(400).json({ message: 'Name and description are required' });
@@ -331,9 +338,9 @@ router.post('/generate', async (req, res) => {
 });
 
 // Get all projects for a user (owned or part of team)
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    const { ownerId } = req.query;
+    const ownerId = req.user.uid;
     // Find projects where user is owner OR is in the team array
     const projects = await Project.find({
       $or: [
@@ -349,13 +356,18 @@ router.get('/', async (req, res) => {
 });
 
 // Add user to project team (Join Project)
-router.post('/:id/team', async (req, res) => {
+router.post('/:id/team', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.body; // User to add
     const project = await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Only owner can add team members
+    if (project.ownerId !== req.user.uid) {
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     if (!project.team.includes(userId) && project.ownerId !== userId) {
@@ -370,11 +382,16 @@ router.post('/:id/team', async (req, res) => {
 });
 
 // Get a single project by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is owner or in team
+    if (project.ownerId !== req.user.uid && !project.team.includes(req.user.uid)) {
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     // Lazy initialization of steps if missing (for existing projects)
@@ -396,12 +413,18 @@ router.get('/:id', async (req, res) => {
 });
 
 // Delete a project
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const project = await Project.findByIdAndDelete(req.params.id);
+    const project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
+
+    if (project.ownerId !== req.user.uid) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    await Project.findByIdAndDelete(req.params.id);
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -409,9 +432,17 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Update Project Details (e.g. Link GitHub Repo)
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+    const projectCheck = await Project.findById(id);
+    if (!projectCheck) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    if (projectCheck.ownerId !== req.user.uid && !projectCheck.team.includes(req.user.uid)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
     const updates = req.body;
 
     // Filter allowed updates to prevent overwriting critical fields if needed
@@ -439,7 +470,7 @@ router.patch('/:id', async (req, res) => {
 });
 
 // Create a new task in a specific step
-router.post('/:projectId/steps/:stepId/tasks', async (req, res) => {
+router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) => {
   try {
     const { projectId, stepId } = req.params;
     const { title, description, assignedTo, assignedToName, assignedBy } = req.body;
@@ -450,6 +481,11 @@ router.post('/:projectId/steps/:stepId/tasks', async (req, res) => {
 
     const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    // Check Permissions
+    if (project.ownerId !== req.user.uid && !project.team.includes(req.user.uid)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
 
     const step = project.steps.id(stepId);
     if (!step) return res.status(404).json({ message: 'Step not found' });
@@ -503,13 +539,18 @@ router.post('/:projectId/steps/:stepId/tasks', async (req, res) => {
 });
 
 // Update a specific task status or assignment
-router.put('/:projectId/steps/:stepId/tasks/:taskId', async (req, res) => {
+router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req, res) => {
   try {
     const { projectId, stepId, taskId } = req.params;
     const { status, assignedTo, assignedToName, assignedBy } = req.body;
 
     const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    // Check Permissions
+    if (project.ownerId !== req.user.uid && !project.team.includes(req.user.uid)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
 
     const step = project.steps.id(stepId);
     if (!step) return res.status(404).json({ message: 'Step not found' });
@@ -662,13 +703,18 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
 });
 
 // Create a quick task from external source (e.g. Notes)
-router.post('/:projectId/quick-task', async (req, res) => {
+router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
   try {
     const { projectId } = req.params;
     const { title, description, assignedTo, assignedToName } = req.body;
 
     const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    // Check Permissions
+    if (project.ownerId !== req.user.uid && !project.team.includes(req.user.uid)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
 
     // Find a suitable step (e.g. "Planning", "Backlog", or the first step)
     let step = project.steps.find(s =>
