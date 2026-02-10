@@ -10,13 +10,11 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 
 // Launch options optimized for Render.com
+// Note: --no-sandbox and --disable-setuid-sandbox are insecure and removed by default.
+// Use PUPPETEER_NO_SANDBOX=true to re-enable them if absolutely necessary.
 const LAUNCH_OPTIONS = {
     headless: 'new',
     args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--single-process',
-        '--no-zygote',
         '--disable-gpu',
         '--disable-dev-shm-usage',
         '--window-size=1600,1200'
@@ -27,8 +25,21 @@ const LAUNCH_OPTIONS = {
  * Launch a shared browser instance
  */
 async function launchBrowser() {
+    // Create a copy of options to avoid mutating the global constant
+    const options = { ...LAUNCH_OPTIONS, args: [...LAUNCH_OPTIONS.args] };
+
+    if (process.env.PUPPETEER_NO_SANDBOX === 'true') {
+        console.warn('WARNING: Puppeteer sandbox disabled! This is insecure.');
+        options.args.push(
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--single-process',
+            '--no-zygote'
+        );
+    }
+
     console.log('DEBUG: Launching Stealth Puppeteer...');
-    return await puppeteer.launch(LAUNCH_OPTIONS);
+    return await puppeteer.launch(options);
 }
 
 /**
