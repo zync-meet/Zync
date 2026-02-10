@@ -14,6 +14,7 @@ export const useUserSync = () => {
                 const lastName = parts.slice(1).join(" ") || "";
 
                 try {
+                    const token = await user.getIdToken();
                     const controller = new AbortController();
                     // Auto-abort if component unmounts quickly is handled by cleanup
                     // checking signal in fetch
@@ -22,6 +23,7 @@ export const useUserSync = () => {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`,
                         },
                         body: JSON.stringify({
                             uid: user.uid,
