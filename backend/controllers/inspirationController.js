@@ -10,6 +10,8 @@ const { launchBrowser, scrapeDribbble } = require('../services/scraperService');
 
 const DATA_FILE = path.join(__dirname, '../data/inspiration.json');
 
+let CACHED_DATA = null;
+
 /**
  * GET /api/inspiration?q=web+design
  * Serves data from static JSON cache + live fallback.
@@ -19,16 +21,23 @@ async function getInspiration(req, res) {
   console.log(`\n========== INSPIRATION REQUEST (HYBRID): "${query}" ==========`);
 
   try {
-    // 2. Read Cache (async)
+    // 2. Read Cache (Lazy load once)
     let allItems = [];
-    try {
-      const rawData = await fs.promises.readFile(DATA_FILE, 'utf-8');
-      allItems = JSON.parse(rawData);
-    } catch (err) {
-      if (err.code === 'ENOENT') {
-        console.warn('WARN: Static cache file not found.');
-      } else {
-        console.warn(`WARN: Failed to read cache file: ${err.message}`);
+
+    if (CACHED_DATA) {
+      allItems = [...CACHED_DATA];
+    } else {
+      try {
+        const rawData = await fs.promises.readFile(DATA_FILE, 'utf-8');
+        CACHED_DATA = JSON.parse(rawData);
+        allItems = [...CACHED_DATA];
+      } catch (err) {
+        CACHED_DATA = []; // Prevent repeated failed reads
+        if (err.code === 'ENOENT') {
+          console.warn('WARN: Static cache file not found.');
+        } else {
+          console.warn(`WARN: Failed to read cache file: ${err.message}`);
+        }
       }
     }
 
