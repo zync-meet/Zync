@@ -16,6 +16,7 @@
     "isolatedModules": true,
     "noEmit": false,
     "emitDeclarationOnly": true,
+    "declarationDir": "./dist/types",
     "jsx": "react-jsx",
     "composite": true,
     /* Linting */
@@ -52,5 +53,9 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.d.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
   ]
 }
