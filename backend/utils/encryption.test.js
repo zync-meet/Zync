@@ -59,3 +59,46 @@ describe("Encryption Utils", () => {
       expect(decrypted).toEqual(unicodeText);
   });
 });
+
+describe("Encryption Utils - Edge Cases & Error Handling", () => {
+  test("should return null for falsy inputs (0, false)", () => {
+    expect(encrypt(0)).toBeNull();
+    expect(encrypt(false)).toBeNull();
+    expect(decrypt(0)).toBeNull();
+    expect(decrypt(false)).toBeNull();
+  });
+
+  test("should throw error for invalid input types to encrypt", () => {
+    expect(() => encrypt(123)).toThrow();
+    expect(() => encrypt({})).toThrow();
+    expect(() => encrypt([])).toThrow();
+  });
+
+  test("should throw error for invalid input types to decrypt", () => {
+    expect(() => decrypt(123)).toThrow();
+    expect(() => decrypt({})).toThrow();
+    expect(() => decrypt([])).toThrow();
+  });
+
+  test("should throw error for malformed strings to decrypt", () => {
+    // Missing colon separator
+    expect(() => decrypt("invalid-format")).toThrow();
+    // Invalid IV length (too short)
+    expect(() => decrypt("123:456")).toThrow();
+    // Invalid hex characters (results in invalid IV or ciphertext)
+    expect(() => decrypt("zz:zz")).toThrow();
+  });
+
+  test("should throw error for tampered ciphertext", () => {
+    const originalText = "Sensitive Data";
+    const encrypted = encrypt(originalText);
+    const parts = encrypted.split(':');
+    // Tamper with the ciphertext (hex string)
+    // Make sure we modify it such that it's still valid hex length but wrong content
+    // '0' is valid hex.
+    const tamperedCiphertext = parts[1].substring(0, parts[1].length - 2) + '00';
+    const tampered = parts[0] + ':' + tamperedCiphertext;
+
+    expect(() => decrypt(tampered)).toThrow();
+  });
+});
