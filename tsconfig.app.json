@@ -11,11 +11,11 @@
     "skipLibCheck": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": false,
     "emitDeclarationOnly": true,
+    "tsBuildInfoFile": "./tsconfig.app.tsbuildinfo",
     "jsx": "react-jsx",
     "composite": true,
     /* Linting */
