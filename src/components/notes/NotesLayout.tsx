@@ -101,7 +101,7 @@ const SortableNoteListItem = ({ note, ...props }: NoteListItemProps) => {
     transition,
     opacity: isDragging ? 0.3 : 1,
     zIndex: isDragging ? 100 : 1,
-    position: 'relative' as 'relative',
+    position: 'relative' as const,
   };
 
   return (
@@ -121,16 +121,16 @@ const NoteListItem: React.FC<{
   onShare: (note: Note) => void;
 }> = ({ note, isSelected, onClick, onDelete, onRename, onShare }) => {
   const formattedDate = useMemo(() => {
-    if (!note.updatedAt && !note.createdAt) return '';
+    if (!note.updatedAt && !note.createdAt) {return '';}
     const date = new Date(note.updatedAt || note.createdAt);
-    if (isNaN(date.getTime())) return '';
+    if (isNaN(date.getTime())) {return '';}
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1) {return 'Just now';}
+    if (diffMins < 60) {return `${diffMins}m ago`;}
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffHours < 24) {return `${diffHours}h ago`;}
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }, [note.updatedAt, note.createdAt]);
 
@@ -315,14 +315,14 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (!over) return;
+    if (!over) {return;}
 
     const activeNoteId = active.id as string;
     const overId = over.id as string;
 
     // Helper to find note by ID
     const activeNote = notes.find(n => n.id === activeNoteId);
-    if (!activeNote) return;
+    if (!activeNote) {return;}
 
     // Case 1: Drop onto a Folder (Move)
     if (over.data.current?.type === 'folder') {
@@ -419,13 +419,13 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
 
   // Subscriptions
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid) {return;}
     const unsubscribeFolders = subscribeToFolders(user.uid, setFolders);
     return () => unsubscribeFolders();
   }, [user?.uid]);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid) {return;}
     const sharedFolderIds = folders
       .filter(f => f.ownerId !== user.uid && f.collaborators?.includes(user.uid))
       .map(f => f.id)
@@ -452,13 +452,13 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   useEffect(() => {
     if (initialNoteId && notes.length > 0) {
       const target = notes.find(n => n.id === initialNoteId || n._id === initialNoteId);
-      if (target && target.id !== selectedNote?.id) setSelectedNote(target);
+      if (target && target.id !== selectedNote?.id) {setSelectedNote(target);}
     }
   }, [initialNoteId, notes]);
 
   // Filtered notes
   const filteredNotes = useMemo(() => {
-    if (!searchQuery.trim()) return notes;
+    if (!searchQuery.trim()) {return notes;}
     const q = searchQuery.toLowerCase();
     return notes.filter(n =>
       n.title?.toLowerCase().includes(q) ||
@@ -473,7 +473,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
 
   // Handlers
   const handleCreateNote = async (folderId?: string) => {
-    if (!user?.uid) return;
+    if (!user?.uid) {return;}
     try {
       const noteRef = await createNote({
         title: 'Untitled',
@@ -497,7 +497,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   };
 
   const handleCreateFolder = async () => {
-    if (!user?.uid) return;
+    if (!user?.uid) {return;}
     try {
       await createFolder({ name: 'New Folder', ownerId: user.uid, type: 'personal' });
       toast.success("Folder created");
@@ -507,7 +507,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   };
 
   const executeShare = async () => {
-    if (!folderToShare || !selectedUserId) return;
+    if (!folderToShare || !selectedUserId) {return;}
     try {
       await shareFolder(folderToShare.id, [selectedUserId]);
       toast.success("Folder shared");
@@ -520,7 +520,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   const handleDeleteNote = async (id: string) => {
     // Confirm dialog is a bit aggressive, maybe just do it? Or use a custom dialog. 
     // Standard confirm is fine for now/MVP.
-    if (!window.confirm("Are you sure you want to delete this note?")) return;
+    if (!window.confirm("Are you sure you want to delete this note?")) {return;}
 
     try {
       await deleteNote(id);
@@ -541,7 +541,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   };
 
   const handleRenameSubmit = async () => {
-    if (!noteToRename) return;
+    if (!noteToRename) {return;}
     try {
       await updateNote(noteToRename.id, { title: newNoteTitle });
       toast.success("Note renamed");
@@ -561,11 +561,11 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
 
   // Breadcrumb path
   const breadcrumb = useMemo(() => {
-    if (!selectedNote) return [];
+    if (!selectedNote) {return [];}
     const parts: string[] = [];
     if (selectedNote.folderId) {
       const folder = folders.find(f => f.id === selectedNote.folderId);
-      if (folder) parts.push(folder.name);
+      if (folder) {parts.push(folder.name);}
     } else {
       parts.push('My Notes');
     }

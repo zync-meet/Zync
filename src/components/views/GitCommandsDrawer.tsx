@@ -84,7 +84,7 @@ const CommandBlock = ({ label, command, stepNumber }: { label: string, command: 
 };
 
 export const GitCommandsDrawer = ({ open, onOpenChange, task, project }: GitCommandsDrawerProps) => {
-    if (!task) return null;
+    if (!task) {return null;}
 
     // Slugify task title for branch name
     const slug = task.title

@@ -76,7 +76,7 @@ const ContributionGraphCalendar = ({
 }: ContributionGraphCalendarProps) => {
     const { data, blockSize, blockMargin } = useContributionGraph();
 
-    if (data.length === 0) return null;
+    if (data.length === 0) {return null;}
 
     // Create a map for quick lookup
     const dataMap = new Map(data.map((d) => [d.date, d]));
@@ -95,7 +95,7 @@ const ContributionGraphCalendar = ({
 
     // Build weeks array
     const weeks: Activity[][] = [];
-    let currentDate = new Date(adjustedStart);
+    const currentDate = new Date(adjustedStart);
 
     while (currentDate <= endDate) {
         const week: Activity[] = [];

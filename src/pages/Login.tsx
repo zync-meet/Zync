@@ -88,12 +88,12 @@ const Login = () => {
         if (methods.length > 0) {
           const providerId = methods[0];
           let provider: any;
-          if (providerId === 'google.com') provider = new GoogleAuthProvider();
-          else if (providerId === 'github.com') provider = new GithubAuthProvider();
+          if (providerId === 'google.com') {provider = new GoogleAuthProvider();}
+          else if (providerId === 'github.com') {provider = new GithubAuthProvider();}
 
           if (provider) {
             const confirmLink = window.confirm(`You already have an account with ${providerId}. Sign in with it to link your new credential?`);
-            if (!confirmLink) return;
+            if (!confirmLink) {return;}
 
             const result = await signInWithPopup(auth, provider);
             await linkWithCredential(result.user, pendingCred);
@@ -133,7 +133,7 @@ const Login = () => {
               body: JSON.stringify({ accessToken: githubToken, username: result.user.displayName || 'unknown' })
             });
           } catch (fetchError: any) {
-            if (fetchError.name === 'AbortError') return;
+            if (fetchError.name === 'AbortError') {return;}
             throw fetchError;
           }
         } catch (e) { console.warn('Failed to save GitHub token:', e); }

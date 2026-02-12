@@ -435,12 +435,12 @@ export class MockBrowserWindow extends EventEmitter {
     this._options = options || {};
     
     // Apply initial options
-    if (options?.width) this._bounds.width = options.width;
-    if (options?.height) this._bounds.height = options.height;
-    if (options?.x !== undefined) this._bounds.x = options.x;
-    if (options?.y !== undefined) this._bounds.y = options.y;
-    if (options?.title) this._title = options.title;
-    if (options?.show === false) this._isVisible = false;
+    if (options?.width) {this._bounds.width = options.width;}
+    if (options?.height) {this._bounds.height = options.height;}
+    if (options?.x !== undefined) {this._bounds.x = options.x;}
+    if (options?.y !== undefined) {this._bounds.y = options.y;}
+    if (options?.title) {this._title = options.title;}
+    if (options?.show === false) {this._isVisible = false;}
     
     // Register this window
     mockState.windows.push(this);
@@ -475,7 +475,7 @@ export class MockBrowserWindow extends EventEmitter {
   }
   
   close(): void {
-    if (this._isDestroyed) return;
+    if (this._isDestroyed) {return;}
     const event = { preventDefault: vi.fn() };
     this.emit('close', event);
     if (!event.preventDefault.mock.calls.length) {
@@ -484,7 +484,7 @@ export class MockBrowserWindow extends EventEmitter {
   }
   
   destroy(): void {
-    if (this._isDestroyed) return;
+    if (this._isDestroyed) {return;}
     this._isDestroyed = true;
     this._isVisible = false;
     this.emit('closed');
@@ -831,7 +831,7 @@ export class MockTray extends EventEmitter {
   }
   
   destroy(): void {
-    if (this._isDestroyed) return;
+    if (this._isDestroyed) {return;}
     this._isDestroyed = true;
     this.removeAllListeners();
   }

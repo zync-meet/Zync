@@ -40,8 +40,8 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
 
 // Helper to get full URL (generic)
 const getFullUrl = (path: string | undefined): string | undefined => {
-  if (!path) return undefined;
-  if (path.startsWith('http')) return path;
+  if (!path) {return undefined;}
+  if (path.startsWith('http')) {return path;}
   return `${API_BASE_URL}${path}`;
 };
 
@@ -162,7 +162,7 @@ export default function SettingsView() {
           body: formData
         });
 
-        if (!response.ok) throw new Error('Upload failed');
+        if (!response.ok) {throw new Error('Upload failed');}
 
         const data = await response.json();
         const fileUrl = data.fileUrl; // This is a relative path like /uploads/filename.jpg
@@ -200,7 +200,7 @@ export default function SettingsView() {
       provider.addScope('repo'); // Critical for repo access
       provider.addScope('read:user');
 
-      if (!auth.currentUser) throw new Error("User must be signed in");
+      if (!auth.currentUser) {throw new Error("User must be signed in");}
 
       let accessToken: string | undefined;
       let githubUsername: string | undefined;
@@ -226,7 +226,7 @@ export default function SettingsView() {
         }
       }
 
-      if (!accessToken) throw new Error("No Access Token retrieved from GitHub.");
+      if (!accessToken) {throw new Error("No Access Token retrieved from GitHub.");}
 
       // 3. If Username is missing (e.g. from error flow), fetch it
       if (!githubUsername) {
@@ -287,7 +287,7 @@ export default function SettingsView() {
   };
 
   const handleGithubDisconnect = async () => {
-    if (!window.confirm("Are you sure you want to unlink your GitHub account?")) return;
+    if (!window.confirm("Are you sure you want to unlink your GitHub account?")) {return;}
     setLoading(true);
     try {
       const idToken = await auth.currentUser?.getIdToken();
@@ -299,7 +299,7 @@ export default function SettingsView() {
         },
       });
 
-      if (!res.ok) throw new Error("Failed to disconnect");
+      if (!res.ok) {throw new Error("Failed to disconnect");}
 
       toast({ title: "Disconnected", description: "GitHub account unlinked." });
       setUserData((prev: any) => ({
@@ -324,7 +324,7 @@ export default function SettingsView() {
       provider.addScope('https://www.googleapis.com/auth/calendar');
       provider.addScope('https://www.googleapis.com/auth/calendar.events');
 
-      if (!auth.currentUser) throw new Error("User must be signed in");
+      if (!auth.currentUser) {throw new Error("User must be signed in");}
 
       let accessToken: string | undefined;
       let googleEmail: string | undefined;
@@ -353,7 +353,7 @@ export default function SettingsView() {
         }
       }
 
-      if (!accessToken) throw new Error("No Access Token retrieved.");
+      if (!accessToken) {throw new Error("No Access Token retrieved.");}
 
       // Send to Backend
       const idToken = await auth.currentUser.getIdToken();
@@ -369,7 +369,7 @@ export default function SettingsView() {
         })
       });
 
-      if (!response.ok) throw new Error("Backend connection failed");
+      if (!response.ok) {throw new Error("Backend connection failed");}
 
       const data = await response.json();
       toast({ title: "Connected!", description: `Linked Google Calendar: ${data.email}` });
@@ -392,7 +392,7 @@ export default function SettingsView() {
   };
 
   const handleGoogleDisconnect = async () => {
-    if (!window.confirm("Disconnect Google Calendar?")) return;
+    if (!window.confirm("Disconnect Google Calendar?")) {return;}
     setLoading(true);
     try {
       const idToken = await auth.currentUser?.getIdToken();
@@ -503,7 +503,7 @@ export default function SettingsView() {
           body: JSON.stringify({ uid: currentUser?.uid })
         });
 
-        if (!res.ok) throw new Error("Failed to send verification code");
+        if (!res.ok) {throw new Error("Failed to send verification code");}
 
         toast({ title: "Verification Sent", description: "Check your email for the confirmation code." });
         setDeleteStep('verifying');

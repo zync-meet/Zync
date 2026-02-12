@@ -20,7 +20,7 @@ const CreateProject = ({ onProjectCreated }: CreateProjectProps) => {
   const { toast } = useToast();
 
   const handleGenerate = async () => {
-    if (!projectName || !projectDescription) return;
+    if (!projectName || !projectDescription) {return;}
 
     setIsGenerating(true);
 

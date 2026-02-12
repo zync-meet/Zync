@@ -75,7 +75,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
 
     // Fetch Teams
     const fetchTeams = async () => {
-        if (!currentUser?.uid) return;
+        if (!currentUser?.uid) {return;}
         setIsLoadingTeams(true);
         try {
             const token = await currentUser.getIdToken();
@@ -105,7 +105,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
     }, [currentUser]);
 
     const fetchMeetings = async () => {
-        if (!currentUser?.uid) return;
+        if (!currentUser?.uid) {return;}
         try {
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/meet/user/${currentUser.uid}`, {
@@ -121,7 +121,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
     };
 
     const handleDeleteMeeting = async (meetingId: string) => {
-        if (!currentUser?.uid) return;
+        if (!currentUser?.uid) {return;}
         
         try {
             const token = await currentUser.getIdToken();
@@ -204,8 +204,8 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
             const data = await res.json();
 
             if (data.meetingUrl) {
-                if (newWindow) newWindow.location.href = data.meetingUrl;
-                else window.open(data.meetingUrl, "_blank");
+                if (newWindow) {newWindow.location.href = data.meetingUrl;}
+                else {window.open(data.meetingUrl, "_blank");}
 
                 const teamName = teamId ? teams.find(t => t._id === teamId)?.name : null;
                 toast({ 
@@ -218,7 +218,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                 setSelectedTeamId(null);
                 fetchMeetings(); // Refresh list immediately
             } else {
-                if (newWindow) newWindow.close();
+                if (newWindow) {newWindow.close();}
                 throw new Error(data.message || "Failed to create meeting");
             }
 
@@ -408,7 +408,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                     {/* Team Selection Dialog for Instant Meeting */}
                     <Dialog open={isTeamSelectDialogOpen} onOpenChange={(open) => {
                         setIsTeamSelectDialogOpen(open);
-                        if (!open) setSelectedTeamId(null);
+                        if (!open) {setSelectedTeamId(null);}
                     }}>
                         <DialogContent className="sm:max-w-[480px] bg-[#0F0F10] border-white/10 text-white">
                             <DialogHeader>

@@ -150,7 +150,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
   };
 
   const handleLinkRepo = async (repo: any) => {
-    if (!selectedProjectForLink) return;
+    if (!selectedProjectForLink) {return;}
     setLinkingRepo(true);
     try {
       const user = auth.currentUser;
@@ -284,7 +284,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
 
   const handleUnlinkRepo = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
-    if (!confirm(`Unlink ${project.githubRepoName} from this project?`)) return;
+    if (!confirm(`Unlink ${project.githubRepoName} from this project?`)) {return;}
 
     try {
       const user = auth.currentUser;
@@ -321,7 +321,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
 
   const deleteProject = async (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation(); // Prevent card click
-    if (!confirm("Are you sure you want to delete this project?")) return;
+    if (!confirm("Are you sure you want to delete this project?")) {return;}
 
     try {
       let headers: HeadersInit = {};

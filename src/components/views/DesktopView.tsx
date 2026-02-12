@@ -97,7 +97,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   }, []);
 
   const [activeSection, setActiveSection] = useState(() => {
-    if (isPreview) return "My Workspace";
+    if (isPreview) {return "My Workspace";}
     return localStorage.getItem("ZYNC-active-section") || "Dashboard";
   });
 
@@ -338,7 +338,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   // Timer & Heartbeat
   useEffect(() => {
-    if (!sessionStartTime) return;
+    if (!sessionStartTime) {return;}
 
     const timerInterval = setInterval(() => {
       const now = new Date();
@@ -487,7 +487,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   }, [activeSection, currentUser, isPreview, usersList]);
 
   const handleDeleteLog = async (logId: string) => {
-    if (!currentUser) return;
+    if (!currentUser) {return;}
     try {
       const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/sessions/${logId}`, {
@@ -507,7 +507,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   };
 
   const handleClearLogs = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {return;}
     try {
       const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/sessions/user/${currentUser.uid}`, {
@@ -529,7 +529,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   // Global Message Delivery Listener
   useEffect(() => {
-    if (!currentUser || isPreview) return;
+    if (!currentUser || isPreview) {return;}
 
     // Listen for messages sent TO the current user that are NOT yet delivered
     // This marks them as delivered as long as the user is online (DesktopView is mounted)
@@ -634,7 +634,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     if ((activeSection === "People" || activeSection === "Notes" || activeSection === "Chat" || activeSection === "Meet" || activeSection === "Tasks") && !isPreview) {
       const fetchUsers = async () => {
         try {
-          if (!currentUser) return;
+          if (!currentUser) {return;}
           const token = await currentUser.getIdToken();
           const response = await fetch(`${API_BASE_URL}/api/users`, {
             headers: {
@@ -947,7 +947,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-white/10" />
                   <DropdownMenuItem onClick={async () => {
-                    if (isPreview) return;
+                    if (isPreview) {return;}
                     localStorage.removeItem("ZYNC-active-section");
                     localStorage.removeItem("ZYNC_HAS_SEEN_LANDING"); // Reset landing page state
                     await signOut(auth);

@@ -58,15 +58,15 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
   // Load Preferences
   useEffect(() => {
     const storedWidth = localStorage.getItem('ZYNC-sidebar-width');
-    if (storedWidth) setWidth(parseInt(storedWidth));
+    if (storedWidth) {setWidth(parseInt(storedWidth));}
     const storedCollapsed = localStorage.getItem('ZYNC-sidebar-collapsed');
-    if (storedCollapsed) setIsCollapsed(storedCollapsed === 'true');
+    if (storedCollapsed) {setIsCollapsed(storedCollapsed === 'true');}
   }, []);
 
   // Resize Logic
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
+      if (!isResizing) {return;}
       const newWidth = Math.min(Math.max(e.clientX - (sidebarRef.current?.getBoundingClientRect().left || 0), 160), 480);
       setWidth(newWidth);
     };
@@ -98,7 +98,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem('ZYNC-sidebar-collapsed', newState.toString());
-    if (!newState) setIsHovered(false);
+    if (!newState) {setIsHovered(false);}
   };
 
   // Share Dialog State
@@ -113,7 +113,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
   };
 
   const executeShare = async () => {
-    if (!folderToShare || !selectedUserId) return;
+    if (!folderToShare || !selectedUserId) {return;}
     try {
       await shareFolder(folderToShare.id, [selectedUserId]);
       toast.success(`Folder shared successfully`);
@@ -126,7 +126,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
   };
 
   const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return;
+    if (!newFolderName.trim()) {return;}
     try {
       await createFolder({ name: newFolderName, ownerId: userId, type: 'personal' });
       setNewFolderName('');
@@ -222,7 +222,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
   const handleDrop = async (e: React.DragEvent, targetFolderId: string | null) => {
     e.preventDefault();
     const noteId = e.dataTransfer.getData("noteId");
-    if (!noteId) return;
+    if (!noteId) {return;}
 
     try {
       await updateNote(noteId, { folderId: targetFolderId });
@@ -242,7 +242,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
   };
 
   const handlePaste = async (targetFolderId: string | null) => {
-    if (!clipboardNoteId) return;
+    if (!clipboardNoteId) {return;}
     try {
       await duplicateNote(clipboardNoteId, targetFolderId, userId);
       toast.success("Note pasted");

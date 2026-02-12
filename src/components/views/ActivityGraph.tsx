@@ -49,7 +49,7 @@ const AvatarLabel = (props: any) => {
     const { x, y, width, value, users } = props;
     const user = users.find((u: User) => u.displayName === value || u.email === value || u.uid === value); // Match by name/id logic
 
-    if (!user) return null;
+    if (!user) {return null;}
     const userName = getUserName(user);
 
     return (
@@ -77,20 +77,20 @@ export const ActivityGraph = ({ tasks = [], users, teamSessions = [], currentTea
 
     // Default to current team if available
     useMemo(() => {
-        if (currentTeamId && !selectedTeamId) setSelectedTeamId(currentTeamId);
+        if (currentTeamId && !selectedTeamId) {setSelectedTeamId(currentTeamId);}
     }, [currentTeamId]);
 
     // Auto-switch mode if sessions available and no tasks, or user preference
     useMemo(() => {
-        if (teamSessions.length > 0 && tasks.length === 0) setMode("time");
+        if (teamSessions.length > 0 && tasks.length === 0) {setMode("time");}
     }, [teamSessions, tasks]);
 
     const filteredData = useMemo(() => {
         const now = new Date();
         let startDate = subDays(now, 7); // Default weekly
 
-        if (timeRange === "daily") startDate = subDays(now, 1);
-        if (timeRange === "monthly") startDate = subDays(now, 30);
+        if (timeRange === "daily") {startDate = subDays(now, 1);}
+        if (timeRange === "monthly") {startDate = subDays(now, 30);}
 
         // Map to store aggregated data per user
         const userMap: Record<string, {
@@ -107,15 +107,15 @@ export const ActivityGraph = ({ tasks = [], users, teamSessions = [], currentTea
         // Initialize User Map
         users.forEach(user => {
             // Filter out current user (self)
-            if (currentUserId && user.uid === currentUserId) return;
+            if (currentUserId && user.uid === currentUserId) {return;}
 
             if (showTeamOnly) {
                 // If using owned teams dropdown selector
                 if (ownedTeams.length > 0) {
-                    if (user.teamId !== selectedTeamId) return;
+                    if (user.teamId !== selectedTeamId) {return;}
                 } else if (currentTeamId) {
                     // Fallback to simple check
-                    if (user.teamId !== currentTeamId) return;
+                    if (user.teamId !== currentTeamId) {return;}
                 }
             }
 
@@ -131,7 +131,7 @@ export const ActivityGraph = ({ tasks = [], users, teamSessions = [], currentTea
 
         if (mode === "tasks") {
             const relevantTasks = tasks.filter(task => {
-                if (!task.createdAt) return false;
+                if (!task.createdAt) {return false;}
                 const taskDate = new Date(task.createdAt);
                 return isAfter(taskDate, startDate);
             });

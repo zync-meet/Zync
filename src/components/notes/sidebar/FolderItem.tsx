@@ -48,7 +48,7 @@ export const FolderItem: React.FC<FolderItemProps> = ({
             )}
             onDragOver={(e) => {
                 onDragOver(e);
-                if (!isDragOverFolder) setIsDragOverFolder(true);
+                if (!isDragOverFolder) {setIsDragOverFolder(true);}
             }}
             onDragLeave={() => setIsDragOverFolder(false)}
             onDrop={(e) => {
@@ -58,7 +58,7 @@ export const FolderItem: React.FC<FolderItemProps> = ({
             }}
             onContextMenu={(e) => {
                 e.preventDefault();
-                if (canPaste) onPaste(folder.id);
+                if (canPaste) {onPaste(folder.id);}
             }}
         >
             <div

@@ -41,7 +41,7 @@ const getAuthHeaders = async () => {
 export const fetchFolders = async (userId: string): Promise<Folder[]> => {
   const headers = await getAuthHeaders();
   const response = await fetch(`${API_URL}/folders?userId=${userId}`, { headers });
-  if (!response.ok) throw new Error('Failed to fetch folders');
+  if (!response.ok) {throw new Error('Failed to fetch folders');}
   return response.json();
 };
 
@@ -52,7 +52,7 @@ export const createFolder = async (data: { name: string; ownerId: string; parent
     headers,
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Failed to create folder');
+  if (!response.ok) {throw new Error('Failed to create folder');}
   return response.json();
 };
 
@@ -63,7 +63,7 @@ export const shareFolder = async (folderId: string, collaboratorIds: string[]) =
     headers,
     body: JSON.stringify({ collaboratorIds }),
   });
-  if (!response.ok) throw new Error('Failed to share folder');
+  if (!response.ok) {throw new Error('Failed to share folder');}
   return response.json();
 };
 
@@ -73,7 +73,7 @@ export const fetchNotes = async (userId: string, folderId?: string): Promise<Not
     ? `${API_URL}?userId=${userId}&folderId=${folderId}`
     : `${API_URL}?userId=${userId}`;
   const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error('Failed to fetch notes');
+  if (!response.ok) {throw new Error('Failed to fetch notes');}
   return response.json();
 };
 
@@ -84,7 +84,7 @@ export const createNote = async (data: { title: string; ownerId: string; folderI
     headers,
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Failed to create note');
+  if (!response.ok) {throw new Error('Failed to create note');}
   return response.json();
 };
 
@@ -95,7 +95,7 @@ export const updateNote = async (id: string, data: any) => {
     headers,
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Failed to update note');
+  if (!response.ok) {throw new Error('Failed to update note');}
   return response.json();
 };
 
@@ -105,6 +105,6 @@ export const deleteNote = async (id: string) => {
     method: 'DELETE',
     headers
   });
-  if (!response.ok) throw new Error('Failed to delete note');
+  if (!response.ok) {throw new Error('Failed to delete note');}
   return response.json();
 };

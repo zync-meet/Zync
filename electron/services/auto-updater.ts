@@ -54,11 +54,11 @@ export class AutoUpdaterService {
     public initialize(): void {
         console.info('[AutoUpdater] Initializing');
         this.initialCheckTimeout = setTimeout(() => {
-            if (this.isAutoCheckEnabled) this.checkForUpdates();
+            if (this.isAutoCheckEnabled) {this.checkForUpdates();}
         }, INITIAL_CHECK_DELAY_MS);
 
         this.checkInterval = setInterval(() => {
-            if (this.isAutoCheckEnabled) this.checkForUpdates();
+            if (this.isAutoCheckEnabled) {this.checkForUpdates();}
         }, UPDATE_CHECK_INTERVAL_MS);
     }
 
@@ -68,7 +68,7 @@ export class AutoUpdaterService {
             console.info('[AutoUpdater] Skipping check in dev mode');
             return;
         }
-        if (this.isDownloading) return;
+        if (this.isDownloading) {return;}
 
         try {
             console.info(`[AutoUpdater] Checking... (current: ${app.getVersion()})`);
@@ -82,7 +82,7 @@ export class AutoUpdaterService {
     /** Handle update-available event */
     private async onUpdateAvailable(info: UpdateInfo): Promise<void> {
         this.pendingUpdate = info;
-        if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+        if (!this.mainWindow || this.mainWindow.isDestroyed()) {return;}
 
         const result = await dialog.showMessageBox(this.mainWindow, {
             type: 'info',
@@ -94,12 +94,12 @@ export class AutoUpdaterService {
             cancelId: 1,
         });
 
-        if (result.response === 0) this.isDownloading = true;
+        if (result.response === 0) {this.isDownloading = true;}
     }
 
     /** Send download progress to renderer */
     private onDownloadProgress(progress: UpdateProgress): void {
-        if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+        if (!this.mainWindow || this.mainWindow.isDestroyed()) {return;}
         this.mainWindow.webContents.send('fromMain', {
             action: 'update-progress',
             data: { percent: Math.round(progress.percent) },
@@ -109,7 +109,7 @@ export class AutoUpdaterService {
     /** Handle update-downloaded event */
     private async onUpdateDownloaded(info: UpdateInfo): Promise<void> {
         this.isDownloading = false;
-        if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+        if (!this.mainWindow || this.mainWindow.isDestroyed()) {return;}
 
         const result = await dialog.showMessageBox(this.mainWindow, {
             type: 'info',
@@ -135,8 +135,8 @@ export class AutoUpdaterService {
 
     /** Clean up timers */
     public dispose(): void {
-        if (this.initialCheckTimeout) clearTimeout(this.initialCheckTimeout);
-        if (this.checkInterval) clearInterval(this.checkInterval);
+        if (this.initialCheckTimeout) {clearTimeout(this.initialCheckTimeout);}
+        if (this.checkInterval) {clearInterval(this.checkInterval);}
         this.mainWindow = null;
         this.pendingUpdate = null;
         console.info('[AutoUpdater] Disposed');

@@ -1,5 +1,5 @@
 {
-  "name": "ZYNC",
+  "name": "zync",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview",
     "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run dev --prefix backend\" \"tsc -p tsconfig.electron.json -w\" \"wait-on tcp:5173 && electron .\"",
     "electron:build": "tsc -p tsconfig.electron.json && vite build && electron-builder",

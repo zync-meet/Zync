@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "dist-electron", "node_modules", "coverage", "public"] },
+  { ignores: ["dist", "dist-electron", "node_modules", "coverage", "public", "backend/"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -17,7 +17,7 @@ export default tseslint.config(
         ...globals.es2020
       },
       parserOptions: {
-        project: ['./tsconfig.app.json', './tsconfig.node.json', './tsconfig.electron.json'],
+        project: ['./tsconfig.app.json', './tsconfig.node.json', './tsconfig.electron.json', './tsconfig.eslint.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },

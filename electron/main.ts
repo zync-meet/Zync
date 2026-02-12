@@ -97,7 +97,7 @@ const createWindow = (): void => {
 const createSettingsWindow = (): void => {
   // If the window already exists, bring it to focus instead of creating a new one
   if (settingsWindow) {
-    if (settingsWindow.isMinimized()) settingsWindow.restore();
+    if (settingsWindow.isMinimized()) {settingsWindow.restore();}
     settingsWindow.focus();
     return;
   }

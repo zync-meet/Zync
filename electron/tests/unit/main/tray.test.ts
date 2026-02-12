@@ -135,7 +135,7 @@ function findContextMenuItem(label: string): ContextMenuItemLike | undefined {
  * Gets click handlers attached to the tray instance.
  */
 function getTrayClickHandler(): ((...args: unknown[]) => void) | undefined {
-  if (!mockTrayInstance) return undefined;
+  if (!mockTrayInstance) {return undefined;}
 
   // Find the 'click' event handler
   const onCalls = mockTrayInstance.on.mock.calls;
@@ -149,7 +149,7 @@ function getTrayClickHandler(): ((...args: unknown[]) => void) | undefined {
  * Gets double-click handlers attached to the tray instance.
  */
 function getTrayDoubleClickHandler(): ((...args: unknown[]) => void) | undefined {
-  if (!mockTrayInstance) return undefined;
+  if (!mockTrayInstance) {return undefined;}
 
   const onCalls = mockTrayInstance.on.mock.calls;
   const dblClickCall = onCalls.find(

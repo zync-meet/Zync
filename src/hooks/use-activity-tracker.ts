@@ -49,7 +49,7 @@ export const useActivityTracker = () => {
     
     // Heartbeat to sync with backend
     const interval = setInterval(() => {
-        if (!sessionIdRef.current) return;
+        if (!sessionIdRef.current) {return;}
         
         const now = Date.now();
         const timeSinceLastAction = now - lastActionRef.current;

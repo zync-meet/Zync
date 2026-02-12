@@ -56,7 +56,7 @@ export const useInspiration = (): UseInspirationReturn => {
             if (data.ok && Array.isArray(data.items)) {
                 // Deduplicate
                 const uniqueItems = data.items.filter((item: DesignItem) => {
-                    if (processedIds.current.has(item.id)) return false;
+                    if (processedIds.current.has(item.id)) {return false;}
                     processedIds.current.add(item.id);
                     return true;
                 });

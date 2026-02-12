@@ -202,7 +202,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         const idleTime = Math.round(totalSeconds * 0.10); // 10% idle
 
         const total = focusTime + meetingsTime + idleTime;
-        if (total === 0) return [];
+        if (total === 0) {return [];}
 
         return [
             { name: 'Focus Time', value: Math.round(focusTime / 60), percentage: 65 },
@@ -378,7 +378,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         const x = cx + radius * Math.cos(-midAngle * RADIAN);
         const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-        if (percent < 0.08) return null;
+        if (percent < 0.08) {return null;}
 
         return (
             <text

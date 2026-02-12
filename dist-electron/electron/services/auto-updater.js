@@ -33,12 +33,14 @@ export class AutoUpdaterService {
     initialize() {
         console.info('[AutoUpdater] Initializing');
         this.initialCheckTimeout = setTimeout(() => {
-            if (this.isAutoCheckEnabled)
+            if (this.isAutoCheckEnabled) {
                 this.checkForUpdates();
+            }
         }, INITIAL_CHECK_DELAY_MS);
         this.checkInterval = setInterval(() => {
-            if (this.isAutoCheckEnabled)
+            if (this.isAutoCheckEnabled) {
                 this.checkForUpdates();
+            }
         }, UPDATE_CHECK_INTERVAL_MS);
     }
     /** Check for available updates */
@@ -47,8 +49,9 @@ export class AutoUpdaterService {
             console.info('[AutoUpdater] Skipping check in dev mode');
             return;
         }
-        if (this.isDownloading)
+        if (this.isDownloading) {
             return;
+        }
         try {
             console.info(`[AutoUpdater] Checking... (current: ${app.getVersion()})`);
             // autoUpdater.checkForUpdatesAndNotify() in production
@@ -61,8 +64,9 @@ export class AutoUpdaterService {
     /** Handle update-available event */
     async onUpdateAvailable(info) {
         this.pendingUpdate = info;
-        if (!this.mainWindow || this.mainWindow.isDestroyed())
+        if (!this.mainWindow || this.mainWindow.isDestroyed()) {
             return;
+        }
         const result = await dialog.showMessageBox(this.mainWindow, {
             type: 'info',
             title: 'Update Available',
@@ -72,13 +76,15 @@ export class AutoUpdaterService {
             defaultId: 0,
             cancelId: 1,
         });
-        if (result.response === 0)
+        if (result.response === 0) {
             this.isDownloading = true;
+        }
     }
     /** Send download progress to renderer */
     onDownloadProgress(progress) {
-        if (!this.mainWindow || this.mainWindow.isDestroyed())
+        if (!this.mainWindow || this.mainWindow.isDestroyed()) {
             return;
+        }
         this.mainWindow.webContents.send('fromMain', {
             action: 'update-progress',
             data: { percent: Math.round(progress.percent) },
@@ -87,8 +93,9 @@ export class AutoUpdaterService {
     /** Handle update-downloaded event */
     async onUpdateDownloaded(info) {
         this.isDownloading = false;
-        if (!this.mainWindow || this.mainWindow.isDestroyed())
+        if (!this.mainWindow || this.mainWindow.isDestroyed()) {
             return;
+        }
         const result = await dialog.showMessageBox(this.mainWindow, {
             type: 'info',
             title: 'Update Ready',
@@ -109,10 +116,12 @@ export class AutoUpdaterService {
     }
     /** Clean up timers */
     dispose() {
-        if (this.initialCheckTimeout)
+        if (this.initialCheckTimeout) {
             clearTimeout(this.initialCheckTimeout);
-        if (this.checkInterval)
+        }
+        if (this.checkInterval) {
             clearInterval(this.checkInterval);
+        }
         this.mainWindow = null;
         this.pendingUpdate = null;
         console.info('[AutoUpdater] Disposed');

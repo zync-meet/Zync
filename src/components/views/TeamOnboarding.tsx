@@ -37,7 +37,7 @@ const TeamOnboarding = ({ onSuccess }: TeamOnboardingProps) => {
     const currentUser = auth.currentUser;
 
     const handleAddInvite = (e: React.KeyboardEvent | React.MouseEvent) => {
-        if ((e.type === 'keydown' && (e as React.KeyboardEvent).key !== 'Enter') || !currentInvite.trim()) return;
+        if ((e.type === 'keydown' && (e as React.KeyboardEvent).key !== 'Enter') || !currentInvite.trim()) {return;}
         e.preventDefault();
 
         if (invites.some(i => i.email === currentInvite)) {

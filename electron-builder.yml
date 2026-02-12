@@ -34,7 +34,6 @@ dmg:
 
 linux:
   target: AppImage
-  icon: build/icons
   category: Office
-AppImage:
+appImage:
   license: LICENSE

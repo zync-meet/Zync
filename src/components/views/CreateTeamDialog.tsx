@@ -33,7 +33,7 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
     const [loading, setLoading] = useState(false);
 
     const handleAddInvite = (e: React.KeyboardEvent | React.MouseEvent) => {
-        if ((e.type === 'keydown' && (e as React.KeyboardEvent).key !== 'Enter') || !currentInvite.trim()) return;
+        if ((e.type === 'keydown' && (e as React.KeyboardEvent).key !== 'Enter') || !currentInvite.trim()) {return;}
         e.preventDefault();
 
         if (invites.some(i => i.email === currentInvite)) {
