@@ -366,6 +366,7 @@ afterAll(() => {
 /**
  * Extend the global namespace with custom test types.
  */
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Vi {
     interface Assertion {
@@ -383,6 +384,7 @@ declare global {
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-namespace */
 
 // =============================================================================
 // Module Exports
