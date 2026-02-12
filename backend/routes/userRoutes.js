@@ -362,9 +362,15 @@ router.get('/:uid', async (req, res) => {
 });
 
 // Update user profile
-router.put('/:uid', async (req, res) => {
+router.put('/:uid', verifyToken, async (req, res) => {
   try {
     const { uid } = req.params;
+
+    // Security check: Ensure user can only update their own profile
+    if (req.user.uid !== uid) {
+      return res.status(403).json({ message: 'Unauthorized: You can only update your own profile' });
+    }
+
     const updates = req.body;
 
     // Check if phone number is being updated
