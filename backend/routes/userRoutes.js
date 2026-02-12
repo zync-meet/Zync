@@ -324,15 +324,14 @@ router.get('/', verifyToken, async (req, res) => {
     // Aggregate: All Teams user is a member of (including owned) + Connections
     const relatedUids = new Set(currentUser.connections || []);
 
-    // Find ALL teams where the user is a member
-    // This handles: Active Team, Other Joined Teams, Owned Teams (if owner is in members)
-    const allMyTeams = await Team.find({ members: req.user.uid });
-
-    // Also fetch owned teams just in case owner isn't in members array for some reason
-    const ownedTeams = await Team.find({ ownerId: req.user.uid });
-
-    // Combine teams
-    const uniqueTeams = [...allMyTeams, ...ownedTeams];
+    // Find ALL teams where the user is a member or owner
+    // This handles: Active Team, Other Joined Teams, Owned Teams
+    const uniqueTeams = await Team.find({
+      $or: [
+        { members: req.user.uid },
+        { ownerId: req.user.uid }
+      ]
+    });
 
     uniqueTeams.forEach(t => {
       if (t.members) t.members.forEach(m => relatedUids.add(m));
