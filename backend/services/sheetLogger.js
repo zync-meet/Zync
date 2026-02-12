@@ -1,20 +1,31 @@
+require('dotenv').config();
 const { google } = require('googleapis');
-const path = require('path');
 
 // Configuration
 const SPREADSHEET_ID = '1dSLg9N40XzLgPxogA-sHyFXhN3GL5MVWcoxxnvVug7E';
-// Adjust path to point to root of the project where google.sheets.json is located
-// Assuming this script runs from backend/services/ or backend/
-const KEY_FILE_PATH = path.join(__dirname, '../../google.sheets.json');
 
 /**
- * Authenticate with Google Sheets API using Service Account
+ * Authenticate with Google Sheets API using environment variables
+ * Required env vars: GOOGLE_SHEETS_CLIENT_EMAIL, GOOGLE_SHEETS_PRIVATE_KEY
  */
 const getAuth = () => {
+    const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
+    const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
+
+    if (!clientEmail || !privateKey) {
+        throw new Error(
+            'Missing GOOGLE_SHEETS_CLIENT_EMAIL or GOOGLE_SHEETS_PRIVATE_KEY in .env'
+        );
+    }
+
     const auth = new google.auth.GoogleAuth({
-        keyFile: KEY_FILE_PATH,
+        credentials: {
+            client_email: clientEmail,
+            private_key: privateKey.replace(/\\n/g, '\n'), // Handle escaped newlines from .env
+        },
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
+
     return auth;
 };
 
@@ -31,7 +42,7 @@ const appendRow = async (name, email, date = new Date().toISOString()) => {
 
         const request = {
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Sheet1!A:C', // Adjust Sheet name and range as needed
+            range: 'Sheet1!A:C', // Adjust sheet name and range as needed
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
             resource: {
