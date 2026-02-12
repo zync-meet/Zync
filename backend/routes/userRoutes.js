@@ -182,8 +182,10 @@ router.post('/chat-request', verifyToken, async (req, res) => {
   const senderUid = req.user.uid;
 
   try {
-    const sender = await User.findOne({ uid: senderUid });
-    const recipient = await User.findOne({ uid: recipientId });
+    const [sender, recipient] = await Promise.all([
+      User.findOne({ uid: senderUid }),
+      User.findOne({ uid: recipientId })
+    ]);
 
     if (!recipient) return res.status(404).json({ message: 'Recipient not found' });
 
