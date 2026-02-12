@@ -367,6 +367,7 @@ afterAll(() => {
  * Extend the global namespace with custom test types.
  */
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Vi {
     interface Assertion {
       toExist(): void;

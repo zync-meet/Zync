@@ -297,7 +297,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
     // Simplified: Just use the text content of the block where cursor is.
     if (block && block.content) {
       // Block content is array of InlineContent. Join text.
-      // @ts-ignore
+      // @ts-expect-error BlockNote types are complex and sometimes mismatch
       text = block.content.map(c => c.text || "").join("");
     }
 
