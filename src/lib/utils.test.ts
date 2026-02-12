@@ -36,6 +36,7 @@ describe("utils.ts", () => {
     });
 
     test("should handle conditional classes", () => {
+      // eslint-disable-next-line no-constant-binary-expression
       expect(cn("btn", true && "btn-active", false && "btn-hidden")).toBe("btn btn-active");
     });
 
