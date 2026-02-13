@@ -141,34 +141,31 @@ export default function SettingsView() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const formData = new FormData();
-      formData.append('file', file);
+
+      if (!currentUser?.uid) {
+        toast({ title: "Error", description: "You must be signed in.", variant: "destructive" });
+        return;
+      }
 
       setLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/upload`, {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!response.ok) { throw new Error('Upload failed'); }
-
-        const data = await response.json();
-        const fileUrl = data.fileUrl; // This is a relative path like /uploads/filename.jpg
+        // Upload to Firebase Storage at profile_images/{userId}
+        const { uploadProfileImage } = await import("@/services/storageService");
+        const downloadURL = await uploadProfileImage(currentUser.uid, file);
 
         // Update local state
-        setProfileForm(prev => ({ ...prev, photoURL: fileUrl }));
+        setProfileForm(prev => ({ ...prev, photoURL: downloadURL }));
 
-        // Save to backend immediately
-        await fetch(`${API_BASE_URL}/api/users/${currentUser?.uid}`, {
+        // Save URL to backend user document
+        await fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photoURL: fileUrl })
+          body: JSON.stringify({ photoURL: downloadURL })
         });
 
-        // Update Firebase Profile
+        // Update Firebase Auth Profile
         if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { photoURL: fileUrl }); // Note: Firebase usually expects a full URL, but we'll handle this in the app
+          await updateProfile(auth.currentUser, { photoURL: downloadURL });
         }
 
         toast({ title: "Success", description: "Profile photo updated" });
