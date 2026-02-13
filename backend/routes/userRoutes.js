@@ -77,7 +77,7 @@ router.post('/sync', verifyToken, async (req, res) => {
       // Always attempt to send if GMAIL_USER is configured (implied by sendZYNCEmail existence)
       try {
         await sendZyncEmail(
-          'ChitkulLakshya@gmail.com',
+          'consolemaster.app@gmail.com',
           '🚀 New User Joined ZYNC!',
           `
             <h1>New User Alert!</h1>

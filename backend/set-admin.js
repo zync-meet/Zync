@@ -2,7 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('./models/User');
 
-const adminEmail = 'chitkullakshya@gmail.com'; // Lowercase lookup usually safer
+const adminEmail = 'consolemaster.app@gmail.com'; // Lowercase lookup usually safer
 
 async function setAdmin() {
     try {
