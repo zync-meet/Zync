@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import ProfilePhotoCropper from "@/components/ProfilePhotoCropper";
 import { auth } from "@/lib/firebase";
 import { updateProfile, GithubAuthProvider, GoogleAuthProvider, linkWithPopup, getAdditionalUserInfo, onAuthStateChanged, reauthenticateWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,8 @@ export default function SettingsView() {
   const { theme, setTheme } = useTheme()
 
   const [openCountry, setOpenCountry] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImage, setCropperImage] = useState<string>("");
 
   // Computed Properties
   const googleProvider = currentUser?.providerData?.find((p: any) => p.providerId === 'google.com');
@@ -138,45 +141,63 @@ export default function SettingsView() {
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-
       if (!currentUser?.uid) {
         toast({ title: "Error", description: "You must be signed in.", variant: "destructive" });
         return;
       }
-
-      setLoading(true);
-      try {
-        // Upload to Firebase Storage at profile_images/{userId}
-        const { uploadProfileImage } = await import("@/services/storageService");
-        const downloadURL = await uploadProfileImage(currentUser.uid, file);
-
-        // Update local state
-        setProfileForm(prev => ({ ...prev, photoURL: downloadURL }));
-
-        // Save URL to backend user document
-        await fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photoURL: downloadURL })
-        });
-
-        // Update Firebase Auth Profile
-        if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { photoURL: downloadURL });
-        }
-
-        toast({ title: "Success", description: "Profile photo updated" });
-      } catch (error: any) {
-        console.error("Upload error:", error);
-        toast({ title: "Error", description: (error as Error).message || "Failed to upload photo", variant: "destructive" });
-      } finally {
-        setLoading(false);
-      }
+      // Read file and open cropper
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCropperImage(reader.result as string);
+        setCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+      // Reset input so the same file can be re-selected
+      e.target.value = "";
     }
   };
+
+  const handleCroppedUpload = useCallback(async (croppedBlob: Blob) => {
+    setCropperOpen(false);
+    if (!currentUser?.uid) return;
+
+    setLoading(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const formData = new FormData();
+      formData.append('file', croppedBlob, 'profile.jpg');
+
+      const response = await fetch(`${API_BASE_URL}/api/upload/profile-photo`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Upload failed');
+      }
+
+      const data = await response.json();
+      const photoURL = data.photoURL;
+
+      setProfileForm(prev => ({ ...prev, photoURL }));
+
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { photoURL });
+      }
+
+      toast({ title: "Success", description: "Profile photo updated" });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({ title: "Error", description: (error as Error).message || "Failed to upload photo", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
 
   // --- GitHub Integration Logic ---
   const handleGithubConnect = async () => {
@@ -572,6 +593,14 @@ export default function SettingsView() {
                     />
                     <p className="text-xs text-muted-foreground mt-2">Click to change profile photo</p>
                   </div>
+
+                  {/* Profile Photo Cropper Dialog */}
+                  <ProfilePhotoCropper
+                    open={cropperOpen}
+                    imageSrc={cropperImage}
+                    onClose={() => setCropperOpen(false)}
+                    onCropComplete={handleCroppedUpload}
+                  />
 
                   <div className="space-y-2">
                     <Label>Display Name</Label>

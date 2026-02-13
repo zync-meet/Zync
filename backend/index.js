@@ -64,7 +64,7 @@ app.use(
         "default-src": ["'self'"],
         "script-src": ["'self'", "blob:", "https://apis.google.com", "https://www.googleapis.com", "https://www.gstatic.com"],
         "connect-src": ["'self'", "https://github.com", "https://api.github.com", "http://localhost:*", "https://*.firebaseio.com", "ws://localhost:*", "wss://*.glitch.me", "https://*.googleapis.com"],
-        "img-src": ["'self'", "data:", "https://avatars.githubusercontent.com", "https://*.googleusercontent.com", "https://*.google.com", "blob:", "https://ui-avatars.com"],
+        "img-src": ["'self'", "data:", "https://avatars.githubusercontent.com", "https://*.googleusercontent.com", "https://*.google.com", "blob:", "https://ui-avatars.com", "https://firebasestorage.googleapis.com"],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "worker-src": ["'self'", "blob:"],
         "frame-src": ["'self'", "https://github.com", "https://*.firebaseapp.com", "https://*.google.com"],
@@ -72,6 +72,7 @@ app.use(
       },
     },
     crossOriginEmbedderPolicy: false, // Prevents blocking of some resources
+    crossOriginResourcePolicy: false, // Allow images/uploads to be loaded from different origins
   })
 );
 
@@ -95,8 +96,12 @@ app.use(express.json({
   }
 }));
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static files from uploads directory with cross-origin headers
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 
 
