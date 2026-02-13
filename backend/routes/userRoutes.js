@@ -433,21 +433,28 @@ router.post('/delete/request', verifyToken, async (req, res) => {
 // Confirm Account Deletion
 router.post('/delete/confirm', verifyToken, async (req, res) => {
   const { uid, code } = req.body;
+  console.log(`[DELETE] Request to delete user: ${uid} with code: ${code}`);
 
   // Security check
   if (req.user.uid !== uid) {
+    console.warn(`[DELETE] Unauthorized attempt by ${req.user.uid} to delete ${uid}`);
     return res.status(403).json({ message: 'Unauthorized' });
   }
 
   try {
     const user = await User.findOne({ uid });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      console.warn(`[DELETE] User not found: ${uid}`);
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     if (user.deleteConfirmationCode !== code) {
+      console.warn(`[DELETE] Invalid code for user ${uid}. Expected ${user.deleteConfirmationCode}, got ${code}`);
       return res.status(400).json({ message: 'Invalid code' });
     }
 
     if (user.deleteConfirmationExpires < Date.now()) {
+      console.warn(`[DELETE] Code expired for user ${uid}`);
       return res.status(400).json({ message: 'Code expired' });
     }
 
@@ -456,12 +463,24 @@ router.post('/delete/confirm', verifyToken, async (req, res) => {
       { members: uid },
       { $pull: { members: uid } }
     );
+    console.log(`[DELETE] Removed user ${uid} from teams`);
 
+    // Remove user from MongoDB
     await User.findOneAndDelete({ uid });
-    // TODO: also trigger Firebase Authentication deletion via Admin SDK if possible, 
-    // but the frontend handles the client-side firebase auth deletion.
+    console.log(`[DELETE] User ${uid} deleted from MongoDB`);
 
-    res.status(200).json({ message: 'User deleted' });
+    // Attempt to delete from Firebase Auth
+    // Note: The client logic attempts this too, but doing it here ensures it's done if client fails
+    try {
+      const admin = require('firebase-admin');
+      await admin.auth().deleteUser(uid);
+      console.log(`[DELETE] User ${uid} deleted from Firebase Auth (server-side)`);
+    } catch (fbError) {
+      console.error(`[DELETE] Failed to delete user from Firebase Auth (server-side):`, fbError.message);
+      // We don't fail the request if this fails, as the user is already gone from our DB
+    }
+
+    res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error confirming deletion:', error);
     res.status(500).json({ message: 'Server error' });
