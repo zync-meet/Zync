@@ -111,7 +111,6 @@ export default defineConfig({
         'electron/**/*.ts',
       ],
 
-      // Files to exclude from coverage
       exclude: [
         'electron/tests/**',
         'electron/**/*.test.ts',
@@ -260,40 +259,3 @@ export default defineConfig({
     'import.meta.vitest': 'undefined',
   },
 });
-
-// =============================================================================
-// Configuration Documentation
-// =============================================================================
-//
-// This configuration is optimized for testing Electron main process code:
-//
-// 1. **Environment**: Uses Node.js environment (not jsdom) since main process
-//    runs in Node.js, not a browser context.
-//
-// 2. **Mocking**: Electron APIs are mocked since they require a real Electron
-//    runtime. See `electron/tests/__mocks__/electron.ts` for mocks.
-//
-// 3. **Isolation**: Tests run in separate threads to prevent interference
-//    between tests that modify global state.
-//
-// 4. **Coverage**: Configured to collect coverage for all Electron code,
-//    with reasonable thresholds for a desktop application.
-//
-// 5. **CI Integration**: Special settings for CI (retry, bail, etc.) to
-//    handle the different requirements of CI environments.
-//
-// =============================================================================
-// Adding New Tests
-// =============================================================================
-//
-// 1. Create test file in `electron/tests/unit/` or `electron/tests/integration/`
-// 2. Name it `*.test.ts` or `*.spec.ts`
-// 3. Import mocks from `electron/tests/__mocks__/`
-// 4. Use helpers from `electron/tests/helpers/`
-//
-// =============================================================================
-//
-// Last Updated: 2026-02-10
-// Maintained by: ZYNC Electron Team
-//
-// =============================================================================

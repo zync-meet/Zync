@@ -4,8 +4,8 @@ This file serves as a checkpoint for the 50-commit Electron refactoring plan. It
 
 ## 📊 Summary
 - **Target Commits:** 50
-- **Finished Commits:** 1, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 21, 23, 24, 25, 31, 35, 36 (Total: 20 commits completed and pushed)
-- **Files Created:** 25 files
+- **Finished Commits:** 1, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 21, 23, 24, 25, 31, 35, 36, 49 (Total: 22 commits completed and pushed)
+- **Files Created:** 27 files
 - **Current Phase:** Phase 4 (Utilities & Testing)
 
 ---
@@ -20,6 +20,9 @@ This file serves as a checkpoint for the 50-commit Electron refactoring plan. It
 - [x] **Commit 5:** ESLint Configuration
   - `.eslintrc.cjs`
   - `.eslintignore`
+- [x] **Commit 49:** Privacy & OAuth Documentation
+  - `PRIVACY_POLICY.md` (OAuth Compliant)
+  - `OAUTH_EXPLANATION.md` (Scope Justification)
 - [x] **Commit 6:** Prettier Configuration
   - `.prettierrc.json`
   - `.prettierignore`
