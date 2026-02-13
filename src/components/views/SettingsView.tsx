@@ -162,7 +162,7 @@ export default function SettingsView() {
 
   const handleCroppedUpload = useCallback(async (croppedBlob: Blob) => {
     setCropperOpen(false);
-    if (!currentUser?.uid) return;
+    if (!currentUser?.uid) { return; }
 
     setLoading(true);
     try {

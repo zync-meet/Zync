@@ -83,7 +83,7 @@ router.post('/sync', verifyToken, async (req, res) => {
       // Send Notification Email to Admin
       try {
         await sendZyncEmail(
-          'ChitkulLakshya@gmail.com',
+          'consolemaster.app@gmail.com',
           '🚀 New User Joined ZYNC!',
           `
             <h1>New User Alert!</h1>

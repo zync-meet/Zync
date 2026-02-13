@@ -102,7 +102,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     try {
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
-      if (!token) return;
+      if (!token) { return; }
 
       const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
         headers: { 'Authorization': `Bearer ${token}` }
