@@ -36,7 +36,9 @@ describe("utils.ts", () => {
     });
 
     test("should handle conditional classes", () => {
-      expect(cn("btn", true && "btn-active", false && "btn-hidden")).toBe("btn btn-active");
+      const isActive = true;
+      const isHidden = false;
+      expect(cn("btn", isActive && "btn-active", isHidden && "btn-hidden")).toBe("btn btn-active");
     });
 
     test("should handle objects", () => {

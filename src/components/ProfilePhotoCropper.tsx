@@ -70,8 +70,11 @@ async function getCroppedImg(
     return new Promise((resolve, reject) => {
         croppedCanvas.toBlob(
             (blob) => {
-                if (blob) resolve(blob);
-                else reject(new Error("Canvas is empty"));
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error("Canvas is empty"));
+                }
             },
             "image/jpeg",
             0.92
@@ -118,7 +121,7 @@ const ProfilePhotoCropper: React.FC<ProfilePhotoCropperProps> = ({
     }, []);
 
     const handleSave = async () => {
-        if (!croppedAreaPixels) return;
+        if (!croppedAreaPixels) { return; }
         setSaving(true);
         try {
             const croppedBlob = await getCroppedImg(
