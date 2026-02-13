@@ -2,29 +2,32 @@
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 
 // Mock dependencies
-// Correctly mock Project.find to return a Promise that resolves to an array of projects
-const mockProjectFind = mock(() => Promise.resolve([
+// Correctly mock prisma.project.findMany to return a Promise that resolves to an array of projects
+const mockProjectFindMany = mock(() => Promise.resolve([
   {
-    _id: "p1",
+    id: "p1",
     name: "Project 1",
     ownerId: "user1",
+    team: [],
     steps: [
       {
         title: "Step 1",
         tasks: [
-          { id: "t1", title: "Fix bug", status: "Pending" }
+          { id: "t1", title: "Fix bug", status: "Pending", assignedTo: "user1" }
         ]
       }
     ]
   }
 ]));
 
-// Mock the Project model
-const Project = {
-  find: mockProjectFind
+// Mock Prisma
+const prisma = {
+  project: {
+    findMany: mockProjectFindMany
+  }
 };
 
-// Define the handler logic we want to test (this mimics the secure implementation)
+// Define the handler logic we want to test (this mimics the secure implementation using Prisma)
 const secureSearchHandler = async (req, res) => {
   try {
     const { query } = req.query;
@@ -32,31 +35,40 @@ const secureSearchHandler = async (req, res) => {
     const userId = req.user ? req.user.uid : null;
 
     if (!userId) {
-        return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
     if (!query) return res.json([]);
 
     // Find projects accessible to user (owned or collaborator)
-    const projects = await Project.find({
-      $or: [
-        { ownerId: userId },
-        { team: userId },
-        { 'steps.tasks.assignedTo': userId }
-      ]
+    const projects = await prisma.project.findMany({
+      where: {
+        OR: [
+          { ownerId: userId },
+          { team: { has: userId } },
+          { steps: { some: { tasks: { some: { assignedTo: userId } } } } }
+        ]
+      },
+      include: {
+        steps: {
+          include: {
+            tasks: true
+          }
+        }
+      }
     });
 
     const results = [];
-    const regex = new RegExp(query, 'i');
+    const searchLower = query.toLowerCase();
 
     projects.forEach(project => {
       project.steps.forEach(step => {
         step.tasks.forEach(task => {
-          if (regex.test(task.title)) {
+          if (task.title.toLowerCase().includes(searchLower)) {
             results.push({
               id: task.id,
               title: task.title,
-              projectId: project._id,
+              projectId: project.id,
               projectName: project.name,
               status: task.status,
               stepName: step.title
@@ -76,7 +88,7 @@ const secureSearchHandler = async (req, res) => {
 
 describe("Project Search Logic", () => {
   beforeEach(() => {
-    mockProjectFind.mockClear();
+    mockProjectFindMany.mockClear();
   });
 
   it("should query projects for the authenticated user", async () => {
@@ -91,19 +103,15 @@ describe("Project Search Logic", () => {
 
     await secureSearchHandler(req, res);
 
-    // Verify Project.find was called with correct query
-    expect(mockProjectFind).toHaveBeenCalled();
+    // Verify prisma.project.findMany was called
+    expect(mockProjectFindMany).toHaveBeenCalled();
     // Bun's mock.calls returns array of args per call. First call, first arg.
-    const callArgs = mockProjectFind.mock.calls[0][0];
+    const callArgs = mockProjectFindMany.mock.calls[0][0];
 
-    // Check for $or condition with user ID
-    expect(callArgs).toEqual({
-      $or: [
-        { ownerId: "user123" },
-        { team: "user123" },
-        { 'steps.tasks.assignedTo': "user123" }
-      ]
-    });
+    // Check for OR condition with user ID
+    expect(callArgs.where.OR).toBeDefined();
+    expect(callArgs.where.OR).toContainEqual({ ownerId: "user123" });
+    expect(callArgs.where.OR).toContainEqual({ team: { has: "user123" } });
   });
 
   it("should return 401 if no user is authenticated (though middleware should handle this)", async () => {

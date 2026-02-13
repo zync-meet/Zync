@@ -1,13 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
-const User = require('../models/User');
-const Team = require('../models/Team');
+const prisma = require('../lib/prisma');
 const { encrypt } = require('../utils/encryption');
-const { escapeRegExp } = require('../utils/regexUtils');
 const { sendZyncEmail } = require('../services/mailer');
-// const { Resend } = require('resend'); // Removed
-// const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Helper to send email
 const sendVerificationEmail = async (email, code) => {
@@ -22,9 +18,16 @@ const sendVerificationEmail = async (email, code) => {
 /* GET Current User Profile */
 router.get('/me', verifyToken, async (req, res) => {
   try {
-    const user = await User.findOne({ uid: req.user.uid }).populate('teamId');
+    const user = await prisma.user.findUnique({ where: { uid: req.user.uid } });
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(user);
+
+    // Attach team info if user has teamMemberships
+    let teamInfo = null;
+    if (user.teamMemberships && user.teamMemberships.length > 0) {
+      teamInfo = await prisma.team.findUnique({ where: { id: user.teamMemberships[0] } });
+    }
+
+    res.json({ ...user, teamId: teamInfo });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -37,7 +40,7 @@ router.post('/sync', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    let user = await User.findOne({ uid });
+    let user = await prisma.user.findUnique({ where: { uid } });
 
     let finalDisplayName = displayName;
     if (!finalDisplayName && email) {
@@ -46,35 +49,38 @@ router.post('/sync', verifyToken, async (req, res) => {
 
     if (user) {
       // Update existing user
-      user.email = email;
-      if (finalDisplayName) user.displayName = finalDisplayName;
-      if (photoURL) user.photoURL = photoURL;
-      if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+      const updateData = {
+        email,
+        status: 'online',
+        lastSeen: new Date()
+      };
+      if (finalDisplayName) updateData.displayName = finalDisplayName;
+      if (photoURL) updateData.photoURL = photoURL;
+      if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+      if (!user.firstName && firstName) updateData.firstName = firstName;
+      if (!user.lastName && lastName) updateData.lastName = lastName;
 
-      // Update names only if they are not already set (preserve manual edits)
-      if (!user.firstName && firstName) user.firstName = firstName;
-      if (!user.lastName && lastName) user.lastName = lastName;
-
-      user.status = 'online';
-      user.lastSeen = Date.now();
-      await user.save();
+      user = await prisma.user.update({
+        where: { uid },
+        data: updateData
+      });
     } else {
       // Create new user
-      user = new User({
-        uid,
-        email,
-        displayName: finalDisplayName,
-        firstName,
-        lastName,
-        photoURL,
-        phoneNumber,
-        status: 'online',
-        lastSeen: Date.now(),
+      user = await prisma.user.create({
+        data: {
+          uid,
+          email,
+          displayName: finalDisplayName || 'User',
+          firstName: firstName || null,
+          lastName: lastName || null,
+          photoURL: photoURL || null,
+          phoneNumber: phoneNumber || null,
+          status: 'online',
+          lastSeen: new Date()
+        }
       });
-      await user.save();
 
       // Send Notification Email to Admin
-      // Always attempt to send if GMAIL_USER is configured (implied by sendZYNCEmail existence)
       try {
         await sendZyncEmail(
           'ChitkulLakshya@gmail.com',
@@ -93,9 +99,13 @@ router.post('/sync', verifyToken, async (req, res) => {
       }
     }
 
-    // Populate before returning
-    await user.populate('teamId');
-    res.status(200).json(user);
+    // Attach team info
+    let teamInfo = null;
+    if (user.teamMemberships && user.teamMemberships.length > 0) {
+      teamInfo = await prisma.team.findUnique({ where: { id: user.teamMemberships[0] } });
+    }
+
+    res.status(200).json({ ...user, teamId: teamInfo });
   } catch (error) {
     console.error('Error syncing user:', error);
     res.status(500).json({ message: 'Server error' });
@@ -105,7 +115,6 @@ router.post('/sync', verifyToken, async (req, res) => {
 // Link GitHub Account
 router.post('/sync-github', verifyToken, async (req, res) => {
   const { accessToken, username, firebaseUid } = req.body;
-  // Use uid from token if available, else from body (for your bypassed auth setup)
   const uid = req.user?.uid || firebaseUid;
 
   if (!accessToken) {
@@ -115,59 +124,63 @@ router.post('/sync-github', verifyToken, async (req, res) => {
   try {
     const encryptedToken = encrypt(accessToken);
 
-    // Update user with encrypted token and mark GitHub as connected
-    const user = await User.findOneAndUpdate(
-      { uid },
-      {
-        $set: {
-          'integrations.github.connected': true,
-          'integrations.github.accessToken': encryptedToken,
-          'integrations.github.username': username
+    const user = await prisma.user.update({
+      where: { uid },
+      data: {
+        githubIntegration: {
+          connected: true,
+          accessToken: encryptedToken,
+          username: username,
+          connectedAt: new Date().toISOString()
         }
-      },
-      { new: true }
-    );
-
-    if (!user) {
-      // Fallback if findOneAndUpdate fails to find user (shouldn't happen if synced)
-      return res.status(404).json({ message: 'User not found in database. Please refresh.' });
-    }
+      }
+    });
 
     res.json({ message: 'GitHub account linked successfully', user });
   } catch (error) {
     console.error('Error syncing GitHub data:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'User not found in database. Please refresh.' });
+    }
     res.status(500).json({ message: 'Server error updating GitHub integration' });
   }
 });
 
 // Search Users (Global) - Exclude current user
 router.get('/search', verifyToken, async (req, res) => {
-  const { query, excludeTeam } = req.query; // query = name or email
+  const { query } = req.query;
   if (!query) return res.json([]);
 
   try {
-    const escapedQuery = escapeRegExp(query);
-    const searchRegex = new RegExp(escapedQuery, 'i'); // Case-insensitive
     const currentUserUid = req.user.uid;
+    const searchLower = query.toLowerCase();
 
-    // Find users matching query, excluding current user
-    // Optionally exclude own team members if excludeTeam=true (though UI might separate them)
-    const users = await User.find({
-      $and: [
-        { uid: { $ne: currentUserUid } },
-        {
-          $or: [
-            { displayName: searchRegex },
-            { email: searchRegex },
-            { firstName: searchRegex },
-            { lastName: searchRegex }
-          ]
-        }
-      ]
-    })
-      .select('uid displayName email photoURL status lastSeen teamId') // Return only public info
-      .populate('teamId') // If you need team details
-      .limit(20);
+    // Use Prisma's case-insensitive search with contains
+    const users = await prisma.user.findMany({
+      where: {
+        AND: [
+          { uid: { not: currentUserUid } },
+          {
+            OR: [
+              { displayName: { contains: searchLower, mode: 'insensitive' } },
+              { email: { contains: searchLower, mode: 'insensitive' } },
+              { firstName: { contains: searchLower, mode: 'insensitive' } },
+              { lastName: { contains: searchLower, mode: 'insensitive' } }
+            ]
+          }
+        ]
+      },
+      select: {
+        uid: true,
+        displayName: true,
+        email: true,
+        photoURL: true,
+        status: true,
+        lastSeen: true,
+        teamMemberships: true
+      },
+      take: 20
+    });
 
     res.json(users);
   } catch (error) {
@@ -182,34 +195,35 @@ router.post('/chat-request', verifyToken, async (req, res) => {
   const senderUid = req.user.uid;
 
   try {
-    const sender = await User.findOne({ uid: senderUid });
-    const recipient = await User.findOne({ uid: recipientId });
+    const sender = await prisma.user.findUnique({ where: { uid: senderUid } });
+    const recipient = await prisma.user.findUnique({ where: { uid: recipientId } });
 
     if (!recipient) return res.status(404).json({ message: 'Recipient not found' });
 
-    // Check if in same team (Validation)
-    /*
-    if (sender.teamId && recipient.teamId && sender.teamId.toString() === recipient.teamId.toString()) {
-       return res.status(400).json({ message: 'Users are in the same team, no request needed.' });
-    }
-    */
-
     // Check if request already exists
-    const existingRequest = recipient.chatRequests.find(req => req.senderId === senderUid && req.status === 'pending');
+    const existingRequests = Array.isArray(recipient.chatRequests) ? recipient.chatRequests : [];
+    const existingRequest = existingRequests.find(r => r.senderId === senderUid && r.status === 'pending');
     if (existingRequest) {
       return res.status(400).json({ message: 'Request already sent' });
     }
 
-    // Add to specific requests list
-    recipient.chatRequests.push({
+    // Add to chat requests
+    const newRequest = {
       senderId: senderUid,
       senderName: sender.displayName,
       senderEmail: sender.email,
       senderPhoto: sender.photoURL,
       message: message,
-      status: 'pending'
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    await prisma.user.update({
+      where: { uid: recipientId },
+      data: {
+        chatRequests: [...existingRequests, newRequest]
+      }
     });
-    await recipient.save();
 
     // Send Email
     await sendZyncEmail(
@@ -234,7 +248,7 @@ router.post('/chat-request', verifyToken, async (req, res) => {
 
 // Respond to Chat Request
 router.post('/chat-request/respond', verifyToken, async (req, res) => {
-  const { senderId, status } = req.body; // status: 'accepted' | 'rejected'
+  const { senderId, status } = req.body;
   const recipientUid = req.user.uid;
 
   if (!['accepted', 'rejected'].includes(status)) {
@@ -242,29 +256,43 @@ router.post('/chat-request/respond', verifyToken, async (req, res) => {
   }
 
   try {
-    const recipient = await User.findOne({ uid: recipientUid });
-    const sender = await User.findOne({ uid: senderId });
+    const recipient = await prisma.user.findUnique({ where: { uid: recipientUid } });
+    const sender = await prisma.user.findUnique({ where: { uid: senderId } });
 
     if (!recipient || !sender) return res.status(404).json({ message: 'User not found' });
 
-    // Find the request
-    const request = recipient.chatRequests.find(r => r.senderId === senderId && r.status === 'pending');
-    if (!request) {
+    const chatRequests = Array.isArray(recipient.chatRequests) ? [...recipient.chatRequests] : [];
+    const requestIndex = chatRequests.findIndex(r => r.senderId === senderId && r.status === 'pending');
+    if (requestIndex === -1) {
       return res.status(404).json({ message: 'Pending request not found' });
     }
 
-    // Update Request Status
-    request.status = status;
+    // Update request status
+    chatRequests[requestIndex] = { ...chatRequests[requestIndex], status };
 
     if (status === 'accepted') {
       // Add to connections for BOTH users
-      if (!recipient.connections.includes(senderId)) recipient.connections.push(senderId);
-      if (!sender.connections.includes(recipientUid)) sender.connections.push(recipientUid);
+      const recipientConnections = [...(recipient.connections || [])];
+      const senderConnections = [...(sender.connections || [])];
 
-      await sender.save();
+      if (!recipientConnections.includes(senderId)) recipientConnections.push(senderId);
+      if (!senderConnections.includes(recipientUid)) senderConnections.push(recipientUid);
+
+      await prisma.user.update({
+        where: { uid: senderId },
+        data: { connections: senderConnections }
+      });
+
+      await prisma.user.update({
+        where: { uid: recipientUid },
+        data: { chatRequests, connections: recipientConnections }
+      });
+    } else {
+      await prisma.user.update({
+        where: { uid: recipientUid },
+        data: { chatRequests }
+      });
     }
-
-    await recipient.save();
 
     res.json({ message: `Request ${status}` });
   } catch (error) {
@@ -279,22 +307,19 @@ router.post('/close-friends/toggle', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Ensure closeFriends array exists
-    if (!user.closeFriends) user.closeFriends = [];
+    const closeFriends = [...(user.closeFriends || [])];
+    const index = closeFriends.indexOf(friendId);
 
-    const index = user.closeFriends.indexOf(friendId);
     if (index > -1) {
-      // Remove
-      user.closeFriends.splice(index, 1);
-      await user.save();
+      closeFriends.splice(index, 1);
+      await prisma.user.update({ where: { uid }, data: { closeFriends } });
       return res.json({ message: 'Removed from Close Friends', isCloseFriend: false });
     } else {
-      // Add
-      user.closeFriends.push(friendId);
-      await user.save();
+      closeFriends.push(friendId);
+      await prisma.user.update({ where: { uid }, data: { closeFriends } });
       return res.json({ message: 'Added to Close Friends', isCloseFriend: true });
     }
   } catch (error) {
@@ -303,45 +328,46 @@ router.post('/close-friends/toggle', verifyToken, async (req, res) => {
   }
 });
 
-// Get all users (filtered by Team)
-// Get all users (filtered by Team OR Aggregated)
+// Get all users (filtered by Team OR aggregated)
 router.get('/', verifyToken, async (req, res) => {
   try {
     const { teamId } = req.query;
-    const currentUser = await User.findOne({ uid: req.user.uid });
-
+    const currentUser = await prisma.user.findUnique({ where: { uid: req.user.uid } });
     if (!currentUser) return res.status(404).json({ message: 'User not found' });
 
-    // 1. Specific Team Requested (Backwards Compatibility / Strict Filter)
+    // 1. Specific Team Requested
     if (teamId) {
-      const team = await Team.findById(teamId);
+      const team = await prisma.team.findUnique({ where: { id: teamId } });
       if (!team) return res.status(404).json({ message: 'Team not found' });
-      const users = await User.find({ uid: { $in: team.members } }).sort({ lastSeen: -1 });
+      const users = await prisma.user.findMany({
+        where: { uid: { in: team.members } },
+        orderBy: { lastSeen: 'desc' }
+      });
       return res.status(200).json(users);
     }
 
-    // 2. Unified List (Chat / Dashboard view)
-    // Aggregate: All Teams user is a member of (including owned) + Connections
+    // 2. Unified List
     const relatedUids = new Set(currentUser.connections || []);
 
     // Find ALL teams where the user is a member
-    // This handles: Active Team, Other Joined Teams, Owned Teams (if owner is in members)
-    const allMyTeams = await Team.find({ members: req.user.uid });
+    const allMyTeams = await prisma.team.findMany({
+      where: { members: { has: req.user.uid } }
+    });
+    const ownedTeams = await prisma.team.findMany({
+      where: { ownerId: req.user.uid }
+    });
 
-    // Also fetch owned teams just in case owner isn't in members array for some reason
-    const ownedTeams = await Team.find({ ownerId: req.user.uid });
-
-    // Combine teams
     const uniqueTeams = [...allMyTeams, ...ownedTeams];
-
     uniqueTeams.forEach(t => {
       if (t.members) t.members.forEach(m => relatedUids.add(m));
     });
 
-    // Explicitly add self (optional, but harmless)
-    if (req.user.uid) relatedUids.add(req.user.uid);
+    relatedUids.add(req.user.uid);
 
-    const users = await User.find({ uid: { $in: Array.from(relatedUids) } }).sort({ lastSeen: -1 });
+    const users = await prisma.user.findMany({
+      where: { uid: { in: Array.from(relatedUids) } },
+      orderBy: { lastSeen: 'desc' }
+    });
     res.status(200).json(users);
 
   } catch (error) {
@@ -353,7 +379,7 @@ router.get('/', verifyToken, async (req, res) => {
 // Get single user
 router.get('/:uid', async (req, res) => {
   try {
-    const user = await User.findOne({ uid: req.params.uid });
+    const user = await prisma.user.findUnique({ where: { uid: req.params.uid } });
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json(user);
   } catch (error) {
@@ -369,19 +395,21 @@ router.put('/:uid', async (req, res) => {
 
     // Check if phone number is being updated
     if (updates.phoneNumber) {
-      const user = await User.findOne({ uid });
+      const user = await prisma.user.findUnique({ where: { uid } });
       if (user && user.phoneNumber !== updates.phoneNumber) {
-        updates.isPhoneVerified = false; // Reset verification status
-        updates.phoneVerificationCode = undefined;
-        updates.phoneVerificationCodeExpires = undefined;
+        updates.isPhoneVerified = false;
+        updates.phoneVerificationCode = null;
+        updates.phoneVerificationCodeExpires = null;
       }
     }
 
-    const user = await User.findOneAndUpdate(
-      { uid },
-      { $set: updates },
-      { new: true }
-    );
+    // Filter out fields that shouldn't be directly settable
+    const { id, uid: _uid, createdAt, updatedAt, ...safeUpdates } = updates;
+
+    const user = await prisma.user.update({
+      where: { uid },
+      data: safeUpdates
+    });
     res.status(200).json(user);
   } catch (error) {
     console.error('Error updating profile:', error);
@@ -393,24 +421,24 @@ router.put('/:uid', async (req, res) => {
 router.post('/delete/request', verifyToken, async (req, res) => {
   const { uid } = req.body;
 
-  // Security check: Ensure the requester is the user they claim to be
   if (req.user.uid !== uid) {
     return res.status(403).json({ message: 'Unauthorized' });
   }
 
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Save code
-    user.deleteConfirmationCode = code;
-    user.deleteConfirmationExpires = Date.now() + 10 * 60 * 1000; // 10 mins
-    await user.save();
+    await prisma.user.update({
+      where: { uid },
+      data: {
+        deleteConfirmationCode: code,
+        deleteConfirmationExpires: new Date(Date.now() + 10 * 60 * 1000)
+      }
+    });
 
-    // Send email
     await sendZyncEmail(
       user.email,
       'Account Deletion Verification Code',
@@ -435,49 +463,51 @@ router.post('/delete/confirm', verifyToken, async (req, res) => {
   const { uid, code } = req.body;
   console.log(`[DELETE] Request to delete user: ${uid} with code: ${code}`);
 
-  // Security check
   if (req.user.uid !== uid) {
     console.warn(`[DELETE] Unauthorized attempt by ${req.user.uid} to delete ${uid}`);
     return res.status(403).json({ message: 'Unauthorized' });
   }
 
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
     if (!user) {
       console.warn(`[DELETE] User not found: ${uid}`);
       return res.status(404).json({ message: 'User not found' });
     }
 
     if (user.deleteConfirmationCode !== code) {
-      console.warn(`[DELETE] Invalid code for user ${uid}. Expected ${user.deleteConfirmationCode}, got ${code}`);
+      console.warn(`[DELETE] Invalid code for user ${uid}`);
       return res.status(400).json({ message: 'Invalid code' });
     }
 
-    if (user.deleteConfirmationExpires < Date.now()) {
+    if (user.deleteConfirmationExpires < new Date()) {
       console.warn(`[DELETE] Code expired for user ${uid}`);
       return res.status(400).json({ message: 'Code expired' });
     }
 
     // Remove user from any teams
-    await Team.updateMany(
-      { members: uid },
-      { $pull: { members: uid } }
-    );
+    const teamsWithUser = await prisma.team.findMany({
+      where: { members: { has: uid } }
+    });
+    for (const team of teamsWithUser) {
+      await prisma.team.update({
+        where: { id: team.id },
+        data: { members: team.members.filter(m => m !== uid) }
+      });
+    }
     console.log(`[DELETE] Removed user ${uid} from teams`);
 
-    // Remove user from MongoDB
-    await User.findOneAndDelete({ uid });
-    console.log(`[DELETE] User ${uid} deleted from MongoDB`);
+    // Delete user from database
+    await prisma.user.delete({ where: { uid } });
+    console.log(`[DELETE] User ${uid} deleted from database`);
 
     // Attempt to delete from Firebase Auth
-    // Note: The client logic attempts this too, but doing it here ensures it's done if client fails
     try {
       const admin = require('firebase-admin');
       await admin.auth().deleteUser(uid);
       console.log(`[DELETE] User ${uid} deleted from Firebase Auth (server-side)`);
     } catch (fbError) {
-      console.error(`[DELETE] Failed to delete user from Firebase Auth (server-side):`, fbError.message);
-      // We don't fail the request if this fails, as the user is already gone from our DB
+      console.error(`[DELETE] Failed to delete user from Firebase Auth:`, fbError.message);
     }
 
     res.status(200).json({ message: 'User deleted successfully' });
@@ -491,20 +521,21 @@ router.post('/delete/confirm', verifyToken, async (req, res) => {
 router.post('/verify-phone/request', async (req, res) => {
   const { uid, phoneNumber } = req.body;
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Save code and temp phone number to user
-    user.phoneVerificationCode = code;
-    user.phoneVerificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 mins
-    user.phoneNumber = phoneNumber; // Update phone number, but not verified yet
-    user.isPhoneVerified = false;
-    await user.save();
+    await prisma.user.update({
+      where: { uid },
+      data: {
+        phoneVerificationCode: code,
+        phoneVerificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
+        phoneNumber: phoneNumber,
+        isPhoneVerified: false
+      }
+    });
 
-    // Send email
     await sendVerificationEmail(user.email, code);
 
     res.status(200).json({ message: 'Verification code sent to email' });
@@ -518,22 +549,25 @@ router.post('/verify-phone/request', async (req, res) => {
 router.post('/verify-phone/confirm', async (req, res) => {
   const { uid, code } = req.body;
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (user.phoneVerificationCode !== code) {
       return res.status(400).json({ message: 'Invalid code' });
     }
 
-    if (user.phoneVerificationCodeExpires < Date.now()) {
+    if (user.phoneVerificationCodeExpires < new Date()) {
       return res.status(400).json({ message: 'Code expired' });
     }
 
-    // Mark as verified
-    user.isPhoneVerified = true;
-    user.phoneVerificationCode = undefined;
-    user.phoneVerificationCodeExpires = undefined;
-    await user.save();
+    await prisma.user.update({
+      where: { uid },
+      data: {
+        isPhoneVerified: true,
+        phoneVerificationCode: null,
+        phoneVerificationCodeExpires: null
+      }
+    });
 
     res.status(200).json({ message: 'Phone number verified successfully' });
   } catch (error) {

@@ -1,15 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
-const User = require('../models/User');
-const Project = require('../models/Project');
-const Meeting = require('../models/Meeting');
-const { getFirestore } = require('firebase-admin/firestore');
+const prisma = require('../lib/prisma');
 const { createInstantMeet } = require('../services/googleMeet');
 const { sendZyncEmail } = require('../services/mailer');
 const { getMeetingInviteTextVersion, getMeetingEmailHtml } = require('../utils/emailTemplates');
-
-// const db = getFirestore(); // Moved inside handler to prevent startup crash if init fails
 
 // Get Recent Meetings for User
 router.get('/user/:uid', verifyToken, async (req, res) => {
@@ -19,29 +14,34 @@ router.get('/user/:uid', verifyToken, async (req, res) => {
     }
 
     try {
-        const meetings = await Meeting.find({
-            $or: [
-                { organizerId: uid },
-                { 'participants.uid': uid }
-            ]
-        }).sort({ startTime: -1 }).limit(20);
+        const meetings = await prisma.meeting.findMany({
+            where: {
+                OR: [
+                    { organizerId: uid },
+                    // For participant check, we query all meetings and filter in-app
+                    // since participants is a JSON column
+                ]
+            },
+            orderBy: { startTime: 'desc' },
+            take: 20
+        });
+
+        // Filter meetings where user is a participant (JSON column)
+        const filteredMeetings = meetings.filter(m => {
+            if (m.organizerId === uid) return true;
+            const participants = Array.isArray(m.participants) ? m.participants : [];
+            return participants.some(p => p.uid === uid);
+        });
 
         // Update status logic
         const now = new Date();
-        const updatedMeetings = meetings.map(m => {
-            const meetingObj = m.toObject();
+        const updatedMeetings = filteredMeetings.map(m => {
             const startTime = new Date(m.startTime);
-            // Default meeting duration: 1 hour if no end time specified
             const meetingEnd = m.endTime ? new Date(m.endTime) : new Date(startTime.getTime() + 60 * 60 * 1000);
 
             let status = m.status;
+            if (status === 'cancelled') return { ...m, status };
 
-            // Don't change cancelled meetings
-            if (status === 'cancelled') {
-                return { ...meetingObj, status };
-            }
-
-            // Check time-based status
             if (now.getTime() > meetingEnd.getTime()) {
                 status = 'ended';
             } else if (now.getTime() >= startTime.getTime() && now.getTime() <= meetingEnd.getTime()) {
@@ -50,7 +50,7 @@ router.get('/user/:uid', verifyToken, async (req, res) => {
                 status = 'scheduled';
             }
 
-            return { ...meetingObj, status };
+            return { ...m, status };
         });
 
         res.json(updatedMeetings);
@@ -66,18 +66,17 @@ router.delete('/:meetingId', verifyToken, async (req, res) => {
     const uid = req.user.uid;
 
     try {
-        const meeting = await Meeting.findById(meetingId);
+        const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
 
         if (!meeting) {
             return res.status(404).json({ message: 'Meeting not found' });
         }
 
-        // Only organizer can delete the meeting
         if (meeting.organizerId !== uid) {
             return res.status(403).json({ message: 'Only the organizer can delete this meeting' });
         }
 
-        await Meeting.findByIdAndDelete(meetingId);
+        await prisma.meeting.delete({ where: { id: meetingId } });
 
         res.json({ message: 'Meeting deleted successfully' });
     } catch (error) {
@@ -95,29 +94,33 @@ router.post('/schedule', verifyToken, async (req, res) => {
     }
 
     try {
-        const meetingUrl = await createInstantMeet(); // Generate link now (or could be later)
+        const meetingUrl = await createInstantMeet();
 
-        const organizer = await User.findOne({ uid: organizerId });
-        const participants = await User.find({ uid: { $in: participantIds || [] } });
+        const organizer = await prisma.user.findUnique({ where: { uid: organizerId } });
+        const participants = participantIds && participantIds.length > 0
+            ? await prisma.user.findMany({ where: { uid: { in: participantIds } } })
+            : [];
 
-        const newMeeting = new Meeting({
-            title: title || 'Scheduled Meeting',
-            description,
-            startTime,
-            endTime: endTime || new Date(new Date(startTime).getTime() + 60 * 60 * 1000), // Default 1 hr
-            organizerId,
-            organizerName: organizer?.displayName || 'Unknown',
-            meetLink: meetingUrl,
-            status: 'scheduled',
-            participants: participants.map(u => ({
-                uid: u.uid,
-                email: u.email,
-                name: u.displayName,
-                status: 'invited'
-            }))
+        const participantData = participants.map(u => ({
+            uid: u.uid,
+            email: u.email,
+            name: u.displayName,
+            status: 'invited'
+        }));
+
+        const newMeeting = await prisma.meeting.create({
+            data: {
+                title: title || 'Scheduled Meeting',
+                description,
+                startTime: new Date(startTime),
+                endTime: endTime ? new Date(endTime) : new Date(new Date(startTime).getTime() + 60 * 60 * 1000),
+                organizerId,
+                organizerName: organizer?.displayName || 'Unknown',
+                meetLink: meetingUrl,
+                status: 'scheduled',
+                participants: participantData
+            }
         });
-
-        await newMeeting.save();
 
         // Send Invites (Async)
         (async () => {
@@ -162,7 +165,7 @@ router.post('/schedule', verifyToken, async (req, res) => {
     }
 });
 
-// Create Instant Meeting (Updated)
+// Create Instant Meeting
 router.post('/invite', verifyToken, async (req, res) => {
     const { senderId, receiverIds, projectId } = req.body;
 
@@ -170,74 +173,62 @@ router.post('/invite', verifyToken, async (req, res) => {
         return res.status(403).json({ message: 'Unauthorized sender' });
     }
 
-    // Allow creating meeting alone (receiverIds empty)
-    // if (!receiverIds || !Array.isArray(receiverIds) || receiverIds.length === 0) {
-    //     return res.status(400).json({ message: 'No receivers specified' });
-    // }
-
     try {
         // 1. Generate Google Meet Link
         const meetingUrl = await createInstantMeet();
 
         // 2. Get project details if available
-        let projectName = null; /* ... existing project logic ... */
+        let projectName = null;
         if (projectId) {
-            const project = await Project.findOneAndUpdate(
-                { _id: projectId },
-                { meetLink: meetingUrl },
-                { new: true }
-            );
+            const project = await prisma.project.update({
+                where: { id: projectId },
+                data: { meetLink: meetingUrl }
+            });
             projectName = project?.name || null;
-        } else {
-            await Project.findOneAndUpdate(
-                { ownerId: senderId },
-                { meetLink: meetingUrl },
-                { sort: { updatedAt: -1 } }
-            );
         }
 
-        const sender = await User.findOne({ uid: senderId });
+        const sender = await prisma.user.findUnique({ where: { uid: senderId } });
         if (!sender) return res.status(404).json({ message: 'Sender not found' });
 
         const receivers = Array.isArray(receiverIds) && receiverIds.length > 0
-            ? await User.find({ uid: { $in: receiverIds } })
+            ? await prisma.user.findMany({ where: { uid: { in: receiverIds } } })
             : [];
 
         // 3. Create Meeting Record
-        const newMeeting = new Meeting({
-            title: projectName ? `Sync: ${projectName}` : 'Instant Meeting',
-            description: 'Instant meeting started from dashboard',
-            startTime: new Date(),
-            organizerId: senderId,
-            organizerName: sender.displayName,
-            meetLink: meetingUrl,
-            status: 'live',
-            projectId: projectId || null,
-            participants: receivers.map(u => ({
-                uid: u.uid,
-                email: u.email,
-                name: u.displayName,
-                status: 'invited'
-            }))
+        const participantData = receivers.map(u => ({
+            uid: u.uid,
+            email: u.email,
+            name: u.displayName,
+            status: 'invited'
+        }));
+
+        const newMeeting = await prisma.meeting.create({
+            data: {
+                title: projectName ? `Sync: ${projectName}` : 'Instant Meeting',
+                description: 'Instant meeting started from dashboard',
+                startTime: new Date(),
+                organizerId: senderId,
+                organizerName: sender.displayName,
+                meetLink: meetingUrl,
+                status: 'live',
+                projectId: projectId || null,
+                participants: participantData
+            }
         });
-        await newMeeting.save();
 
-        // Return the generated URL so frontend can open it IMMEDIATELY
-        res.status(200).json({ message: 'Meeting created', meetingUrl, meetingId: newMeeting._id });
+        // Return immediately
+        res.status(200).json({ message: 'Meeting created', meetingUrl, meetingId: newMeeting.id });
 
-        // PROCESS NOTIFICATIONS IN BACKGROUND (Fire-and-forget)
+        // PROCESS NOTIFICATIONS IN BACKGROUND
         (async () => {
             try {
-                // Process each receiver
                 await Promise.all(receivers.map(async (receiver) => {
-                    // 1. Send Email (Using Nodemailer / Gmail)
                     if (receiver.email) {
                         try {
                             const senderName = sender.displayName || 'A colleague';
                             const recipientName = receiver.displayName || receiver.firstName || 'there';
                             const emailSubject = `ZYNC Meeting Invitation from ${senderName}`;
 
-                            // Generate Raw HTML email
                             const htmlContent = getMeetingEmailHtml({
                                 inviterName: senderName,
                                 meetingTopic: newMeeting.title,
@@ -247,7 +238,6 @@ router.post('/invite', verifyToken, async (req, res) => {
                                 attendeeName: recipientName
                             });
 
-                            // Generate plain text fallback
                             const textContent = getMeetingInviteTextVersion({
                                 recipientName,
                                 senderName,
@@ -257,12 +247,7 @@ router.post('/invite', verifyToken, async (req, res) => {
                                 projectName,
                             });
 
-                            await sendZyncEmail(
-                                receiver.email,
-                                emailSubject,
-                                htmlContent,
-                                textContent
-                            );
+                            await sendZyncEmail(receiver.email, emailSubject, htmlContent, textContent);
                         } catch (emailErr) {
                             console.error(`Failed to email ${receiver.email}:`, emailErr);
                         }

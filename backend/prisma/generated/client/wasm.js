@@ -115,15 +115,87 @@ Prisma.NullTypes = {
  * Enums
  */
 
-exports.Prisma.TaskScalarFieldEnum = {
+exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
+  ReadUncommitted: 'ReadUncommitted',
+  ReadCommitted: 'ReadCommitted',
+  RepeatableRead: 'RepeatableRead',
+  Serializable: 'Serializable'
+});
+
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  uid: 'uid',
+  email: 'email',
+  displayName: 'displayName',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  photoURL: 'photoURL',
+  phoneNumber: 'phoneNumber',
+  connections: 'connections',
+  closeFriends: 'closeFriends',
+  chatRequests: 'chatRequests',
+  githubIntegration: 'githubIntegration',
+  googleIntegration: 'googleIntegration',
+  isPhoneVerified: 'isPhoneVerified',
+  phoneVerificationCode: 'phoneVerificationCode',
+  phoneVerificationCodeExpires: 'phoneVerificationCodeExpires',
+  deleteConfirmationCode: 'deleteConfirmationCode',
+  deleteConfirmationExpires: 'deleteConfirmationExpires',
+  status: 'status',
+  lastSeen: 'lastSeen',
+  role: 'role',
+  teamMemberships: 'teamMemberships',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProjectScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  ownerId: 'ownerId',
+  team: 'team',
+  githubRepo: 'githubRepo',
+  githubRepoName: 'githubRepoName',
+  githubRepoOwner: 'githubRepoOwner',
+  githubRepoIds: 'githubRepoIds',
+  architecture: 'architecture',
+  meetLink: 'meetLink',
+  isTrackingActive: 'isTrackingActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.StepScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  order: 'order',
+  status: 'status',
+  assignedTo: 'assignedTo',
+  type: 'type',
+  page: 'page',
+  projectId: 'projectId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProjectTaskScalarFieldEnum = {
   id: 'id',
   displayId: 'displayId',
   title: 'title',
   description: 'description',
   status: 'status',
+  assignedTo: 'assignedTo',
+  assignedToName: 'assignedToName',
+  createdBy: 'createdBy',
+  assignedBy: 'assignedBy',
+  commitMessage: 'commitMessage',
+  commitUrl: 'commitUrl',
+  commitAuthor: 'commitAuthor',
+  commitTimestamp: 'commitTimestamp',
   repoIds: 'repoIds',
-  userId: 'userId',
-  projectId: 'projectId',
+  stepId: 'stepId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -136,9 +208,84 @@ exports.Prisma.RepositoryScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.NoteScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  content: 'content',
+  ownerId: 'ownerId',
+  folderId: 'folderId',
+  projectId: 'projectId',
+  sharedWith: 'sharedWith',
+  yjsState: 'yjsState',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.FolderScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  ownerId: 'ownerId',
+  parentId: 'parentId',
+  type: 'type',
+  color: 'color',
+  projectId: 'projectId',
+  collaborators: 'collaborators',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.MeetingScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  organizerId: 'organizerId',
+  organizerName: 'organizerName',
+  meetLink: 'meetLink',
+  projectId: 'projectId',
+  status: 'status',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  participants: 'participants',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  duration: 'duration',
+  activeDuration: 'activeDuration',
+  lastAction: 'lastAction',
+  date: 'date',
+  deviceInfo: 'deviceInfo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.TeamScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  inviteCode: 'inviteCode',
+  ownerId: 'ownerId',
+  members: 'members',
+  type: 'type',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -146,10 +293,29 @@ exports.Prisma.QueryMode = {
   insensitive: 'insensitive'
 };
 
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
 
 exports.Prisma.ModelName = {
-  Task: 'Task',
-  Repository: 'Repository'
+  User: 'User',
+  Project: 'Project',
+  Step: 'Step',
+  ProjectTask: 'ProjectTask',
+  Repository: 'Repository',
+  Note: 'Note',
+  Folder: 'Folder',
+  Meeting: 'Meeting',
+  Session: 'Session',
+  Team: 'Team'
 };
 
 /**

@@ -4,29 +4,263 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL") // Re-enable when port 5432 is accessible (e.g. on Oracle Cloud)
 }
 
-model Task {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  displayId   String   @unique
-  title       String?  // Add title as it's common
+// ─── USER ────────────────────────────────────────────────────────────
+model User {
+  id          String   @id @default(uuid())
+  uid         String   @unique // Firebase UID — the universal join key
+  email       String   @unique
+  displayName String   @default("User")
+  firstName   String?
+  lastName    String?
+  photoURL    String?
+  phoneNumber String?
+
+  // Social graph (stored as Firebase UIDs)
+  connections  String[] @default([])
+  closeFriends String[] @default([])
+
+  // Chat requests stored as JSON array of objects { senderId, senderName, message, status, ... }
+  chatRequests Json @default("[]")
+
+  // Integrations (encrypted tokens stored as JSON)
+  githubIntegration Json? // { connected, accessToken, username, installationId, connectedAt }
+  googleIntegration Json? // { connected, refreshToken, calendarId, connectedAt }
+
+  // Phone verification
+  isPhoneVerified              Boolean  @default(false)
+  phoneVerificationCode        String?
+  phoneVerificationCodeExpires DateTime?
+
+  // Account deletion verification
+  deleteConfirmationCode    String?
+  deleteConfirmationExpires DateTime?
+
+  // Presence
+  status   String   @default("offline") // online, offline, away
+  lastSeen DateTime @default(now())
+
+  // Role
+  role String @default("user") // "user" | "admin"
+
+  // Relations
+  ownedProjects Project[]  @relation("ProjectOwner")
+  teamMemberships String[] @default([]) // Team IDs the user belongs to
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([uid])
+  @@index([email])
+}
+
+// ─── PROJECT ─────────────────────────────────────────────────────────
+model Project {
+  id          String  @id @default(uuid())
+  name        String
   description String
-  status      String   @default("pending")
-  repoIds     String[] // Stores GitHub Repository IDs
-  userId      String   // Firebase UID
-  projectId   String?  // Link to Mongoose Project ID
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  ownerId String
+  owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  team String[] @default([]) // Array of Firebase UIDs
+
+  // GitHub link
+  githubRepo      String?
+  githubRepoName  String?
+  githubRepoOwner String?
+  githubRepoIds   String[] @default([])
+
+  // AI-generated architecture (stored as JSON blob)
+  architecture Json?
+
+  // Google Meet
+  meetLink String?
+
+  // Tracking
+  isTrackingActive Boolean @default(false)
+
+  steps Step[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
 }
 
+// ─── STEP (was embedded in Project) ──────────────────────────────────
+model Step {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+
+  order Int @default(0)
+
+  status String @default("Pending") // Pending, Backlog, In Progress, Completed, Done
+
+  assignedTo String? // Firebase UID
+  type       String  @default("Other") // Frontend, Backend, Database, Design, Other
+  page       String  @default("General")
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  tasks ProjectTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+// ─── PROJECT TASK (was embedded in Step, replaces old Prisma Task) ───
+model ProjectTask {
+  id          String  @id @default(uuid())
+  displayId   String? @unique // Human-readable ID like "TASK-42"
+  title       String
+  description String?
+
+  status String @default("Backlog")
+  // Pending, Backlog, Ready, In Progress, Active, In Review, Completed, Done
+
+  assignedTo     String? // Firebase UID
+  assignedToName String?
+  createdBy      String? // Firebase UID
+  assignedBy     String? // Firebase UID or name
+
+  // GitHub commit linkage
+  commitMessage   String?
+  commitUrl       String?
+  commitAuthor    String?
+  commitTimestamp DateTime?
+
+  // GitHub repo link (replaces old repoIds)
+  repoIds String[] @default([])
+
+  stepId String
+  step   Step   @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([assignedTo])
+  @@index([status])
+}
+
+// ─── REPOSITORY (GitHub App installs) ────────────────────────────────
 model Repository {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  githubRepoId String   @unique // The GitHub ID stored in Task.repoIds
+  id           String @id @default(uuid())
+  githubRepoId String @unique
   repoName     String
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── NOTE ────────────────────────────────────────────────────────────
+model Note {
+  id      String  @id @default(uuid())
+  title   String  @default("Untitled")
+  content Json? // Block-editor / rich-text content
+
+  ownerId    String // Firebase UID
+  folderId   String? // FK to Folder
+  projectId  String?
+  sharedWith String[] @default([]) // Firebase UIDs
+
+  // Yjs collaborative state (binary)
+  yjsState Bytes?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([folderId])
+}
+
+// ─── FOLDER ──────────────────────────────────────────────────────────
+model Folder {
+  id   String @id @default(uuid())
+  name String
+
+  ownerId  String // Firebase UID
+  parentId String? // Self-referential (nullable = root folder)
+
+  type    String @default("personal") // personal, team, project
+  color   String @default("#FFFFFF")
+
+  projectId     String?
+  collaborators String[] @default([]) // Firebase UIDs
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ownerId, parentId, name])
+  @@index([ownerId])
+}
+
+// ─── MEETING ─────────────────────────────────────────────────────────
+model Meeting {
+  id          String @id @default(uuid())
+  title       String @default("Untitled Meeting")
+  description String?
+
+  organizerId   String // Firebase UID
+  organizerName String?
+
+  meetLink  String
+  projectId String?
+
+  status String @default("scheduled") // scheduled, live, ended, cancelled
+
+  startTime DateTime @default(now())
+  endTime   DateTime?
+
+  // Participants stored as JSON array of { uid, email, name, status }
+  participants Json @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizerId])
+}
+
+// ─── SESSION (activity tracking) ─────────────────────────────────────
+model Session {
+  id     String @id @default(uuid())
+  userId String // Firebase UID
+
+  startTime      DateTime @default(now())
+  endTime        DateTime @default(now())
+  duration       Int      @default(0) // seconds
+  activeDuration Int      @default(0) // seconds
+  lastAction     DateTime @default(now())
+
+  date       String // YYYY-MM-DD for easy grouping
+  deviceInfo String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, date])
+}
+
+// ─── TEAM ────────────────────────────────────────────────────────────
+model Team {
+  id         String @id @default(uuid())
+  name       String
+  inviteCode String @unique
+  ownerId    String // Firebase UID
+  members    String[] @default([]) // Firebase UIDs
+
+  type String @default("Other")
+  // Product, Engineering, Management, Marketing, Sales, Design, Other
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

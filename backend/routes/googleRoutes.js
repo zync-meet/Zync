@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
-const User = require('../models/User');
+const prisma = require('../lib/prisma');
 
 // POST /api/google/connect
 // Saves the Google OAuth token (accessToken) to the user's profile
@@ -14,33 +14,33 @@ router.post('/connect', verifyToken, async (req, res) => {
     }
 
     try {
-        const updateData = {
-            'integrations.google.connected': true,
-            'integrations.google.email': email,
-            'integrations.google.accessToken': accessToken,
-            'integrations.google.connectedAt': new Date()
+        const googleData = {
+            connected: true,
+            email,
+            accessToken,
+            connectedAt: new Date().toISOString()
         };
-
-        // If we got a refresh token (unlikely via firebase client, but possible if flow changes)
         if (refreshToken) {
-            updateData['integrations.google.refreshToken'] = refreshToken;
+            googleData.refreshToken = refreshToken;
         }
 
-        const user = await User.findOneAndUpdate(
-            { uid },
-            { $set: updateData },
-            { new: true }
-        );
+        const user = await prisma.user.update({
+            where: { uid },
+            data: { googleIntegration: googleData }
+        });
 
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         res.status(200).json({
             message: 'Google connected',
-            email: user.integrations?.google?.email
+            email: user.googleIntegration?.email
         });
 
     } catch (error) {
         console.error('Google Connect Error:', error);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ message: 'User not found' });
+        }
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
@@ -50,18 +50,17 @@ router.delete('/disconnect', verifyToken, async (req, res) => {
     const uid = req.user.uid;
 
     try {
-        const user = await User.findOneAndUpdate(
-            { uid },
-            {
-                $set: {
-                    'integrations.google.connected': false,
-                    'integrations.google.accessToken': null,
-                    'integrations.google.refreshToken': null,
-                    'integrations.google.email': null
+        await prisma.user.update({
+            where: { uid },
+            data: {
+                googleIntegration: {
+                    connected: false,
+                    accessToken: null,
+                    refreshToken: null,
+                    email: null
                 }
-            },
-            { new: true }
-        );
+            }
+        });
 
         res.status(200).json({ message: 'Google disconnected' });
 

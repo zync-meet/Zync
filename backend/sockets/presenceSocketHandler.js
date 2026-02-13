@@ -1,4 +1,7 @@
-const User = require('../models/User');
+const prisma = require('../lib/prisma');
+
+// In-memory presence cache — presence is ephemeral so we don't persist it in DB
+const onlineUsers = new Map(); // Map<uid, { status, lastSeen }>
 
 module.exports = (io) => {
     const presenceNamespace = io.of('/presence');
@@ -7,87 +10,61 @@ module.exports = (io) => {
         const { userId } = socket.handshake.query;
 
         if (!userId) {
-            // console.log('Presence socket connection rejected: No userId');
             socket.disconnect();
             return;
         }
 
-        // console.log(`User ${userId} connected to presence`);
         socket.join(userId);
 
-        // Update Status to Online
-        try {
+        // Update in-memory presence
+        const now = new Date();
+        onlineUsers.set(userId, { status: 'online', lastSeen: now });
+
+        // Send initial state of ALL online users to this new client
+        const initialStatus = [];
+        for (const [uid, data] of onlineUsers.entries()) {
+            if (uid !== userId) {
+                initialStatus.push({ uid, ...data });
+            }
+        }
+        socket.emit('initial-status', initialStatus);
+
+        // Broadcast to everyone
+        socket.broadcast.emit('user-status-changed', {
+            userId,
+            status: 'online',
+            lastSeen: now
+        });
+
+        socket.on('disconnect', async () => {
             const now = new Date();
-            await User.findOneAndUpdate(
-                { uid: userId },
-                {
-                    status: 'online',
-                    lastSeen: now
-                }
-            );
+            onlineUsers.set(userId, { status: 'offline', lastSeen: now });
 
-            // Send initial state of ALL online users to this new client
-            // This fixes "other users appearing offline" bug
-            const onlineUsers = await User.find({
-                status: { $in: ['online', 'away'] },
-                uid: { $ne: userId } // exclude self
-            }).select('uid status lastSeen');
-
-            socket.emit('initial-status', onlineUsers);
-
-            // Broadcast to everyone
             socket.broadcast.emit('user-status-changed', {
                 userId,
-                status: 'online',
+                status: 'offline',
                 lastSeen: now
             });
 
-        } catch (err) {
-            console.error('Error updating user status:', err);
-        }
-
-        socket.on('disconnect', async () => {
-            // console.log(`User ${userId} disconnected from presence`);
-            try {
-                const now = new Date();
-                await User.findOneAndUpdate(
-                    { uid: userId },
-                    {
-                        status: 'offline',
-                        lastSeen: now
-                    }
-                );
-
-                socket.broadcast.emit('user-status-changed', {
-                    userId,
-                    status: 'offline',
-                    lastSeen: now
-                });
-            } catch (err) {
-                console.error('Error updating user status on disconnect:', err);
-            }
+            // Clean up after a delay in case of reconnect
+            setTimeout(() => {
+                const entry = onlineUsers.get(userId);
+                if (entry && entry.status === 'offline') {
+                    onlineUsers.delete(userId);
+                }
+            }, 30000);
         });
 
         // Handle explicit status updates (e.g. set to 'away')
         socket.on('update-status', async (newStatus) => {
-            try {
-                const now = new Date();
-                await User.findOneAndUpdate(
-                    { uid: userId },
-                    {
-                        status: newStatus,
-                        lastSeen: now // Optional: does changing status update lastSeen? Maybe.
-                    }
-                );
+            const now = new Date();
+            onlineUsers.set(userId, { status: newStatus, lastSeen: now });
 
-                socket.broadcast.emit('user-status-changed', {
-                    userId,
-                    status: newStatus,
-                    lastSeen: now
-                });
-            } catch (err) {
-                console.error('Failed to update status manually', err);
-            }
+            socket.broadcast.emit('user-status-changed', {
+                userId,
+                status: newStatus,
+                lastSeen: now
+            });
         });
     });
 };

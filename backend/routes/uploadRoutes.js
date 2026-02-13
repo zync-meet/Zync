@@ -6,7 +6,7 @@ const fs = require('fs');
 const mime = require('mime-types');
 const cloudinary = require('cloudinary').v2;
 const verifyToken = require('../middleware/authMiddleware');
-const User = require('../models/User');
+const prisma = require('../lib/prisma');
 
 // ---------------------------------------------------------------------------
 // Cloudinary Configuration
@@ -20,13 +20,9 @@ cloudinary.config({
 // ---------------------------------------------------------------------------
 // Profile Photo Upload  →  POST /api/upload/profile-photo
 // ---------------------------------------------------------------------------
-// Auth required. Uploads to Cloudinary at zync_profiles/{firebaseUid}.
-// Overwrites the previous photo automatically (same public_id).
-// Updates the MongoDB User document and returns the full user JSON.
-
 const profileUpload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (allowed.includes(file.mimetype)) {
@@ -50,15 +46,14 @@ router.post('/profile-photo', verifyToken, (req, res) => {
         }
 
         try {
-            const uid = req.user.uid; // From verifyToken middleware
+            const uid = req.user.uid;
 
-            // Upload buffer to Cloudinary via stream
             const result = await new Promise((resolve, reject) => {
                 const stream = cloudinary.uploader.upload_stream(
                     {
                         folder: 'zync_profiles',
-                        public_id: uid,           // Each user gets a unique, stable ID
-                        overwrite: true,          // Replace previous photo
+                        public_id: uid,
+                        overwrite: true,
                         resource_type: 'image',
                         transformation: [
                             { width: 512, height: 512, crop: 'fill', gravity: 'face' },
@@ -73,16 +68,11 @@ router.post('/profile-photo', verifyToken, (req, res) => {
                 stream.end(req.file.buffer);
             });
 
-            // Update MongoDB user document
-            const updatedUser = await User.findOneAndUpdate(
-                { uid },
-                { photoURL: result.secure_url },
-                { new: true }
-            );
-
-            if (!updatedUser) {
-                return res.status(404).json({ message: 'User not found' });
-            }
+            // Update user's photoURL in Supabase
+            const updatedUser = await prisma.user.update({
+                where: { uid },
+                data: { photoURL: result.secure_url }
+            });
 
             res.status(200).json({
                 message: 'Profile photo updated successfully',
@@ -91,6 +81,9 @@ router.post('/profile-photo', verifyToken, (req, res) => {
             });
         } catch (error) {
             console.error('Cloudinary upload error:', error);
+            if (error.code === 'P2025') {
+                return res.status(404).json({ message: 'User not found' });
+            }
             res.status(500).json({ message: 'Failed to upload profile photo' });
         }
     });
@@ -99,8 +92,6 @@ router.post('/profile-photo', verifyToken, (req, res) => {
 // ---------------------------------------------------------------------------
 // Generic File Upload  →  POST /api/upload
 // ---------------------------------------------------------------------------
-// Kept for other file uploads (chat attachments, etc.) – saves to disk.
-
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });

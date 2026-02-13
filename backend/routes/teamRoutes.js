@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const verifyToken = require('../middleware/authMiddleware'); // Assuming this exists
-const Team = require('../models/Team');
-const User = require('../models/User');
+const verifyToken = require('../middleware/authMiddleware');
+const prisma = require('../lib/prisma');
 
 // Helper to generate unique 6-digit code
 const generateInviteCode = async () => {
@@ -10,7 +9,7 @@ const generateInviteCode = async () => {
     let isUnique = false;
     while (!isUnique) {
         code = Math.floor(100000 + Math.random() * 900000).toString();
-        const existingTeam = await Team.findOne({ inviteCode: code });
+        const existingTeam = await prisma.team.findUnique({ where: { inviteCode: code } });
         if (!existingTeam) isUnique = true;
     }
     return code;
@@ -20,7 +19,7 @@ const generateInviteCode = async () => {
 router.get('/owned', verifyToken, async (req, res) => {
     const uid = req.user.uid;
     try {
-        const teams = await Team.find({ ownerId: uid });
+        const teams = await prisma.team.findMany({ where: { ownerId: uid } });
         res.json(teams);
     } catch (error) {
         console.error('Error fetching owned teams:', error);
@@ -32,7 +31,9 @@ router.get('/owned', verifyToken, async (req, res) => {
 router.get('/mine', verifyToken, async (req, res) => {
     const uid = req.user.uid;
     try {
-        const teams = await Team.find({ members: uid });
+        const teams = await prisma.team.findMany({
+            where: { members: { has: uid } }
+        });
         res.json(teams);
     } catch (error) {
         console.error('Error fetching my teams:', error);
@@ -48,28 +49,31 @@ router.post('/create', verifyToken, async (req, res) => {
     if (!name) return res.status(400).json({ message: 'Team name is required' });
 
     try {
-        const user = await User.findOne({ uid });
+        const user = await prisma.user.findUnique({ where: { uid } });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const inviteCode = await generateInviteCode();
 
-        const newTeam = new Team({
-            name,
-            type: type || 'Other',
-            inviteCode,
-            ownerId: uid,
-            members: [uid] // Owner is also a member
+        const savedTeam = await prisma.team.create({
+            data: {
+                name,
+                type: type || 'Other',
+                inviteCode,
+                ownerId: uid,
+                members: [uid]
+            }
         });
 
-        const savedTeam = await newTeam.save();
-
-        // Update user
-        user.teamId = savedTeam._id;
-        await user.save();
+        // Update user's teamMemberships
+        await prisma.user.update({
+            where: { uid },
+            data: {
+                teamMemberships: { push: savedTeam.id }
+            }
+        });
 
         // Send Initial Invites
         if (initialInvites && Array.isArray(initialInvites) && initialInvites.length > 0) {
-            // We use a simple loop here. For production, a queue is better.
             const { sendZYNCEmail } = require('../services/mailer');
             initialInvites.forEach(async (email) => {
                 if (!email) return;
@@ -106,26 +110,29 @@ router.post('/join', verifyToken, async (req, res) => {
     if (!inviteCode) return res.status(400).json({ message: 'Invite code is required' });
 
     try {
-        const team = await Team.findOne({ inviteCode });
+        const team = await prisma.team.findUnique({ where: { inviteCode } });
         if (!team) return res.status(404).json({ message: 'Team not found with this code' });
 
-        // Check if already a member
         if (team.members.includes(uid)) {
             return res.status(400).json({ message: 'User already in this team' });
         }
 
-        const user = await User.findOne({ uid });
+        const user = await prisma.user.findUnique({ where: { uid } });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Add to team
-        team.members.push(uid);
-        await team.save();
+        // Add to team members
+        const updatedTeam = await prisma.team.update({
+            where: { id: team.id },
+            data: { members: { push: uid } }
+        });
 
-        // Update user
-        user.teamId = team._id;
-        await user.save();
+        // Update user's teamMemberships
+        await prisma.user.update({
+            where: { uid },
+            data: { teamMemberships: { push: team.id } }
+        });
 
-        res.status(200).json(team);
+        res.status(200).json(updatedTeam);
 
     } catch (error) {
         console.error('Error joining team:', error);
@@ -139,21 +146,27 @@ router.delete('/:teamId', verifyToken, async (req, res) => {
     const uid = req.user.uid;
 
     try {
-        const team = await Team.findById(teamId);
+        const team = await prisma.team.findUnique({ where: { id: teamId } });
         if (!team) return res.status(404).json({ message: 'Team not found' });
 
         if (team.ownerId !== uid) {
             return res.status(403).json({ message: 'Only the team owner can delete the team' });
         }
 
-        // Remove teamId from all members
-        await User.updateMany(
-            { teamId: team._id },
-            { $unset: { teamId: "" } }
-        );
+        // Remove teamId from all members' teamMemberships
+        for (const memberUid of team.members) {
+            const member = await prisma.user.findUnique({ where: { uid: memberUid } });
+            if (member) {
+                await prisma.user.update({
+                    where: { uid: memberUid },
+                    data: {
+                        teamMemberships: member.teamMemberships.filter(id => id !== teamId)
+                    }
+                });
+            }
+        }
 
-        // Delete the team
-        await Team.findByIdAndDelete(teamId);
+        await prisma.team.delete({ where: { id: teamId } });
 
         res.status(200).json({ message: 'Team deleted successfully' });
     } catch (error) {
@@ -168,7 +181,7 @@ router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
     const uid = req.user.uid;
 
     try {
-        const team = await Team.findById(teamId);
+        const team = await prisma.team.findUnique({ where: { id: teamId } });
         if (!team) return res.status(404).json({ message: 'Team not found' });
 
         if (team.ownerId !== uid) {
@@ -180,14 +193,23 @@ router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
         }
 
         // Remove from team members array
-        team.members = team.members.filter(id => id !== memberUid);
-        await team.save();
+        await prisma.team.update({
+            where: { id: teamId },
+            data: {
+                members: team.members.filter(id => id !== memberUid)
+            }
+        });
 
-        // Update user to remove teamId
-        await User.findOneAndUpdate(
-            { uid: memberUid },
-            { $unset: { teamId: "" } }
-        );
+        // Update user to remove teamMembership
+        const member = await prisma.user.findUnique({ where: { uid: memberUid } });
+        if (member) {
+            await prisma.user.update({
+                where: { uid: memberUid },
+                data: {
+                    teamMemberships: member.teamMemberships.filter(id => id !== teamId)
+                }
+            });
+        }
 
         res.status(200).json({ message: 'Member removed successfully' });
     } catch (error) {
@@ -204,13 +226,16 @@ router.post('/invite', verifyToken, async (req, res) => {
     if (!email) return res.status(400).json({ message: 'Email is required' });
 
     try {
-        const user = await User.findOne({ uid });
-        if (!user || !user.teamId) return res.status(400).json({ message: 'You must be in a team to invite members' });
+        const user = await prisma.user.findUnique({ where: { uid } });
+        if (!user || !user.teamMemberships || user.teamMemberships.length === 0) {
+            return res.status(400).json({ message: 'You must be in a team to invite members' });
+        }
 
-        const team = await Team.findById(user.teamId);
+        // Use the first team membership
+        const teamId = user.teamMemberships[0];
+        const team = await prisma.team.findUnique({ where: { id: teamId } });
         if (!team) return res.status(404).json({ message: 'Team not found' });
 
-        // Send Email
         const { sendZYNCEmail } = require('../services/mailer');
         await sendZYNCEmail(
             email,

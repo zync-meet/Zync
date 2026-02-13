@@ -2,16 +2,15 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
-const User = require('../models/User');
+const prisma = require('../lib/prisma');
 const verifyToken = require('../middleware/authMiddleware');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
 if (!ENCRYPTION_KEY) {
-  console.warn("WARNING: ENCRYPTION_KEY is not defined in environment variables. GitHub token encryption will fail or be insecure.");
+  console.warn("WARNING: ENCRYPTION_KEY is not defined in environment variables.");
 }
 
-// Helper functions for encryption/decryption using crypto-js
 const encryptToken = (token) => {
   return CryptoJS.AES.encrypt(token, ENCRYPTION_KEY).toString();
 };
@@ -31,7 +30,6 @@ router.post('/connect', verifyToken, async (req, res) => {
   }
 
   try {
-    // 1. Validate the token with GitHub and get the actual username
     const githubResponse = await axios.get('https://api.github.com/user', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -39,29 +37,20 @@ router.post('/connect', verifyToken, async (req, res) => {
       }
     });
 
-    // Use the login (username) from GitHub, not the display name
     const githubUsername = githubResponse.data.login;
-
-    // 2. Encrypt the token
     const encryptedToken = encryptToken(accessToken);
 
-    // 3. Update User in MongoDB
-    const updatedUser = await User.findOneAndUpdate(
-      { uid },
-      {
-        $set: {
-          'integrations.github.connected': true,
-          'integrations.github.accessToken': encryptedToken,
-          'integrations.github.username': githubUsername,
-          'integrations.github.connectedAt': new Date()
+    const updatedUser = await prisma.user.update({
+      where: { uid },
+      data: {
+        githubIntegration: {
+          connected: true,
+          accessToken: encryptedToken,
+          username: githubUsername,
+          connectedAt: new Date().toISOString()
         }
-      },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+      }
+    });
 
     res.json({
       message: 'GitHub connected successfully',
@@ -73,6 +62,9 @@ router.post('/connect', verifyToken, async (req, res) => {
     if (error.response && error.response.status === 401) {
       return res.status(401).json({ message: 'Invalid GitHub access token' });
     }
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'User not found' });
+    }
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
@@ -82,26 +74,24 @@ router.delete('/disconnect', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const updatedUser = await User.findOneAndUpdate(
-      { uid },
-      {
-        $set: {
-          'integrations.github.connected': false,
-          'integrations.github.accessToken': null,
-          'integrations.github.username': null,
-          'integrations.github.installationId': null
+    await prisma.user.update({
+      where: { uid },
+      data: {
+        githubIntegration: {
+          connected: false,
+          accessToken: null,
+          username: null,
+          installationId: null
         }
-      },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+      }
+    });
 
     res.json({ message: 'GitHub disconnected successfully' });
   } catch (error) {
     console.error('Error disconnecting GitHub:', error.message);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'User not found' });
+    }
     res.status(500).json({ message: 'Failed to disconnect GitHub' });
   }
 });
@@ -124,15 +114,12 @@ router.post('/callback', verifyToken, async (req, res) => {
   }
 
   try {
-    // 1. Exchange code for access token
     const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
       client_id: clientId,
       client_secret: clientSecret,
       code: code
     }, {
-      headers: {
-        Accept: 'application/json'
-      }
+      headers: { Accept: 'application/json' }
     });
 
     const { access_token, error, error_description } = tokenResponse.data;
@@ -142,7 +129,6 @@ router.post('/callback', verifyToken, async (req, res) => {
       return res.status(400).json({ message: error_description || 'Failed to exchange code for token' });
     }
 
-    // 2. Get user info from GitHub
     const userResponse = await axios.get('https://api.github.com/user', {
       headers: {
         Authorization: `Bearer ${access_token}`,
@@ -151,26 +137,19 @@ router.post('/callback', verifyToken, async (req, res) => {
     });
 
     const githubUser = userResponse.data;
-
-    // 3. Encrypt and save the token
     const encryptedToken = encryptToken(access_token);
 
-    const updatedUser = await User.findOneAndUpdate(
-      { uid },
-      {
-        $set: {
-          'integrations.github.connected': true,
-          'integrations.github.accessToken': encryptedToken,
-          'integrations.github.username': githubUser.login,
-          'integrations.github.connectedAt': new Date()
+    await prisma.user.update({
+      where: { uid },
+      data: {
+        githubIntegration: {
+          connected: true,
+          accessToken: encryptedToken,
+          username: githubUser.login,
+          connectedAt: new Date().toISOString()
         }
-      },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+      }
+    });
 
     res.json({
       message: 'GitHub connected successfully',
@@ -188,17 +167,16 @@ router.get('/repos', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    // 1. Find User
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
+    const github = user?.githubIntegration;
 
-    if (!user || !user.integrations?.github?.connected || !user.integrations?.github?.accessToken) {
+    if (!user || !github?.connected || !github?.accessToken) {
       return res.status(400).json({ message: 'GitHub account not connected' });
     }
 
-    // 2. Decrypt Token
     let accessToken;
     try {
-      accessToken = decryptToken(user.integrations.github.accessToken);
+      accessToken = decryptToken(github.accessToken);
     } catch (err) {
       console.error("Decryption failed:", err);
       return res.status(500).json({ message: 'Failed to decrypt access token' });
@@ -208,7 +186,6 @@ router.get('/repos', verifyToken, async (req, res) => {
       return res.status(500).json({ message: 'Invalid stored token' });
     }
 
-    // 3. Fetch Repositories from GitHub
     const githubResponse = await axios.get('https://api.github.com/user/repos', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -226,15 +203,13 @@ router.get('/repos', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching GitHub repos:', error.message);
 
-    // 4. Handle 401 (Expired/Revoked Token)
     if (error.response && error.response.status === 401) {
-      // Disconnect GitHub in DB
-      await User.findOneAndUpdate(
-        { uid },
-        {
-          $set: { 'integrations.github.connected': false }
+      await prisma.user.update({
+        where: { uid },
+        data: {
+          githubIntegration: { ...(await prisma.user.findUnique({ where: { uid } }))?.githubIntegration, connected: false }
         }
-      );
+      });
       return res.status(401).json({ message: 'GitHub token expired. Please reconnect.' });
     }
 
@@ -252,17 +227,20 @@ router.post('/install', verifyToken, async (req, res) => {
   }
 
   try {
-    const updatedUser = await User.findOneAndUpdate(
-      { uid },
-      {
-        $set: {
-          'integrations.github.installationId': installationId.toString(),
-          'integrations.github.connected': true,
-          'integrations.github.connectedAt': new Date()
+    const user = await prisma.user.findUnique({ where: { uid } });
+    const existingGithub = user?.githubIntegration || {};
+
+    const updatedUser = await prisma.user.update({
+      where: { uid },
+      data: {
+        githubIntegration: {
+          ...existingGithub,
+          installationId: installationId.toString(),
+          connected: true,
+          connectedAt: new Date().toISOString()
         }
-      },
-      { new: true }
-    );
+      }
+    });
 
     res.json({ message: 'GitHub App Installation Connected', user: updatedUser });
   } catch (error) {
@@ -271,83 +249,87 @@ router.post('/install', verifyToken, async (req, res) => {
   }
 });
 
+// Helper to update github integration to disconnected state
+const disconnectGithub = async (uid, extra = {}) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { uid } });
+    const existing = user?.githubIntegration || {};
+    await prisma.user.update({
+      where: { uid },
+      data: {
+        githubIntegration: {
+          ...existing,
+          connected: false,
+          ...extra
+        }
+      }
+    });
+  } catch (e) {
+    console.error('Failed to disconnect github:', e);
+  }
+};
+
 // GET /user-repos - Fetch all repos accessible to the GitHub App Installation
 router.get('/user-repos', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
+    const github = user?.githubIntegration;
 
-    // Check if App is installed
-    if (!user || !user.integrations?.github?.installationId) {
+    if (!user || !github?.installationId) {
       return res.status(400).json({
         message: 'GitHub App not installed',
         notInstalled: true
       });
     }
 
-    const installationId = user.integrations.github.installationId;
+    const installationId = github.installationId;
     const appId = process.env.GITHUB_APP_ID;
     let privateKey = process.env.GITHUB_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-    // Validate Config
     if (!appId || !privateKey) {
       console.error('Missing GITHUB_APP_ID or GITHUB_PRIVATE_KEY');
       return res.status(500).json({ message: 'Server configuration error: Missing GitHub credentials' });
     }
 
-    // Fix multiline key if needed (dotenv might read it as one line with \n chars if not quoted)
     privateKey = privateKey.replace(/\\n/g, '\n');
 
-    // Basic validation of key format
     if (!privateKey.includes('BEGIN RSA PRIVATE KEY') || privateKey.length < 50) {
-      console.error('Invalid GITHUB_PRIVATE_KEY format. Length:', privateKey.length);
-      return res.status(500).json({
-        message: 'Server configuration error: Invalid GitHub Private Key format',
-        hint: 'Ensure the key is wrapped in double quotes in .env if it is multiline.'
-      });
+      console.error('Invalid GITHUB_PRIVATE_KEY format.');
+      return res.status(500).json({ message: 'Server configuration error: Invalid GitHub Private Key format' });
     }
 
-    // Initialize Octokit App
     const { App } = await import('octokit');
     let app;
     try {
-      app = new App({
-        appId,
-        privateKey,
-      });
+      app = new App({ appId, privateKey });
     } catch (err) {
       console.error("Failed to initialize Octokit App:", err.message);
       return res.status(500).json({ message: 'Internal Server Error: Failed to initialize GitHub App' });
     }
 
-    // Get Installation Octokit (Authenticated as the App for this Installation)
     let octokit;
-    console.log(`Attempting to get installation octokit for ID: ${installationId} (type: ${typeof installationId})`);
+    const numericInstallationId = parseInt(installationId, 10);
+    if (isNaN(numericInstallationId)) {
+      console.error(`Invalid installationId format: ${installationId}`);
+      await disconnectGithub(uid);
+      return res.status(400).json({ message: 'Invalid GitHub installation ID. Please reinstall the app.', notInstalled: true });
+    }
+
     try {
-      // Ensure installationId is a number
-      const numericInstallationId = parseInt(installationId, 10);
-      if (isNaN(numericInstallationId)) {
-        console.error(`Invalid installationId format: ${installationId}`);
-        await User.findOneAndUpdate({ uid }, { $set: { 'integrations.github.connected': false } });
-        return res.status(400).json({ message: 'Invalid GitHub installation ID. Please reinstall the app.', notInstalled: true });
-      }
       octokit = await app.getInstallationOctokit(numericInstallationId);
     } catch (err) {
-      console.error(`Failed to get installation octokit for ID ${installationId}:`, err.message, err.status);
+      console.error(`Failed to get installation octokit for ID ${installationId}:`, err.message);
       if (err.status === 404 || err.status === 401) {
-        // Installation deleted, revoked, or ID is invalid
-        await User.findOneAndUpdate({ uid }, { $set: { 'integrations.github.connected': false } });
-        return res.status(404).json({ message: 'GitHub App installation not found or access revoked. Please reinstall.', notInstalled: true });
+        await disconnectGithub(uid);
+        return res.status(404).json({ message: 'GitHub App installation not found. Please reinstall.', notInstalled: true });
       }
       throw err;
     }
 
-    // Fetch Repositories (paginated)
     try {
-      const response = await octokit.request('GET /installation/repositories', {
-        per_page: 100
-      });
+      const response = await octokit.request('GET /installation/repositories', { per_page: 100 });
 
       const repos = response.data.repositories.map(repo => ({
         id: repo.id,
@@ -361,50 +343,45 @@ router.get('/user-repos', verifyToken, async (req, res) => {
       res.json(repos);
     } catch (requestErr) {
       console.error("Error fetching repositories from GitHub:", requestErr.message);
+      await disconnectGithub(uid, { installationId: null });
       const status = requestErr.status || requestErr.response?.status;
       if (status === 404) {
-        // Installation ID is invalid or was removed
-        await User.findOneAndUpdate({ uid }, { $set: { 'integrations.github.connected': false, 'integrations.github.installationId': null } });
-        return res.status(400).json({ message: 'GitHub App installation not found. Please reinstall the app.', notInstalled: true });
+        return res.status(400).json({ message: 'GitHub App installation not found. Please reinstall.', notInstalled: true });
       }
       if (status === 401 || status === 403) {
-        await User.findOneAndUpdate({ uid }, { $set: { 'integrations.github.connected': false, 'integrations.github.installationId': null } });
-        return res.status(401).json({ message: 'GitHub App authentication failed. Installation might be suspended.', notInstalled: true });
+        return res.status(401).json({ message: 'GitHub App authentication failed.', notInstalled: true });
       }
-      // For any other error, also clear the installation to allow re-auth
-      await User.findOneAndUpdate({ uid }, { $set: { 'integrations.github.connected': false, 'integrations.github.installationId': null } });
-      return res.status(500).json({ message: 'Failed to fetch repositories. Please try reinstalling the GitHub App.', notInstalled: true, error: requestErr.message });
+      return res.status(500).json({ message: 'Failed to fetch repositories. Please reinstall.', notInstalled: true });
     }
 
   } catch (error) {
     console.error('Error fetching installation repos:', error);
-    // Clear installation on any error to prevent stuck states
     if (req.user?.uid) {
-      await User.findOneAndUpdate({ uid: req.user.uid }, { $set: { 'integrations.github.connected': false, 'integrations.github.installationId': null } });
+      await disconnectGithub(req.user.uid, { installationId: null });
     }
     res.status(500).json({
-      message: 'Failed to fetch repositories. Please reinstall the GitHub App.',
+      message: 'Failed to fetch repositories. Please reinstall.',
       notInstalled: true,
       error: error.message
     });
   }
 });
 
-// GET /stats - Fetch GitHub user stats (public profile info)
+// GET /stats - Fetch GitHub user stats
 router.get('/stats', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
+    const github = user?.githubIntegration;
 
-    if (!user || !user.integrations?.github?.connected || !user.integrations?.github?.accessToken) {
+    if (!user || !github?.connected || !github?.accessToken) {
       return res.json({ connected: false, message: 'GitHub account not connected' });
     }
 
-    const accessToken = decryptToken(user.integrations.github.accessToken);
-    const username = user.integrations.github.username;
+    const accessToken = decryptToken(github.accessToken);
+    const username = github.username;
 
-    // Fetch user profile
     const userResponse = await axios.get(`https://api.github.com/users/${username}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -434,16 +411,16 @@ router.get('/events', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
+    const github = user?.githubIntegration;
 
-    if (!user || !user.integrations?.github?.connected || !user.integrations?.github?.accessToken) {
+    if (!user || !github?.connected || !github?.accessToken) {
       return res.json({ connected: false, message: 'GitHub account not connected' });
     }
 
-    const accessToken = decryptToken(user.integrations.github.accessToken);
-    const username = user.integrations.github.username;
+    const accessToken = decryptToken(github.accessToken);
+    const username = github.username;
 
-    // Fetch user events
     const eventsResponse = await axios.get(`https://api.github.com/users/${username}/events?per_page=30`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -451,7 +428,6 @@ router.get('/events', verifyToken, async (req, res) => {
       }
     });
 
-    // Map and filter relevant events
     const events = eventsResponse.data.map(event => ({
       id: event.id,
       type: event.type,
@@ -474,21 +450,21 @@ router.get('/events', verifyToken, async (req, res) => {
   }
 });
 
-// GET /contributions - Fetch contribution data (approximated from events)
+// GET /contributions - Fetch contribution data
 router.get('/contributions', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
+    const github = user?.githubIntegration;
 
-    if (!user || !user.integrations?.github?.connected || !user.integrations?.github?.accessToken) {
+    if (!user || !github?.connected || !github?.accessToken) {
       return res.json({ connected: false, message: 'GitHub account not connected' });
     }
 
-    const accessToken = decryptToken(user.integrations.github.accessToken);
-    const username = user.integrations.github.username;
+    const accessToken = decryptToken(github.accessToken);
+    const username = github.username;
 
-    // Fetch contributions via GraphQL for accuracy
     const query = `
       query($username: String!, $from: DateTime!, $to: DateTime!) {
         user(login: $username) {
@@ -508,21 +484,13 @@ router.get('/contributions', verifyToken, async (req, res) => {
       }
     `;
 
-    // Determine date range
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const from = new Date(`${year}-01-01T00:00:00Z`).toISOString();
     const to = new Date(`${year}-12-31T23:59:59Z`).toISOString();
 
     const graphqlResponse = await axios.post(
       'https://api.github.com/graphql',
-      {
-        query,
-        variables: {
-          username,
-          from,
-          to
-        }
-      },
+      { query, variables: { username, from, to } },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -538,14 +506,13 @@ router.get('/contributions', verifyToken, async (req, res) => {
 
     const calendar = graphqlResponse.data.data.user.contributionsCollection.contributionCalendar;
 
-    // Flatten the weeks structure for the frontend
     const contributions = [];
     calendar.weeks.forEach(week => {
       week.contributionDays.forEach(day => {
         contributions.push({
           date: day.date,
           count: day.contributionCount,
-          level: 0 // Will be calculated by frontend or logic can be added here
+          level: 0
         });
       });
     });
@@ -567,13 +534,14 @@ router.get('/readme', verifyToken, async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ uid });
+    const user = await prisma.user.findUnique({ where: { uid } });
+    const github = user?.githubIntegration;
 
-    if (!user || !user.integrations?.github?.connected || !user.integrations?.github?.installationId) {
+    if (!user || !github?.connected || !github?.installationId) {
       return res.status(400).json({ message: 'GitHub App not installed' });
     }
 
-    const installationId = user.integrations.github.installationId;
+    const installationId = github.installationId;
     const appId = process.env.GITHUB_APP_ID;
     let privateKey = process.env.GITHUB_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
@@ -585,13 +553,10 @@ router.get('/readme', verifyToken, async (req, res) => {
       const response = await octokit.request('GET /repos/{owner}/{repo}/readme', {
         owner,
         repo,
-        mediaType: {
-          format: 'raw'
-        }
+        mediaType: { format: 'raw' }
       });
       res.send(response.data);
     } catch (err) {
-      // If README not found, return empty string or specific message
       if (err.status === 404) {
         return res.send("# No README found");
       }

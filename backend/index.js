@@ -1,6 +1,6 @@
 const express = require('express');
 require('dotenv').config(); // Load env BEFORE other imports
-const mongoose = require('mongoose');
+const prisma = require('./lib/prisma');
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
@@ -126,20 +126,14 @@ app.use('/api/support', require('./routes/supportRoutes')); // Support Form
 
 
 // ==========================================
-// 2. ROBUST DATABASE CONNECTION
+// 2. DATABASE CONNECTION (Prisma → Supabase PostgreSQL)
 // ==========================================
-mongoose.connect(process.env.MONGO_URI, {
-  dbName: 'zync-production', // Force connection to specific database
-  // These options help prevent "buffering timed out" and "ECONNRESET" errors
-  serverSelectionTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
-})
-  .then((conn) => {
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    console.log(`Pp Database Name: ${conn.connection.name}`);
+prisma.$connect()
+  .then(() => {
+    console.log('✅ Supabase PostgreSQL connected via Prisma');
   })
   .catch((err) => {
-    console.error(`Error: ${err.message}`);
+    console.error(`Database connection error: ${err.message}`);
     process.exit(1);
   });
 

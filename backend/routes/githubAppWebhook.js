@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const axios = require('axios');
-const Project = require('../models/Project');
-const User = require('../models/User');
+const prisma = require('../lib/prisma');
 const { getInstallationAccessToken } = require('../utils/githubAppAuth');
 
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
@@ -26,7 +25,7 @@ const verifySignature = (req, res, next) => {
     }
 
     if (!req.rawBody) {
-        console.error(`[Webhook ${deliveryId}] req.rawBody is missing. Ensure express.json({ verify: ... }) is configured.`);
+        console.error(`[Webhook ${deliveryId}] req.rawBody is missing.`);
         return res.status(500).json({ error: 'Internal Server Error: Raw body missing' });
     }
 
@@ -35,10 +34,10 @@ const verifySignature = (req, res, next) => {
 
     if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))) {
         console.log(`[Webhook ${deliveryId}] Signature verified successfully.`);
-        req.deliveryId = deliveryId; // Attach to req for downstream use
+        req.deliveryId = deliveryId;
         next();
     } else {
-        console.error(`[Webhook ${deliveryId}] Invalid signature. Expected ${digest}, got ${signature}`);
+        console.error(`[Webhook ${deliveryId}] Invalid signature.`);
         return res.status(401).json({ error: 'Invalid signature' });
     }
 };
@@ -56,7 +55,6 @@ router.post('/', verifySignature, async (req, res) => {
         console.log(`Received push event for ${repository.full_name} with ${commits.length} commits.`);
 
         try {
-            // Get Installation Token for Bot Comments
             let installToken = null;
             try {
                 if (installationId) {
@@ -68,104 +66,105 @@ router.post('/', verifySignature, async (req, res) => {
 
             for (const commit of commits) {
                 const message = commit.message;
-                // Regex to find [ZYNC-COMPLETE #TaskID]
-                // Case insensitive, matching # followed by alphanumeric ID
                 const match = message.match(/\[ZYNC-COMPLETE #([a-zA-Z0-9_-]+)\]/i);
 
                 if (match) {
                     const taskId = match[1];
                     console.log(`Found completion tag for Task ID: ${taskId}`);
 
-                    // 1. Find and Update Task in Database
-                    // We need to find which project/step contains this task.
-                    const project = await Project.findOne({
-                        $or: [
-                            { "steps.tasks.id": taskId },
-                            { "steps.tasks._id": taskId }
-                        ]
-                    });
-
-                    if (project) {
-                        let taskFound = false;
-                        let taskTitle = "";
-                        const senderLogin = payload.sender.login;
-
-                        // Locate the task first
-                        let targetTask = null;
-                        for (const step of project.steps) {
-                            const found = step.tasks.find(t => t.id === taskId || (t._id && t._id.toString() === taskId));
-                            if (found) {
-                                targetTask = found;
-                                break;
+                    // Find task by ID or displayId
+                    const task = await prisma.projectTask.findFirst({
+                        where: {
+                            OR: [
+                                { id: taskId },
+                                { displayId: taskId },
+                                { displayId: `TASK-${taskId}` }
+                            ]
+                        },
+                        include: {
+                            step: {
+                                include: { project: true }
                             }
                         }
+                    });
 
-                        if (targetTask) {
-                            // Check Assignment
-                            if (!targetTask.assignedTo) {
-                                console.log(`Task ${taskId} is unassigned. Ignoring commit from ${senderLogin}.`);
-                            } else {
-                                const assignedUser = await User.findOne({ uid: targetTask.assignedTo });
-                                const storedUsername = assignedUser?.integrations?.github?.username;
+                    if (task) {
+                        const senderLogin = payload.sender.login;
 
-                                if (storedUsername === senderLogin) {
-                                    // AUTHORIZED
-                                    targetTask.status = 'Completed';
-                                    targetTask.commitInfo = {
-                                        message: commit.message,
-                                        url: commit.url,
-                                        author: commit.author.name,
-                                        timestamp: commit.timestamp
-                                    };
-                                    taskFound = true;
-                                    taskTitle = targetTask.title;
-
-                                    await project.save();
-                                    console.log(`Task ${taskId} marked as Completed by ${senderLogin}.`);
-
-                                    // 2. Post Bot Comment to GitHub
-                                    if (installToken) {
-                                        try {
-                                            await axios.post(
-                                                `https://api.github.com/repos/${repository.full_name}/commits/${commit.id}/comments`,
-                                                {
-                                                    body: `🚀 **Zync Bot**: Task **#${taskId}** ("${taskTitle}") has been set to **Completed** by @${senderLogin}! Verified assignment. ✅`
-                                                },
-                                                {
-                                                    headers: {
-                                                        'Authorization': `token ${installToken}`,
-                                                        'Accept': 'application/vnd.github.v3+json'
-                                                    }
-                                                }
-                                            );
-                                            console.log(`Posted comment on commit ${commit.id}`);
-                                        } catch (commentErr) {
-                                            console.error("Failed to post GitHub comment:", commentErr.message);
-                                        }
-                                    }
-
-                                    // Emit socket event for real-time update
-                                    const io = req.app.get('io');
-                                    if (io) {
-                                        io.emit('taskUpdated', {
-                                            taskId: taskId,
-                                            projectId: project._id,
-                                            status: 'Completed',
-                                            message: `Task status updated via commit`
-                                        });
-
-                                        // Emit full project update for Kanban Board
-                                        io.emit('projectUpdate', {
-                                            projectId: project._id,
-                                            project: project
-                                        });
-                                    }
-                                } else {
-                                    console.log(`Unauthorized commit attempt by ${senderLogin} for task ${taskId}`);
-                                }
-                            }
+                        if (!task.assignedTo) {
+                            console.log(`Task ${taskId} is unassigned. Ignoring commit from ${senderLogin}.`);
                         } else {
-                            console.log(`Task ${taskId} found in query but not in loop.`);
+                            // Check GitHub username matches
+                            const assignedUser = await prisma.user.findUnique({
+                                where: { uid: task.assignedTo }
+                            });
+                            const storedUsername = assignedUser?.githubIntegration?.username;
+
+                            if (storedUsername === senderLogin) {
+                                // AUTHORIZED — update task
+                                const updatedTask = await prisma.projectTask.update({
+                                    where: { id: task.id },
+                                    data: {
+                                        status: 'Completed',
+                                        commitMessage: commit.message,
+                                        commitUrl: commit.url,
+                                        commitAuthor: commit.author.name,
+                                        commitTimestamp: new Date(commit.timestamp)
+                                    }
+                                });
+
+                                console.log(`Task ${taskId} marked as Completed by ${senderLogin}.`);
+
+                                // Post Bot Comment to GitHub
+                                if (installToken) {
+                                    try {
+                                        await axios.post(
+                                            `https://api.github.com/repos/${repository.full_name}/commits/${commit.id}/comments`,
+                                            {
+                                                body: `🚀 **Zync Bot**: Task **#${taskId}** ("${task.title}") has been set to **Completed** by @${senderLogin}! Verified assignment. ✅`
+                                            },
+                                            {
+                                                headers: {
+                                                    'Authorization': `token ${installToken}`,
+                                                    'Accept': 'application/vnd.github.v3+json'
+                                                }
+                                            }
+                                        );
+                                        console.log(`Posted comment on commit ${commit.id}`);
+                                    } catch (commentErr) {
+                                        console.error("Failed to post GitHub comment:", commentErr.message);
+                                    }
+                                }
+
+                                // Emit socket events
+                                const io = req.app.get('io');
+                                if (io) {
+                                    const projectId = task.step.project.id;
+                                    io.emit('taskUpdated', {
+                                        taskId: task.id,
+                                        projectId,
+                                        status: 'Completed',
+                                        message: `Task status updated via commit`
+                                    });
+
+                                    // Fetch full project for Kanban Board update
+                                    const fullProject = await prisma.project.findUnique({
+                                        where: { id: projectId },
+                                        include: {
+                                            steps: {
+                                                include: { tasks: true },
+                                                orderBy: { order: 'asc' }
+                                            }
+                                        }
+                                    });
+                                    io.emit('projectUpdate', {
+                                        projectId,
+                                        project: fullProject
+                                    });
+                                }
+                            } else {
+                                console.log(`Unauthorized commit attempt by ${senderLogin} for task ${taskId}`);
+                            }
                         }
                     } else {
                         console.log(`Task ${taskId} not found in any project.`);

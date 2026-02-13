@@ -2,15 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 const Groq = require('groq-sdk');
-const User = require('../models/User');
-// Removed: const { getUserApp } = require('../utils/githubService'); 
-// (We might use getUserApp if we need to verify signature using user's secret, 
-// but standard webhooks usually share a secret or we skip verification for MVP dynamic)
+const prisma = require('../lib/prisma');
 
 const verifyGithub = require('../middleware/verifyGithub');
-
-// ... (previous imports)
-const Project = require('../models/Project'); // Correct Mongoose Model
 const { analyzeCommit } = require('../utils/commitAnalysisService');
 
 router.post('/github', verifyGithub, async (req, res) => {
@@ -27,7 +21,7 @@ router.post('/github', verifyGithub, async (req, res) => {
             const commits = payload.commits || [];
             console.log(`Processing push event with ${commits.length} commits.`);
 
-            const io = req.app.get('io'); // Get Socket.IO instance
+            const io = req.app.get('io');
 
             for (const commit of commits) {
                 const message = commit.message;
@@ -44,7 +38,6 @@ router.post('/github', verifyGithub, async (req, res) => {
                     // 2. Fallback to AI Analysis
                     const analysis = await analyzeCommit(message);
                     if (analysis.found && analysis.id && analysis.action === 'Complete') {
-                        // Removing prefix if present to match DB ID
                         taskId = analysis.id.replace('TASK-', '');
                         action = 'Complete';
                         console.log(`AI identified task: ${taskId}`);
@@ -52,47 +45,42 @@ router.post('/github', verifyGithub, async (req, res) => {
                 }
 
                 if (taskId && action === 'Complete') {
-                    // Search for project containing this task
-                    // We search in steps.tasks.id OR steps.tasks._id
-                    const project = await Project.findOne({
-                        $or: [
-                            { "steps.tasks.id": taskId },
-                            { "steps.tasks._id": taskId } // Support both string ID and ObjectId
-                        ]
+                    // Search for task by ID or displayId
+                    const task = await prisma.projectTask.findFirst({
+                        where: {
+                            OR: [
+                                { id: taskId },
+                                { displayId: taskId },
+                                { displayId: `TASK-${taskId}` }
+                            ]
+                        },
+                        include: { step: { include: { project: true } } }
                     });
 
-                    if (project) {
-                        let taskUpdated = false;
-                        project.steps.forEach(step => {
-                            step.tasks.forEach(task => {
-                                if (task.id === taskId || (task._id && task._id.toString() === taskId)) {
-                                    task.status = 'Completed';
-                                    task.commitInfo = {
-                                        message: commit.message,
-                                        url: commit.url,
-                                        author: commit.author.name,
-                                        timestamp: commit.timestamp
-                                    };
-                                    taskUpdated = true;
-                                    console.log(`Marking task ${task.title} as Completed`);
-                                }
-                            });
+                    if (task) {
+                        const updatedTask = await prisma.projectTask.update({
+                            where: { id: task.id },
+                            data: {
+                                status: 'Completed',
+                                commitMessage: commit.message,
+                                commitUrl: commit.url,
+                                commitAuthor: commit.author.name,
+                                commitTimestamp: new Date(commit.timestamp)
+                            }
                         });
 
-                        if (taskUpdated) {
-                            await project.save();
-                            console.log(`SUCCESS: Task ${taskId} updated in DB.`);
+                        console.log(`Marking task ${task.title} as Completed`);
+                        console.log(`SUCCESS: Task ${taskId} updated in DB.`);
 
-                            // Emit Socket Event
-                            if (io) {
-                                io.emit('taskUpdated', {
-                                    taskId: taskId,
-                                    projectId: project._id,
-                                    status: 'Completed',
-                                    message: `Task completed via commit: ${message}`
-                                });
-                                console.log('Socket event emitted: taskUpdated');
-                            }
+                        // Emit Socket Event
+                        if (io) {
+                            io.emit('taskUpdated', {
+                                taskId: task.id,
+                                projectId: task.step.project.id,
+                                status: 'Completed',
+                                message: `Task completed via commit: ${message}`
+                            });
+                            console.log('Socket event emitted: taskUpdated');
                         }
                     } else {
                         console.warn(`Task ID ${taskId} not found in any project.`);

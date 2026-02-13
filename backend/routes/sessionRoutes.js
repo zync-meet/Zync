@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Session = require('../models/Session');
+const prisma = require('../lib/prisma');
 const verifyToken = require('../middleware/authMiddleware');
 
 // Apply authentication middleware to all routes
@@ -9,9 +9,6 @@ router.use(verifyToken);
 // Start a new session
 router.post('/start', async (req, res) => {
   try {
-    // console.log('POST /api/sessions/start body:', req.body);
-
-    // Secure: Use the authenticated user's ID
     const userId = req.user.uid;
 
     if (!userId) {
@@ -21,19 +18,18 @@ router.post('/start', async (req, res) => {
 
     const today = new Date().toISOString().split('T')[0];
 
-    const session = new Session({
-      userId,
-      startTime: new Date(),
-      endTime: new Date(),
-      date: today
+    const session = await prisma.session.create({
+      data: {
+        userId,
+        startTime: new Date(),
+        endTime: new Date(),
+        date: today
+      }
     });
 
-    await session.save();
-    // console.log('Session started successfully:', session._id);
     res.status(201).json(session);
   } catch (error) {
     console.error('Error starting session:', error);
-    // Ensure we don't try to send a response if one was already sent (though unlikely here)
     if (!res.headersSent) {
       res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -41,15 +37,16 @@ router.post('/start', async (req, res) => {
 });
 
 // Get sessions for multiple users (Batch)
-// Note: This route is authenticated but allows querying for any users.
-// Assuming this is used for team presence/activity where visibility is allowed.
 router.post('/batch', async (req, res) => {
   try {
     const { userIds } = req.body;
     if (!userIds || !Array.isArray(userIds)) {
       return res.status(400).json({ message: 'userIds array is required' });
     }
-    const sessions = await Session.find({ userId: { $in: userIds } }).sort({ startTime: -1 });
+    const sessions = await prisma.session.findMany({
+      where: { userId: { in: userIds } },
+      orderBy: { startTime: 'desc' }
+    });
     res.json(sessions);
   } catch (error) {
     console.error('Error fetching batch sessions:', error);
@@ -60,7 +57,9 @@ router.post('/batch', async (req, res) => {
 // Update session (heartbeat) - Support both PUT and POST (for sendBeacon)
 const updateSession = async (req, res) => {
   try {
-    const session = await Session.findById(req.params.id);
+    const session = await prisma.session.findUnique({
+      where: { id: req.params.id }
+    });
     if (!session) return res.status(404).json({ message: 'Session not found' });
 
     // Secure: Verify ownership
@@ -68,19 +67,25 @@ const updateSession = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized access to session' });
     }
 
-    session.endTime = new Date();
+    const updateData = { endTime: new Date() };
 
-    // Update activity stats if provided
     if (req.body && req.body.lastAction) {
-      session.lastAction = req.body.lastAction;
+      updateData.lastAction = req.body.lastAction;
     }
     if (req.body && req.body.activeIncrement) {
-      session.activeDuration = (session.activeDuration || 0) + req.body.activeIncrement;
+      updateData.activeDuration = (session.activeDuration || 0) + req.body.activeIncrement;
     }
 
-    await session.save();
+    // Compute duration
+    const startTime = session.startTime;
+    updateData.duration = Math.round((updateData.endTime - startTime) / 1000);
 
-    res.json(session);
+    const updated = await prisma.session.update({
+      where: { id: req.params.id },
+      data: updateData
+    });
+
+    res.json(updated);
   } catch (error) {
     console.error('Error updating session:', error);
     res.status(500).json({ message: 'Server error' });
@@ -93,12 +98,14 @@ router.post('/:id', updateSession);
 // Get user sessions
 router.get('/:userId', async (req, res) => {
   try {
-    // Secure: Verify user requests their own sessions
     if (req.params.userId !== req.user.uid) {
-        return res.status(403).json({ message: 'Unauthorized access to user sessions' });
+      return res.status(403).json({ message: 'Unauthorized access to user sessions' });
     }
 
-    const sessions = await Session.find({ userId: req.params.userId }).sort({ startTime: -1 });
+    const sessions = await prisma.session.findMany({
+      where: { userId: req.params.userId },
+      orderBy: { startTime: 'desc' }
+    });
     res.json(sessions);
   } catch (error) {
     console.error('Error fetching sessions:', error);
@@ -109,18 +116,20 @@ router.get('/:userId', async (req, res) => {
 // Delete a specific session
 router.delete('/:id', async (req, res) => {
   try {
-    // Secure: Find and delete only if owned by user
-    const session = await Session.findOneAndDelete({ _id: req.params.id, userId: req.user.uid });
+    // Try to find and delete only if owned by user
+    const session = await prisma.session.findUnique({
+      where: { id: req.params.id }
+    });
 
     if (!session) {
-        // Check if session exists but belongs to someone else to give correct error, or just 404
-        const exists = await Session.findById(req.params.id);
-        if (exists) {
-            return res.status(403).json({ message: 'Unauthorized to delete this session' });
-        }
-        return res.status(404).json({ message: 'Session not found' });
+      return res.status(404).json({ message: 'Session not found' });
     }
 
+    if (session.userId !== req.user.uid) {
+      return res.status(403).json({ message: 'Unauthorized to delete this session' });
+    }
+
+    await prisma.session.delete({ where: { id: req.params.id } });
     res.json({ message: 'Session deleted' });
   } catch (error) {
     console.error('Error deleting session:', error);
@@ -131,12 +140,11 @@ router.delete('/:id', async (req, res) => {
 // Delete all sessions for a user
 router.delete('/user/:userId', async (req, res) => {
   try {
-    // Secure: Verify user requests clearing their own sessions
     if (req.params.userId !== req.user.uid) {
-        return res.status(403).json({ message: 'Unauthorized action' });
+      return res.status(403).json({ message: 'Unauthorized action' });
     }
 
-    await Session.deleteMany({ userId: req.params.userId });
+    await prisma.session.deleteMany({ where: { userId: req.params.userId } });
     res.json({ message: 'All sessions deleted' });
   } catch (error) {
     console.error('Error clearing sessions:', error);

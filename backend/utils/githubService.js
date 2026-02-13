@@ -1,5 +1,5 @@
 const { App } = require('octokit');
-const User = require('../models/User');
+const prisma = require('../lib/prisma');
 const { decrypt } = require('./encryption');
 
 /**
@@ -8,19 +8,20 @@ const { decrypt } = require('./encryption');
  * @returns {Promise<App>}
  */
 const getUserApp = async (userId) => {
-  const user = await User.findOne({ uid: userId });
-  if (!user || !user.integrations?.github?.encryptedAppId || !user.integrations?.github?.encryptedPrivateKey) {
+  const user = await prisma.user.findUnique({ where: { uid: userId } });
+  const github = user?.githubIntegration;
+
+  if (!user || !github?.encryptedAppId || !github?.encryptedPrivateKey) {
     throw new Error('User has not configured GitHub App settings.');
   }
 
-  const appId = decrypt(user.integrations.github.encryptedAppId);
-  const privateKey = decrypt(user.integrations.github.encryptedPrivateKey);
+  const appId = decrypt(github.encryptedAppId);
+  const privateKey = decrypt(github.encryptedPrivateKey);
 
   if (!appId || !privateKey) {
-      throw new Error('Failed to decrypt GitHub credentials.');
+    throw new Error('Failed to decrypt GitHub credentials.');
   }
 
-  // Handle potential newline issues in private key if stored as one string
   const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
 
   return new App({
@@ -35,19 +36,21 @@ const getUserApp = async (userId) => {
  * @returns {Promise<string|null>} - Installation ID or null
  */
 const getUserInstallationId = async (userId) => {
-  const user = await User.findOne({ uid: userId });
-  if (!user || !user.integrations?.github?.installationId) {
+  const user = await prisma.user.findUnique({ where: { uid: userId } });
+  const github = user?.githubIntegration;
+  if (!github?.installationId) {
     return null;
   }
-  return user.integrations.github.installationId;
+  return github.installationId;
 };
 
 /**
  * Checks if user has keys configured.
  */
 const checkGithubConfig = async (userId) => {
-    const user = await User.findOne({ uid: userId });
-    return !!(user?.integrations?.github?.encryptedAppId && user?.integrations?.github?.encryptedPrivateKey);
+  const user = await prisma.user.findUnique({ where: { uid: userId } });
+  const github = user?.githubIntegration;
+  return !!(github?.encryptedAppId && github?.encryptedPrivateKey);
 };
 
 /**
@@ -60,8 +63,7 @@ const getInstallationRepositories = async (userId, installationId) => {
   try {
     const app = await getUserApp(userId);
     const octokit = await app.getInstallationOctokit(installationId);
-    
-    // List repositories accessible to the app installation
+
     const response = await octokit.request('GET /installation/repositories', {
       headers: {
         'X-GitHub-Api-Version': '2022-11-28'
@@ -70,7 +72,7 @@ const getInstallationRepositories = async (userId, installationId) => {
     });
 
     return response.data.repositories.map(repo => ({
-      id: repo.id.toString(), // Ensure string ID
+      id: repo.id.toString(),
       name: repo.name,
       full_name: repo.full_name,
       private: repo.private,
@@ -89,4 +91,3 @@ module.exports = {
   getInstallationRepositories,
   checkGithubConfig
 };
-

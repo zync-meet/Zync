@@ -1,24 +1,25 @@
-const mongoose = require('mongoose');
-const Project = require('../models/Project');
+const prisma = require('../lib/prisma');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const fixSteps = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI, { dbName: 'zync-production' });
-        console.log('Connected to MongoDB');
-
         // Find Project ToolDeck (case insensitive)
-        const project = await Project.findOne({ name: { $regex: new RegExp('^ToolDeck$', 'i') } });
+        const project = await prisma.project.findFirst({
+            where: {
+                name: { equals: 'ToolDeck', mode: 'insensitive' }
+            },
+            include: { steps: true }
+        });
 
         if (!project) {
             console.log('Project "ToolDeck" not found. Listing all projects:');
-            const all = await Project.find({}, 'name');
+            const all = await prisma.project.findMany({ select: { name: true } });
             all.forEach(p => console.log(`- ${p.name}`));
-            process.exit(1);
+            return;
         }
 
-        console.log(`Found Project: ${project.name} (${project._id})`);
+        console.log(`Found Project: ${project.name} (${project.id})`);
         console.log(`Current Steps: ${project.steps.length}`);
 
         const newSteps = [
@@ -33,13 +34,14 @@ const fixSteps = async () => {
             // Check if exists
             const exists = project.steps.some(existing => existing.title.toLowerCase() === s.title.toLowerCase());
             if (!exists) {
-                project.steps.push({
-                    id: new mongoose.Types.ObjectId().toString(),
-                    title: s.title,
-                    description: s.description,
-                    type: s.type,
-                    status: 'Pending',
-                    tasks: []
+                await prisma.step.create({
+                    data: {
+                        title: s.title,
+                        description: s.description,
+                        type: s.type,
+                        status: 'Pending',
+                        projectId: project.id
+                    }
                 });
                 addedCount++;
                 console.log(`Added step: ${s.title}`);
@@ -49,8 +51,7 @@ const fixSteps = async () => {
         }
 
         if (addedCount > 0) {
-            await project.save();
-            console.log('Project saved with new steps.');
+            console.log(`Project updated with ${addedCount} new steps.`);
         } else {
             console.log('No new steps needing addition.');
         }
@@ -58,9 +59,9 @@ const fixSteps = async () => {
     } catch (error) {
         console.error('Error:', error);
     } finally {
-        await mongoose.disconnect();
-        process.exit(0);
+        await prisma.$disconnect();
     }
 };
 
 fixSteps();
+

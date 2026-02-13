@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const Project = require('../models/Project');
 const verifyToken = require('../middleware/authMiddleware');
 
 // Link a generic repo to a Project
@@ -13,35 +12,45 @@ router.post('/link-repo', verifyToken, async (req, res) => {
   }
 
   try {
-    // 1. Update Project in MongoDB
-    const project = await Project.findById(projectId);
+    const project = await prisma.project.findUnique({
+      where: { id: projectId }
+    });
     if (!project) {
-        return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: 'Project not found' });
     }
 
-    // Add to array if not present
-    if (!project.githubRepoIds) project.githubRepoIds = [];
-    if (!project.githubRepoIds.includes(githubRepoId)) {
-        project.githubRepoIds.push(githubRepoId);
-        await project.save();
-    }
-
-    // 2. Update all Tasks in Prisma associated with this project
-    // Note: This assumes tasks have projectId set. 
-    // If tasks were created without projectId, this step might miss them unless we infer from userId (dangerous)
-    // or if we iterate embedded steps in MongoDB and find matching Prisma tasks.
-    
-    // Simplest approach: Update by projectId
-    await prisma.task.updateMany({
-        where: { projectId: projectId },
+    // Add to array if not already present
+    const currentIds = project.githubRepoIds || [];
+    if (!currentIds.includes(githubRepoId)) {
+      await prisma.project.update({
+        where: { id: projectId },
         data: {
-            repoIds: {
-                push: githubRepoId 
-            }
+          githubRepoIds: { push: githubRepoId }
         }
+      });
+    }
+
+    // Update all ProjectTasks associated with this project's steps
+    const steps = await prisma.step.findMany({
+      where: { projectId },
+      select: { id: true }
+    });
+    const stepIds = steps.map(s => s.id);
+
+    if (stepIds.length > 0) {
+      await prisma.projectTask.updateMany({
+        where: { stepId: { in: stepIds } },
+        data: {
+          repoIds: { push: githubRepoId }
+        }
+      });
+    }
+
+    const updatedProject = await prisma.project.findUnique({
+      where: { id: projectId }
     });
 
-    res.json({ message: 'Repository linked successfully', project });
+    res.json({ message: 'Repository linked successfully', project: updatedProject });
 
   } catch (error) {
     console.error('Link Repo Error:', error);

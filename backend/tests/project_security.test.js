@@ -33,59 +33,57 @@ require.cache[authMiddlewarePath] = {
   exports: authMiddlewareTracker
 };
 
-const projectModelPath = path.resolve(__dirname, "../models/Project.js");
-class MockProject {
-    constructor(data) { Object.assign(this, data); }
-    save() { return Promise.resolve(this); }
-    static findById() { return Promise.resolve(null); }
-    static findByIdAndUpdate() { return Promise.resolve(null); }
-    static findByIdAndDelete() { return Promise.resolve(null); }
-    static find() { return Promise.resolve([]); }
-    static findOne() { return Promise.resolve(null); }
-}
-require.cache[projectModelPath] = {
-    id: projectModelPath,
-    filename: projectModelPath,
-    loaded: true,
-    exports: MockProject
-};
-
-const userModelPath = path.resolve(__dirname, "../models/User.js");
-require.cache[userModelPath] = {
-    id: userModelPath,
-    filename: userModelPath,
-    loaded: true,
-    exports: {
-        findOne: () => Promise.resolve(null)
-    }
-};
-
 const mailerPath = path.resolve(__dirname, "../services/mailer.js");
 require.cache[mailerPath] = {
-    id: mailerPath,
-    filename: mailerPath,
-    loaded: true,
-    exports: {
-        sendZyncEmail: () => Promise.resolve()
-    }
-};
-
-const prismaPath = path.resolve(__dirname, "../lib/prisma.js");
-require.cache[prismaPath] = {
-    id: prismaPath,
-    filename: prismaPath,
-    loaded: true,
-    exports: {}
+  id: mailerPath,
+  filename: mailerPath,
+  loaded: true,
+  exports: {
+    sendZyncEmail: () => Promise.resolve()
+  }
 };
 
 const regexUtilsPath = path.resolve(__dirname, "../utils/regexUtils.js");
 require.cache[regexUtilsPath] = {
-    id: regexUtilsPath,
-    filename: regexUtilsPath,
-    loaded: true,
-    exports: {
-        escapeRegExp: (str) => str
-    }
+  id: regexUtilsPath,
+  filename: regexUtilsPath,
+  loaded: true,
+  exports: {
+    escapeRegExp: (str) => str
+  }
+};
+
+// Mock Prisma
+const mockPrisma = {
+  user: {
+    findUnique: mock(() => Promise.resolve({ id: 'user-id', uid: 'authenticated-user' }))
+  },
+  project: {
+    findUnique: mock(() => Promise.resolve({ id: 'project-id', ownerId: 'user-id', team: [], steps: [] })),
+    create: mock(() => Promise.resolve({ id: 'new-project-id' })),
+    update: mock(() => Promise.resolve({ id: 'project-id' })),
+    delete: mock(() => Promise.resolve({ id: 'project-id' })),
+    findMany: mock(() => Promise.resolve([]))
+  },
+  step: {
+    findUnique: mock(() => Promise.resolve({ id: 'step-id' })),
+    create: mock(() => Promise.resolve({ id: 'new-step-id' })),
+    createMany: mock(() => Promise.resolve({ count: 1 }))
+  },
+  projectTask: {
+    findUnique: mock(() => Promise.resolve({ id: 'task-id', stepId: 's1' })),
+    create: mock(() => Promise.resolve({ id: 'new-task-id' })),
+    update: mock(() => Promise.resolve({ id: 'task-id' })),
+    delete: mock(() => Promise.resolve({ id: 'task-id' }))
+  }
+};
+
+const prismaPath = path.resolve(__dirname, "../lib/prisma.js");
+require.cache[prismaPath] = {
+  id: prismaPath,
+  filename: prismaPath,
+  loaded: true,
+  exports: mockPrisma
 };
 
 // Import the router
@@ -97,6 +95,11 @@ describe("Project Routes Security", () => {
   beforeAll(() => {
     app = express();
     app.use(express.json());
+    // Mock io
+    app.get = (key) => {
+      if (key === 'io') return { emit: mock() };
+      return undefined;
+    };
     app.use("/projects", projectRoutes);
   });
 
@@ -174,3 +177,4 @@ describe("Project Routes Security", () => {
   });
 
 });
+

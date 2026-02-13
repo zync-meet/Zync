@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { Groq } = require('groq-sdk');
-const mongoose = require('mongoose');
-const Project = require('../models/Project');
-const User = require('../models/User');
+const { randomUUID } = require('crypto');
+const prisma = require('../lib/prisma');
 const verifyToken = require('../middleware/authMiddleware');
 
 // Initialize Groq
@@ -80,37 +79,56 @@ router.post('/', verifyToken, async (req, res) => {
       generatedData = JSON.parse(responseText);
     } catch (e) {
       console.error("Failed to parse AI JSON:", responseText);
-      // Fallback or cleanup json
       const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
       generatedData = JSON.parse(cleanJson);
     }
 
-    // 2. Create Mongoose Project
-    // Map generated steps to Mongoose Schema structure
-    const steps = (generatedData.steps || []).map(step => ({
-      id: step.id || new mongoose.Types.ObjectId().toString(),
-      title: step.title,
-      description: step.description,
-      status: 'Pending',
-      type: step.type || 'Other',
-      tasks: (step.tasks || []).map(t => ({
-        title: t.title,
-        description: t.description,
-        status: 'Pending',
-        assignedTo: null // Ready for user assignment
-      }))
-    }));
+    // 2. Look up the User record to get the Prisma user ID for the relation
+    let user = await prisma.user.findUnique({ where: { uid: ownerId } });
+    if (!user) {
+      // Create user on-the-fly if not synced yet
+      user = await prisma.user.create({
+        data: {
+          uid: ownerId,
+          email: req.user.email || `${ownerId}@placeholder.com`,
+          displayName: 'User'
+        }
+      });
+    }
 
-    const newProject = new Project({
-      name,
-      description,
-      ownerId: ownerId,
-      architecture: generatedData.architecture || {},
-      steps: steps,
-      team: [] // We can invite people later
+    // 3. Create Project with Steps and Tasks in a single transaction
+    const newProject = await prisma.project.create({
+      data: {
+        name,
+        description,
+        ownerId: user.id,
+        architecture: generatedData.architecture || {},
+        team: [],
+        steps: {
+          create: (generatedData.steps || []).map((step, index) => ({
+            title: step.title,
+            description: step.description || '',
+            status: 'Pending',
+            type: step.type || 'Other',
+            order: index,
+            tasks: {
+              create: (step.tasks || []).map(t => ({
+                title: t.title,
+                description: t.description || '',
+                status: 'Pending',
+                assignedTo: null
+              }))
+            }
+          }))
+        }
+      },
+      include: {
+        steps: {
+          include: { tasks: true },
+          orderBy: { order: 'asc' }
+        }
+      }
     });
-
-    await newProject.save();
 
     res.status(201).json(newProject);
 
