@@ -1,0 +1,33 @@
+# cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - git
+  - unzip
+  - redis-server
+  - build-essential
+
+runcmd:
+  # Install Node.js 20
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  - sudo apt-get install -y nodejs
+  
+  # Install Bun (optional, but good for performance)
+  - curl -fsSL https://bun.sh/install | bash
+  
+  # Configure Redis to bind to localhost (secure by default)
+  - sudo sed -i 's/^bind 127.0.0.1 ::1/bind 127.0.0.1/' /etc/redis/redis.conf
+  - sudo systemctl restart redis-server
+  - sudo systemctl enable redis-server
+
+  # Install PM2 for process management
+  - sudo npm install -g pm2
+
+  # Setup firewall (UFW)
+  - sudo ufw allow 22/tcp
+  - sudo ufw allow 80/tcp
+  - sudo ufw allow 443/tcp
+  - sudo ufw allow 5000/tcp # Backend port
+  - sudo ufw --force enable
