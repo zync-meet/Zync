@@ -160,3 +160,5 @@ backend/debug_*.png
 # Google Service Account Key
 google.sheets.json
 google-credentials.json
+
+.vscode
