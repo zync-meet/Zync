@@ -16,7 +16,7 @@ const getMeetingEmailHtml = ({
     meetingLink
 }) => {
     // Zync Brand Colors & Assets
-    const logoUrl = 'https://zync-meet.vercel.app/zync-white.webp';
+    const logoUrl = 'https://zync-meet.vercel.app/zync-dark.webp';
     const accentGradient = 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)';
     const topBarGradient = 'linear-gradient(90deg, #0ea5e9 0%, #38bdf8 50%, #0ea5e9 100%)';
 
@@ -227,7 +227,7 @@ const getSupportNotificationTemplate = ({
     phone,
     message,
     timestamp = new Date(),
-    logoUrl = 'https://zync-pd9r.onrender.com/zync-white.webp',
+    logoUrl = 'https://zync-pd9r.onrender.com/zync-dark.webp',
 }) => {
     const formattedDate = new Date(timestamp).toLocaleString('en-US', {
         weekday: 'long',

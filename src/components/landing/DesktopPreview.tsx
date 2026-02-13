@@ -110,14 +110,9 @@ const DesktopPreview = () => {
                 <div className="p-3 border-b border-border h-12 flex items-center">
                     <div className="flex items-center px-1">
                         <img
-                            src="/zync-white.webp"
-                            alt="Zync"
-                            className="h-9 w-auto dark:hidden block rounded-lg"
-                        />
-                        <img
                             src="/zync-dark.webp"
                             alt="Zync"
-                            className="h-9 w-auto hidden dark:block rounded-lg"
+                            className="h-9 w-auto rounded-lg"
                         />
                     </div>
                 </div>

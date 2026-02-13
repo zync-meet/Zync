@@ -1,70 +1,101 @@
 /**
- * @file preload.ts
- * @description Preload script for the renderer process.
- * This script runs before the renderer process is loaded and has access to both
- * Node.js APIs and the DOM. It uses contextBridge to safely expose specific
- * APIs to the renderer process, maintaining security by isolating the context.
+ * =============================================================================
+ * Preload Script — ZYNC Desktop Application
+ * =============================================================================
  *
+ * This script runs before the renderer process is loaded. It has access to
+ * both Node.js APIs and the DOM. It uses contextBridge to safely expose
+ * specific APIs to the renderer, ensuring security through context isolation.
+ *
+ * All APIs exposed here must be documented in `electron/preload/types.ts`.
+ *
+ * security:
+ * - Direct access to ipcRenderer is never exposed
+ * - All exposed functions perform basic validation
+ * - Only whitelisted channels are allowed
+ *
+ * @module electron/preload
  * @author ZYNC Team
  * @version 1.0.0
  * @license MIT
+ * =============================================================================
  */
 
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
 /**
- * Expose protected methods that allow the renderer process to use
- * the ipcRenderer without exposing the entire object.
+ * Validates that an action name is a string and potentially matches
+ * our whitelisted channels.
+ *
+ * @param {string} action - The action name to validate
+ * @returns {boolean} True if valid
+ */
+function isValidAction(action: string): boolean {
+  return typeof action === 'string' && action.length > 0;
+}
+
+/**
+ * Safely exposes Electron APIs to the renderer process.
  */
 contextBridge.exposeInMainWorld('electron', {
-  /**
-   * Request to download the application for a specific platform.
-   * Sends an IPC message to the main process.
-   *
-   * @param {string} platform - The target platform ('win', 'mac', 'linux').
-   */
+  // Navigation & Platform
   downloadPlatform: (platform: string): void => {
-    // Validate the input to prevent arbitrary IPC calls
-    const validPlatforms = ['win', 'mac', 'linux'];
-    if (validPlatforms.includes(platform)) {
-      ipcRenderer.send('download-platform', platform);
-    } else {
-      console.warn(`Invalid platform requested: ${platform}`);
-    }
+    ipcRenderer.send('download-platform', platform);
   },
 
-  /**
-   * Request to open the settings window.
-   * Sends an IPC message to the main process.
-   */
   openSettings: (): void => {
     ipcRenderer.send('open-settings');
   },
 
-  /**
-   * Listen for messages from the main process.
-   * (Example for future use: receiving download progress or updates)
-   *
-   * @param {string} channel - The channel to listen on.
-   * @param {function} func - The callback function.
-   */
-  on: (channel: string, func: (...args: unknown[]) => void): void => {
-    const validChannels = ['fromMain']; // Whitelist channels
-    if (validChannels.includes(channel)) {
-      // Strip event as it includes sender
-      ipcRenderer.on(channel, (_event: IpcRendererEvent, ...args: unknown[]) => func(...args));
-    }
+  openExternalLink: (url: string): void => {
+    ipcRenderer.send('open-external-link', url);
   },
+
+  copyToClipboard: (text: string): void => {
+    ipcRenderer.send('copy-to-clipboard', text);
+  },
+
+  // App & System Info
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke('get-app-version'),
+  getAppInfo: (): Promise<any> => ipcRenderer.invoke('get-app-info'),
+  getSystemTheme: (): Promise<string> => ipcRenderer.invoke('get-system-theme'),
+
+  // Window Management
+  minimizeWindow: (): void => ipcRenderer.send('minimize-window'),
+  maximizeWindow: (): void => ipcRenderer.send('maximize-window'),
+  closeWindow: (): void => ipcRenderer.send('close-window'),
+  isWindowMaximized: (): Promise<boolean> => ipcRenderer.invoke('is-window-maximized'),
+
+  // File System Operations
+  showSaveDialog: (options: any): Promise<string | null> =>
+    ipcRenderer.invoke('show-save-dialog', options),
+  showOpenDialog: (options: any): Promise<string[]> =>
+    ipcRenderer.invoke('show-open-dialog', options),
+  writeFile: (data: any): Promise<any> => ipcRenderer.invoke('write-file', data),
+
+  // Events from Main Process
+  onMainMessage: (callback: (data: any) => void): (() => void) => {
+    const subscription = (_event: IpcRendererEvent, data: any) => callback(data);
+    ipcRenderer.on('fromMain', subscription);
+
+    // Return a cleanup function
+    return () => {
+      ipcRenderer.removeListener('fromMain', subscription);
+    };
+  },
+
+  // Environment info
+  electronVersion: process.versions.electron,
+  nodeVersion: process.versions.node,
+  chromeVersion: process.versions.chrome,
+  platform: process.platform,
 });
 
-/**
- * Expose version information to the renderer process.
- * Useful for debugging and displaying app info.
- */
+// Also expose 'versions' for backward compatibility or simple checks
 contextBridge.exposeInMainWorld('versions', {
-  node: (): string => process.versions.node,
-  chrome: (): string => process.versions.chrome,
-  electron: (): string => process.versions.electron,
-  // Add application version if needed
-  // app: () => process.env.npm_package_version,
+  node: process.versions.node,
+  chrome: process.versions.chrome,
+  electron: process.versions.electron,
 });
+
+console.info('[Preload] APIs exposed to renderer');

@@ -97,17 +97,40 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     }
   }, [location.search, currentUser, navigate]);
 
+  // Background refresh of repos (silent, no loading state)
+  const refreshReposInBackground = async () => {
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : null;
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRepos(data);
+      }
+    } catch (error) {
+      console.error("Background repo refresh failed:", error);
+    }
+  };
+
   const handleOpenLinkModal = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
     setSelectedProjectForLink(project);
     setRepoModalOpen(true);
-    setLoadingRepos(true);
     setSearchTerm("");
+
+    // Show cached repos instantly; if none cached, show loading
+    if (repos.length === 0) {
+      setLoadingRepos(true);
+    }
 
     try {
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
-      console.log("Fetching repos with token:", token ? token.substring(0, 10) + "..." : "null", "User:", user?.uid);
 
       if (!token) {
         toast({ title: "Authentication Error", description: "You are not signed in.", variant: "destructive" });
@@ -116,16 +139,12 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
       }
 
       const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.status === 400) {
-        // Not connected or App not installed
         const data = await response.json();
         if (data.notInstalled) {
-          // Redirect to App Installation
           window.location.href = `https://github.com/apps/ZYNC-meet/installations/new`;
           return;
         }
@@ -139,18 +158,20 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
       }
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch repositories. Please ensure ZYNC is installed on your GitHub.",
-        variant: "destructive"
-      });
+      if (repos.length === 0) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch repositories. Please ensure ZYNC is installed on your GitHub.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoadingRepos(false);
     }
   };
 
   const handleLinkRepo = async (repo: any) => {
-    if (!selectedProjectForLink) {return;}
+    if (!selectedProjectForLink) { return; }
     setLinkingRepo(true);
     try {
       const user = auth.currentUser;
@@ -193,9 +214,14 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
 
   const handleOpenCreateModal = async () => {
     setCreateModalOpen(true);
-    setLoadingRepos(true);
     setSearchTerm("");
 
+    // Show cached repos instantly; if none cached, show loading
+    if (repos.length === 0) {
+      setLoadingRepos(true);
+    }
+
+    // Always refresh in background to get latest repos
     try {
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
@@ -207,9 +233,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
       }
 
       const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.status === 400) {
@@ -228,11 +252,13 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
       }
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch repositories.",
-        variant: "destructive"
-      });
+      if (repos.length === 0) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch repositories.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoadingRepos(false);
     }
@@ -284,7 +310,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
 
   const handleUnlinkRepo = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
-    if (!confirm(`Unlink ${project.githubRepoName} from this project?`)) {return;}
+    if (!confirm(`Unlink ${project.githubRepoName} from this project?`)) { return; }
 
     try {
       const user = auth.currentUser;
@@ -321,13 +347,13 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
 
   const deleteProject = async (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation(); // Prevent card click
-    if (!confirm("Are you sure you want to delete this project?")) {return;}
+    if (!confirm("Are you sure you want to delete this project?")) { return; }
 
     try {
       let headers: HeadersInit = {};
       if (currentUser && typeof currentUser.getIdToken === 'function') {
-          const token = await currentUser.getIdToken();
-          headers = { 'Authorization': `Bearer ${token}` };
+        const token = await currentUser.getIdToken();
+        headers = { 'Authorization': `Bearer ${token}` };
       }
 
       const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
@@ -353,7 +379,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     }
   };
 
-  // Load projects
+  // Load projects and pre-fetch repos in background
   useEffect(() => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort('timeout'), 10000); // 10s timeout
@@ -362,15 +388,15 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
       try {
         let headers: HeadersInit = {};
         if (currentUser && typeof currentUser.getIdToken === 'function') {
-           const token = await currentUser.getIdToken();
-           headers = { 'Authorization': `Bearer ${token}` };
+          const token = await currentUser.getIdToken();
+          headers = { 'Authorization': `Bearer ${token}` };
         }
 
         const ownerQuery = currentUser ? `?ownerId=${currentUser.uid}` : '';
         const [projectsRes, notesRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/projects${ownerQuery}`, { 
+          fetch(`${API_BASE_URL}/api/projects${ownerQuery}`, {
             headers,
-            signal: controller.signal 
+            signal: controller.signal
           }),
           currentUser ? fetch(`${API_BASE_URL}/api/notes?userId=${currentUser.uid}`, { headers, signal: controller.signal }) : Promise.resolve(null)
         ]);
@@ -379,7 +405,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
           const data = await projectsRes.json();
           setProjects(data);
         } else if (projectsRes.status === 401) {
-            console.warn("Unauthorized fetch (likely token expired or missing)");
+          console.warn("Unauthorized fetch (likely token expired or missing)");
         } else {
           console.error("Projects fetch failed:", projectsRes.status);
           toast({ title: "Connection Error", description: "Could not fetch projects. Server might be down.", variant: "destructive" });
@@ -387,14 +413,17 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
 
         let notes = [];
         if (notesRes && notesRes.ok) {
-            notes = await notesRes.json();
+          notes = await notesRes.json();
         } else if (notesRes) {
-             console.warn("Notes fetch failed:", notesRes.status);
+          console.warn("Notes fetch failed:", notesRes.status);
         }
 
         if (notes && Array.isArray(notes)) {
           setPinnedNotes(notes.filter((n: any) => n.isPinned));
         }
+
+        // Pre-fetch GitHub repos in the background (non-blocking)
+        refreshReposInBackground();
 
       } catch (error: any) {
         if (error.name === 'AbortError') {

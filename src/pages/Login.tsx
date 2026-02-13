@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Github, LogOut, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getFullUrl, getUserInitials } from "@/lib/utils";
+import { getFullUrl, getUserInitials, API_BASE_URL } from "@/lib/utils";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -88,12 +88,12 @@ const Login = () => {
         if (methods.length > 0) {
           const providerId = methods[0];
           let provider: any;
-          if (providerId === 'google.com') {provider = new GoogleAuthProvider();}
-          else if (providerId === 'github.com') {provider = new GithubAuthProvider();}
+          if (providerId === 'google.com') { provider = new GoogleAuthProvider(); }
+          else if (providerId === 'github.com') { provider = new GithubAuthProvider(); }
 
           if (provider) {
             const confirmLink = window.confirm(`You already have an account with ${providerId}. Sign in with it to link your new credential?`);
-            if (!confirmLink) {return;}
+            if (!confirmLink) { return; }
 
             const result = await signInWithPopup(auth, provider);
             await linkWithCredential(result.user, pendingCred);
@@ -127,13 +127,13 @@ const Login = () => {
         try {
           const firebaseToken = await result.user.getIdToken();
           try {
-            await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/github/connect`, {
+            await fetch(`${API_BASE_URL}/api/github/connect`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${firebaseToken}` },
               body: JSON.stringify({ accessToken: githubToken, username: result.user.displayName || 'unknown' })
             });
           } catch (fetchError: any) {
-            if (fetchError.name === 'AbortError') {return;}
+            if (fetchError.name === 'AbortError') { return; }
             throw fetchError;
           }
         } catch (e) { console.warn('Failed to save GitHub token:', e); }

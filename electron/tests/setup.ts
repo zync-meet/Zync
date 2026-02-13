@@ -14,26 +14,26 @@ import * as os from 'node:os';
 function setupTestEnvironment(): void {
   // Set NODE_ENV to test
   process.env.NODE_ENV = 'test';
-  
+
   // Disable telemetry and analytics during tests
   process.env.DISABLE_TELEMETRY = 'true';
   process.env.DISABLE_ANALYTICS = 'true';
-  
+
   // Set a consistent app version for tests
   process.env.npm_package_version = '1.0.0-test';
-  
+
   // Set test-specific paths
   process.env.ZYNC_TEST_MODE = 'true';
   process.env.ZYNC_CONFIG_DIR = path.join(os.tmpdir(), 'zync-test-config');
   process.env.ZYNC_DATA_DIR = path.join(os.tmpdir(), 'zync-test-data');
   process.env.ZYNC_LOG_DIR = path.join(os.tmpdir(), 'zync-test-logs');
-  
+
   // Disable auto-updater during tests
   process.env.DISABLE_AUTO_UPDATE = 'true';
-  
+
   // Set test URLs
-  process.env.APP_URL = 'http://localhost:5173';
-  
+  process.env.APP_URL = 'http://localhost:8081';
+
   // Suppress console output during tests (optional)
   // process.env.SUPPRESS_CONSOLE = 'true';
 }
@@ -54,32 +54,32 @@ function setupConsoleMocks(): void {
     info: console.info,
     debug: console.debug,
   };
-  
+
   // Replace with spied versions
   vi.spyOn(console, 'log').mockImplementation((...args) => {
     if (process.env.SUPPRESS_CONSOLE !== 'true') {
       originalConsole.log(...args);
     }
   });
-  
+
   vi.spyOn(console, 'warn').mockImplementation((...args) => {
     if (process.env.SUPPRESS_CONSOLE !== 'true') {
       originalConsole.warn(...args);
     }
   });
-  
+
   vi.spyOn(console, 'error').mockImplementation((...args) => {
     if (process.env.SUPPRESS_CONSOLE !== 'true') {
       originalConsole.error(...args);
     }
   });
-  
+
   vi.spyOn(console, 'info').mockImplementation((...args) => {
     if (process.env.SUPPRESS_CONSOLE !== 'true') {
       originalConsole.info(...args);
     }
   });
-  
+
   vi.spyOn(console, 'debug').mockImplementation((...args) => {
     if (process.env.SUPPRESS_CONSOLE !== 'true') {
       originalConsole.debug(...args);
@@ -124,7 +124,7 @@ export async function waitFor(
   interval: number = 50
 ): Promise<void> {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeout) {
     const result = await condition();
     if (result) {
@@ -132,7 +132,7 @@ export async function waitFor(
     }
     await new Promise(resolve => setTimeout(resolve, interval));
   }
-  
+
   throw new Error(`waitFor timed out after ${timeout}ms`);
 }
 
@@ -149,12 +149,12 @@ export function createDeferredPromise<T>(): {
 } {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
-  
+
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
   });
-  
+
   return { promise, resolve, reject };
 }
 
@@ -167,10 +167,10 @@ export function createDeferredPromise<T>(): {
  */
 export function createTempDir(prefix: string = 'zync-test'): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `${prefix}-`));
-  
+
   // Register for cleanup
   tempDirsToCleanup.push(tempDir);
-  
+
   return tempDir;
 }
 
@@ -189,9 +189,9 @@ export function createTempFile(
 ): string {
   const tempDir = dir || createTempDir();
   const filePath = path.join(tempDir, filename);
-  
+
   fs.writeFileSync(filePath, content, 'utf-8');
-  
+
   return filePath;
 }
 
@@ -222,7 +222,7 @@ expect.extend({
    */
   toExist(received: string) {
     const exists = fs.existsSync(received);
-    
+
     return {
       pass: exists,
       message: () =>
@@ -231,14 +231,14 @@ expect.extend({
           : `expected ${received} to exist`,
     };
   },
-  
+
   /**
    * Check if a value is a valid UUID v4.
    */
   toBeUUID(received: string) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const isUUID = typeof received === 'string' && uuidRegex.test(received);
-    
+
     return {
       pass: isUUID,
       message: () =>
@@ -247,13 +247,13 @@ expect.extend({
           : `expected ${received} to be a valid UUID`,
     };
   },
-  
+
   /**
    * Check if an error has a specific code.
    */
   toHaveErrorCode(received: Error & { code?: string }, code: string) {
     const hasCode = 'code' in received && received.code === code;
-    
+
     return {
       pass: hasCode,
       message: () =>
@@ -262,13 +262,13 @@ expect.extend({
           : `expected error to have code ${code}, but got ${received.code}`,
     };
   },
-  
+
   /**
    * Check if a value is within a range.
    */
   toBeWithinRange(received: number, floor: number, ceiling: number) {
     const pass = received >= floor && received <= ceiling;
-    
+
     return {
       pass,
       message: () =>
@@ -289,19 +289,19 @@ expect.extend({
 beforeAll(() => {
   // Set up environment
   setupTestEnvironment();
-  
+
   // Set up mocks
   setupConsoleMocks();
   setupProcessMocks();
   setupTimerMocks();
-  
+
   // Create test directories if they don't exist
   const testDirs = [
     process.env.ZYNC_CONFIG_DIR,
     process.env.ZYNC_DATA_DIR,
     process.env.ZYNC_LOG_DIR,
   ];
-  
+
   testDirs.forEach(dir => {
     if (dir && !fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -323,7 +323,7 @@ beforeEach(() => {
 afterEach(() => {
   // Restore all mocks after each test
   vi.restoreAllMocks();
-  
+
   // Reset fake timers if they were used
   vi.useRealTimers();
 });
@@ -340,14 +340,14 @@ afterAll(() => {
       // Ignore cleanup errors
     }
   });
-  
+
   // Clean up test directories
   const testDirs = [
     process.env.ZYNC_CONFIG_DIR,
     process.env.ZYNC_DATA_DIR,
     process.env.ZYNC_LOG_DIR,
   ];
-  
+
   testDirs.forEach(dir => {
     if (dir) {
       try {
@@ -374,7 +374,7 @@ declare global {
       toHaveErrorCode(code: string): void;
       toBeWithinRange(floor: number, ceiling: number): void;
     }
-    
+
     interface AsymmetricMatchersContaining {
       toExist(): void;
       toBeUUID(): void;

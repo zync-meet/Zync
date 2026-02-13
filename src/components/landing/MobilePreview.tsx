@@ -75,14 +75,9 @@ const MobilePreview = () => {
                 <header className="flex items-center justify-between px-4 py-2 border-b border-border/40 bg-background">
                     <div className="flex items-center">
                         <img
-                            src="/zync-white.webp"
-                            alt="Zync"
-                            className="h-8 w-auto dark:hidden block rounded-lg"
-                        />
-                        <img
                             src="/zync-dark.webp"
                             alt="Zync"
-                            className="h-8 w-auto hidden dark:block rounded-lg"
+                            className="h-8 w-auto rounded-lg"
                         />
                     </div>
                     <Avatar className="w-6 h-6">

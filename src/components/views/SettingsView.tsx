@@ -11,7 +11,7 @@ import { useUserSync } from "@/hooks/use-user-sync";
 import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Headphones, MessageSquare, Newspaper } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, API_BASE_URL, getFullUrl } from "@/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -33,16 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTheme } from "next-themes";
-
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? "http://localhost:5000"
-  : (import.meta.env.VITE_API_URL || ""); // Use relative paths in production if env var is missing
-// Helper to get full URL (generic)
-const getFullUrl = (path: string | undefined): string | undefined => {
-  if (!path) { return undefined; }
-  if (path.startsWith('http')) { return path; }
-  return `${API_BASE_URL}${path}`;
-};
 
 // Simple Country List (Truncated for brevity, can be expanded)
 const countries = [

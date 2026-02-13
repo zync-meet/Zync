@@ -37,7 +37,7 @@ const Navbar = () => {
           <Link to="/" className="flex items-center gap-2">
             {mounted ? (
               <img
-                src={resolvedTheme === 'dark' ? '/zync-dark.webp' : '/zync-white.webp'}
+                src="/zync-dark.webp"
                 alt="Zync Logo"
                 className="h-8 w-auto object-contain"
               />

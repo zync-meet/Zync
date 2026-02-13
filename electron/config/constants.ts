@@ -31,7 +31,7 @@ export const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases`;
 export const WEB_APP_URL = 'https://zync-it.vercel.app';
 
 /** Local dev server URL (used in development mode) */
-export const DEV_SERVER_URL = 'http://localhost:5173';
+export const DEV_SERVER_URL = 'http://localhost:8081';
 
 /** Default window dimensions */
 export const DEFAULT_WINDOW_WIDTH = 1200;

@@ -24,7 +24,7 @@ export declare const GITHUB_RELEASES_URL = "https://github.com/ChitkulLakshya/Zy
 /** Web application URL (loaded in the renderer) */
 export declare const WEB_APP_URL = "https://zync-it.vercel.app";
 /** Local dev server URL (used in development mode) */
-export declare const DEV_SERVER_URL = "http://localhost:5173";
+export declare const DEV_SERVER_URL = "http://localhost:8081";
 /** Default window dimensions */
 export declare const DEFAULT_WINDOW_WIDTH = 1200;
 export declare const DEFAULT_WINDOW_HEIGHT = 800;

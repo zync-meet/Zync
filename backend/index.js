@@ -19,6 +19,7 @@ const io = new Server(server, {
     origin: [
       'http://localhost:5173',
       'http://localhost:8080',
+      'http://localhost:8081',
       'https://zync-meet.vercel.app',
       'https://ZYNC-meet.vercel.app',
       'http://localhost:3000',
@@ -78,11 +79,12 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:8080',
-    'https://zync-meet.vercel.app', // Lowercase
-    'https://ZYNC-meet.vercel.app', // Uppercase (just in case)
+    'http://localhost:8081',
+    'https://zync-meet.vercel.app',
+    'https://ZYNC-meet.vercel.app',
     'http://localhost:3000',
-    process.env.FRONTEND_URL // Allow dynamic env var
-  ].filter(Boolean), // Remove undefined if env var is missing
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));

@@ -97,7 +97,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   }, []);
 
   const [activeSection, setActiveSection] = useState(() => {
-    if (isPreview) {return "My Workspace";}
+    if (isPreview) { return "My Workspace"; }
     return localStorage.getItem("ZYNC-active-section") || "Dashboard";
   });
 
@@ -338,7 +338,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   // Timer & Heartbeat
   useEffect(() => {
-    if (!sessionStartTime) {return;}
+    if (!sessionStartTime) { return; }
 
     const timerInterval = setInterval(() => {
       const now = new Date();
@@ -487,7 +487,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   }, [activeSection, currentUser, isPreview, usersList]);
 
   const handleDeleteLog = async (logId: string) => {
-    if (!currentUser) {return;}
+    if (!currentUser) { return; }
     try {
       const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/sessions/${logId}`, {
@@ -507,7 +507,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   };
 
   const handleClearLogs = async () => {
-    if (!currentUser) {return;}
+    if (!currentUser) { return; }
     try {
       const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/sessions/user/${currentUser.uid}`, {
@@ -529,7 +529,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   // Global Message Delivery Listener
   useEffect(() => {
-    if (!currentUser || isPreview) {return;}
+    if (!currentUser || isPreview) { return; }
 
     // Listen for messages sent TO the current user that are NOT yet delivered
     // This marks them as delivered as long as the user is online (DesktopView is mounted)
@@ -605,9 +605,9 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
         try {
           const token = await currentUser.getIdToken();
           const res = await fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`, {
-             headers: {
-                 'Authorization': `Bearer ${token}`
-             }
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
           });
           const data = await res.json();
           setUserData(data);
@@ -621,7 +621,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
               .catch(err => console.error("Failed to fetch GitHub profile:", err));
           }
         } catch (err) {
-            console.error("Error fetching user details:", err);
+          console.error("Error fetching user details:", err);
         }
       }
     };
@@ -634,7 +634,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     if ((activeSection === "People" || activeSection === "Notes" || activeSection === "Chat" || activeSection === "Meet" || activeSection === "Tasks") && !isPreview) {
       const fetchUsers = async () => {
         try {
-          if (!currentUser) {return;}
+          if (!currentUser) { return; }
           const token = await currentUser.getIdToken();
           const response = await fetch(`${API_BASE_URL}/api/users`, {
             headers: {
@@ -885,7 +885,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           >
             <div className={cn("p-4 flex items-center gap-2", isCollapsed ? "justify-center p-2 mb-4" : "mb-2")}>
               {mounted ? (
-                <img src="/zync-white.webp" alt="Logo" className="h-8 w-8 object-contain rounded-lg" />
+                <img src="/zync-dark.webp" alt="Logo" className="h-8 w-8 object-contain rounded-lg" />
               ) : <div className="w-8 h-8 bg-primary rounded-lg" />}
               {!isCollapsed && <span className="font-bold text-lg text-white tracking-wide">ZYNC</span>}
             </div>
@@ -947,7 +947,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-white/10" />
                   <DropdownMenuItem onClick={async () => {
-                    if (isPreview) {return;}
+                    if (isPreview) { return; }
                     localStorage.removeItem("ZYNC-active-section");
                     localStorage.removeItem("ZYNC_HAS_SEEN_LANDING"); // Reset landing page state
                     await signOut(auth);

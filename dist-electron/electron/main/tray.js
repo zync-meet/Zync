@@ -29,15 +29,12 @@ const TRAY_ICON_SIZE = 16;
  * @returns {Tray} The configured Tray instance
  */
 export function createSystemTray(mainWindow) {
-    // Select the appropriate icon based on the platform
-    // macOS uses "Template" images for proper dark/light mode support
-    const iconName = process.platform === 'darwin'
-        ? 'tray-icon-Template.png'
-        : 'tray-icon.png';
+    // Use the user-provided logo
+    const iconName = 'icon.png';
     // Resolve the icon path relative to the application root
     const iconPath = path.join(app.isPackaged
         ? path.join(process.resourcesPath, 'assets')
-        : path.join(__dirname, '..', 'assets'), iconName);
+        : path.join(app.getAppPath(), 'electron', 'assets'), iconName);
     // Create a fallback icon if the file doesn't exist
     let trayIcon;
     try {
