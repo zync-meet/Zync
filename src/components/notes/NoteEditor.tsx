@@ -98,7 +98,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
   }, [user.uid]);
 
   const handleTitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isEditable) return;
+    if (!isEditable) {return;}
     const newTitle = e.target.value;
     setTitle(newTitle);
     setStatus('Saving...');
@@ -116,7 +116,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
   const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const handleContentChange = useCallback(() => {
-    if (!isEditable) return;
+    if (!isEditable) {return;}
 
     setStatus('Saving...');
 
@@ -185,7 +185,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
     console.log('🎨 [NoteEditor] remoteCursors keys:', Object.keys(remoteCursors));
     console.log('🎨 [NoteEditor] remoteCursors full:', remoteCursors);
 
-    if (!editor) return;
+    if (!editor) {return;}
 
     // Get all blocks from the editor
     const blocks = editor.document;
@@ -286,7 +286,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
 
   // Smart Feature Handlers
   const openTaskCreation = () => {
-    if (!editor) return;
+    if (!editor) {return;}
 
     // Get text from current selection or current block
     const selection = editor.getTextCursorPosition();
@@ -324,7 +324,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
   };
 
   const handleInsertTaskLink = async (task: TaskSearchResult) => {
-    if (!editor) return;
+    if (!editor) {return;}
 
     const markdownLink = `[${task.title} (Task)](/projects/${task.projectId}?task=${task.id})`;
     // Insert at cursor
@@ -350,7 +350,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
 
   // Manual Content Sync implementation for Firestore (Last Write Wins)
   useEffect(() => {
-    if (!editor || !note.content) return;
+    if (!editor || !note.content) {return;}
 
     // Check if content is actually different to avoid cursor jumps
     // We do a simple JSON comparison. Ideally we would use Yjs for this.

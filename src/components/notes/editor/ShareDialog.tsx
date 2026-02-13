@@ -34,7 +34,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     const publicLink = `${window.location.origin}/notes/${noteId}`;
 
     const handleInvite = async () => {
-        if (!email) return;
+        if (!email) {return;}
         setLoading(true);
         try {
             // Since we don't have a backend "search user by email" endpoint readily available here,
@@ -58,7 +58,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     };
 
     const handleRemoveCollaborator = async (userId: string) => {
-        if (!currentPermissions) return;
+        if (!currentPermissions) {return;}
 
         const newPermissions = { ...currentPermissions };
         delete newPermissions[userId]; // Remove user

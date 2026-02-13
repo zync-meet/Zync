@@ -69,7 +69,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
     const { toast } = useToast();
 
     const loadTasks = async () => {
-        if (!currentUser?.uid) return;
+        if (!currentUser?.uid) {return;}
         try {
             const fetchedProjects = await fetchProjects(currentUser.uid);
             const groups: Record<string, ProjectGroup> = {};
@@ -77,7 +77,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
             fetchedProjects.forEach(p => {
                 p.steps.forEach((step: any) => {
                     (step.tasks || []).forEach((t: any, idx: number) => {
-                        if (t.assignedTo !== currentUser.uid) return;
+                        if (t.assignedTo !== currentUser.uid) {return;}
 
                         if (!groups[p._id]) {
                             groups[p._id] = {
@@ -133,7 +133,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
     // Helper to mark task as Active when user interacts with it
     const markTaskActive = async (task: FlattenedTask) => {
         // Only update if currently Pending
-        if (task.status !== 'Pending') return;
+        if (task.status !== 'Pending') {return;}
 
         try {
             const token = await auth.currentUser?.getIdToken();
@@ -211,16 +211,16 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
     };
 
     const getStatusColor = (status: string) => {
-        if (['Completed', 'Done'].includes(status)) return 'bg-emerald-500';
-        if (['In Progress'].includes(status)) return 'bg-amber-500';
-        if (['Active'].includes(status)) return 'bg-sky-500';
+        if (['Completed', 'Done'].includes(status)) {return 'bg-emerald-500';}
+        if (['In Progress'].includes(status)) {return 'bg-amber-500';}
+        if (['Active'].includes(status)) {return 'bg-sky-500';}
         return 'bg-zinc-500'; // Pending
     };
 
     const getStatusLabel = (status: string) => {
-        if (['Completed', 'Done'].includes(status)) return 'Done';
-        if (['In Progress'].includes(status)) return 'In Progress';
-        if (['Active'].includes(status)) return 'Active';
+        if (['Completed', 'Done'].includes(status)) {return 'Done';}
+        if (['In Progress'].includes(status)) {return 'In Progress';}
+        if (['Active'].includes(status)) {return 'Active';}
         return 'Pending';
     };
 

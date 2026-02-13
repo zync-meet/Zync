@@ -43,7 +43,7 @@ export const NoteItem: React.FC<NoteItemProps> = ({
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') handleRenameSubmit();
+        if (e.key === 'Enter') {handleRenameSubmit();}
         if (e.key === 'Escape') {
             setRenameValue(note.title);
             setIsRenaming(false);

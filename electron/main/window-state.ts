@@ -154,9 +154,9 @@ export function trackWindowState(window: BrowserWindow): void {
     let saveTimeout: NodeJS.Timeout | null = null;
 
     const debouncedSave = (): void => {
-        if (saveTimeout) clearTimeout(saveTimeout);
+        if (saveTimeout) {clearTimeout(saveTimeout);}
         saveTimeout = setTimeout(() => {
-            if (window.isDestroyed()) return;
+            if (window.isDestroyed()) {return;}
 
             const bounds = window.getBounds();
             const state: WindowState = {

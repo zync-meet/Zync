@@ -36,7 +36,7 @@ export const useUserSync = () => {
                         signal: controller.signal
                     });
                 } catch (error: any) {
-                    if (error.name === 'AbortError') return;
+                    if (error.name === 'AbortError') {return;}
                     console.error("Error syncing user data:", error);
                 }
             }

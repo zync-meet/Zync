@@ -79,7 +79,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
 
     useEffect(() => {
         const fetchGitHubData = async () => {
-            if (!currentUser) return;
+            if (!currentUser) {return;}
 
             if (stats) {
                 setIsRefreshing(true);
@@ -100,8 +100,8 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                     fetch(`${API_BASE_URL}/api/github/contributions?year=${selectedYear}`, { headers })
                 ];
 
-                if (!stats) promises.push(fetch(`${API_BASE_URL}/api/github/stats`, { headers }));
-                if (events.length === 0) promises.push(fetch(`${API_BASE_URL}/api/github/events`, { headers }));
+                if (!stats) {promises.push(fetch(`${API_BASE_URL}/api/github/stats`, { headers }));}
+                if (events.length === 0) {promises.push(fetch(`${API_BASE_URL}/api/github/events`, { headers }));}
 
                 const results = await Promise.all(promises);
                 const contribRes = results[0];
@@ -163,13 +163,13 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffMins < 60) {return `${diffMins}m ago`;}
+        if (diffHours < 24) {return `${diffHours}h ago`;}
         return `${diffDays}d ago`;
     };
 
     const handleUnlink = async () => {
-        if (!confirm("Are you sure you want to unlink your GitHub account?")) return;
+        if (!confirm("Are you sure you want to unlink your GitHub account?")) {return;}
 
         try {
             const token = await currentUser.getIdToken();

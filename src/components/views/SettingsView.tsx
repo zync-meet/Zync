@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { updateProfile, updateEmail, deleteUser, GithubAuthProvider, GoogleAuthProvider, linkWithPopup, getAdditionalUserInfo, onAuthStateChanged, reauthenticateWithPopup } from "firebase/auth";
+import { updateProfile, GithubAuthProvider, GoogleAuthProvider, linkWithPopup, getAdditionalUserInfo, onAuthStateChanged, reauthenticateWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserSync } from "@/hooks/use-user-sync";
 import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Phone, Headphones, MessageSquare, Newspaper } from "lucide-react";
+import { Loader2, Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Headphones, MessageSquare, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -36,12 +36,11 @@ import { useTheme } from "next-themes";
 
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? "http://localhost:5000"
-  : (import.meta.env.VITE_API_URL || "http://localhost:5000");
-
+  : (import.meta.env.VITE_API_URL || ""); // Use relative paths in production if env var is missing
 // Helper to get full URL (generic)
 const getFullUrl = (path: string | undefined): string | undefined => {
-  if (!path) return undefined;
-  if (path.startsWith('http')) return path;
+  if (!path) { return undefined; }
+  if (path.startsWith('http')) { return path; }
   return `${API_BASE_URL}${path}`;
 };
 
@@ -162,7 +161,7 @@ export default function SettingsView() {
           body: formData
         });
 
-        if (!response.ok) throw new Error('Upload failed');
+        if (!response.ok) { throw new Error('Upload failed'); }
 
         const data = await response.json();
         const fileUrl = data.fileUrl; // This is a relative path like /uploads/filename.jpg
@@ -200,7 +199,7 @@ export default function SettingsView() {
       provider.addScope('repo'); // Critical for repo access
       provider.addScope('read:user');
 
-      if (!auth.currentUser) throw new Error("User must be signed in");
+      if (!auth.currentUser) { throw new Error("User must be signed in"); }
 
       let accessToken: string | undefined;
       let githubUsername: string | undefined;
@@ -226,7 +225,7 @@ export default function SettingsView() {
         }
       }
 
-      if (!accessToken) throw new Error("No Access Token retrieved from GitHub.");
+      if (!accessToken) { throw new Error("No Access Token retrieved from GitHub."); }
 
       // 3. If Username is missing (e.g. from error flow), fetch it
       if (!githubUsername) {
@@ -287,7 +286,7 @@ export default function SettingsView() {
   };
 
   const handleGithubDisconnect = async () => {
-    if (!window.confirm("Are you sure you want to unlink your GitHub account?")) return;
+    if (!window.confirm("Are you sure you want to unlink your GitHub account?")) { return; }
     setLoading(true);
     try {
       const idToken = await auth.currentUser?.getIdToken();
@@ -299,7 +298,7 @@ export default function SettingsView() {
         },
       });
 
-      if (!res.ok) throw new Error("Failed to disconnect");
+      if (!res.ok) { throw new Error("Failed to disconnect"); }
 
       toast({ title: "Disconnected", description: "GitHub account unlinked." });
       setUserData((prev: any) => ({
@@ -324,7 +323,7 @@ export default function SettingsView() {
       provider.addScope('https://www.googleapis.com/auth/calendar');
       provider.addScope('https://www.googleapis.com/auth/calendar.events');
 
-      if (!auth.currentUser) throw new Error("User must be signed in");
+      if (!auth.currentUser) { throw new Error("User must be signed in"); }
 
       let accessToken: string | undefined;
       let googleEmail: string | undefined;
@@ -353,7 +352,7 @@ export default function SettingsView() {
         }
       }
 
-      if (!accessToken) throw new Error("No Access Token retrieved.");
+      if (!accessToken) { throw new Error("No Access Token retrieved."); }
 
       // Send to Backend
       const idToken = await auth.currentUser.getIdToken();
@@ -369,7 +368,7 @@ export default function SettingsView() {
         })
       });
 
-      if (!response.ok) throw new Error("Backend connection failed");
+      if (!response.ok) { throw new Error("Backend connection failed"); }
 
       const data = await response.json();
       toast({ title: "Connected!", description: `Linked Google Calendar: ${data.email}` });
@@ -392,7 +391,7 @@ export default function SettingsView() {
   };
 
   const handleGoogleDisconnect = async () => {
-    if (!window.confirm("Disconnect Google Calendar?")) return;
+    if (!window.confirm("Disconnect Google Calendar?")) { return; }
     setLoading(true);
     try {
       const idToken = await auth.currentUser?.getIdToken();
@@ -503,7 +502,7 @@ export default function SettingsView() {
           body: JSON.stringify({ uid: currentUser?.uid })
         });
 
-        if (!res.ok) throw new Error("Failed to send verification code");
+        if (!res.ok) { throw new Error("Failed to send verification code"); }
 
         toast({ title: "Verification Sent", description: "Check your email for the confirmation code." });
         setDeleteStep('verifying');
@@ -526,8 +525,10 @@ export default function SettingsView() {
         }
 
         // 3. Cleanup Firebase Auth
-        await deleteUser(currentUser!);
-        window.location.href = "/login";
+        // Backend handles Firebase deletion to avoid "requires recent login" error on client
+        // We just sign out the user locally to clear the session
+        await auth.signOut();
+        window.location.href = "/";
       }
 
     } catch (error: any) {

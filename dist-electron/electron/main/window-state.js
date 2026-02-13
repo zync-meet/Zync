@@ -128,11 +128,13 @@ function centerOnPrimaryDisplay(state) {
 export function trackWindowState(window) {
     let saveTimeout = null;
     const debouncedSave = () => {
-        if (saveTimeout)
+        if (saveTimeout) {
             clearTimeout(saveTimeout);
+        }
         saveTimeout = setTimeout(() => {
-            if (window.isDestroyed())
+            if (window.isDestroyed()) {
                 return;
+            }
             const bounds = window.getBounds();
             const state = {
                 x: bounds.x,

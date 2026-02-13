@@ -39,7 +39,7 @@ interface TaskDetailDrawerProps {
 }
 
 const TaskDetailDrawer = ({ task, open, onOpenChange }: TaskDetailDrawerProps) => {
-    if (!task) return null;
+    if (!task) {return null;}
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>

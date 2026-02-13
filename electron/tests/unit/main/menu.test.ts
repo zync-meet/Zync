@@ -471,8 +471,8 @@ describe('Application Menu', () => {
       let cutIndex = -1;
 
       submenu?.forEach((item, index) => {
-        if (item.label === 'Redo') redoIndex = index;
-        if (item.label === 'Cut') cutIndex = index;
+        if (item.label === 'Redo') {redoIndex = index;}
+        if (item.label === 'Cut') {cutIndex = index;}
       });
 
       // There should be a separator between them

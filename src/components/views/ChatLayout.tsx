@@ -70,7 +70,7 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
     }, [currentUserData]);
 
     const toggleCloseFriend = async (friendId: string) => {
-        if (isPreview) return;
+        if (isPreview) {return;}
 
         // Optimistic update
         const isCurrentlyCloseFriend = localCloseFriendsIds.includes(friendId);
@@ -84,7 +84,7 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
 
         try {
             const token = await auth.currentUser?.getIdToken();
-            if (!token) return;
+            if (!token) {return;}
 
             const res = await fetch(`${API_BASE_URL}/api/users/close-friends/toggle`, {
                 method: 'POST',

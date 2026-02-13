@@ -26,7 +26,7 @@ export function RepositorySelector({ projectId, currentRepoIds = [] }: { project
     setLoading(true);
     try {
       const token = await import('@/lib/firebase').then(m => m.auth.currentUser?.getIdToken());
-      if (!token) return;
+      if (!token) {return;}
 
       const res = await fetch(`${API_BASE_URL}/api/github/repos`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -45,7 +45,7 @@ export function RepositorySelector({ projectId, currentRepoIds = [] }: { project
   };
 
   const linkRepo = async () => {
-    if (!selectedRepoId) return;
+    if (!selectedRepoId) {return;}
     setConnecting(true);
     try {
       const token = await import('@/lib/firebase').then(m => m.auth.currentUser?.getIdToken());
@@ -59,7 +59,7 @@ export function RepositorySelector({ projectId, currentRepoIds = [] }: { project
         body: JSON.stringify({ projectId, githubRepoId: selectedRepoId })
       });
 
-      if (!res.ok) throw new Error('Failed to link');
+      if (!res.ok) {throw new Error('Failed to link');}
 
       toast({ title: 'Success', description: 'Repository linked! Listening for commits.' });
       setSelectedRepoId('');

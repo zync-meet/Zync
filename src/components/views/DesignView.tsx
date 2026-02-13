@@ -104,9 +104,9 @@ const DesignView = () => {
   // Observer
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) loadMore();
+      if (entries[0].isIntersecting && hasMore) {loadMore();}
     }, { threshold: 1.0 });
-    if (observerTarget.current) observer.observe(observerTarget.current);
+    if (observerTarget.current) {observer.observe(observerTarget.current);}
     return () => observer.disconnect();
   }, [hasMore, loadMore]);
 
@@ -117,8 +117,8 @@ const DesignView = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    if (!query.trim()) {return;}
+    if (scrollRef.current) {scrollRef.current.scrollTop = 0;}
     setHasSearched(true);
     search(query);
   };

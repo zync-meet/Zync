@@ -138,7 +138,7 @@ export const createNote = async (data: Partial<Omit<Note, 'id' | '_id' | 'create
         updatedAt: serverTimestamp()
     };
     // Firestore doesn't accept undefined
-    if (safeData.folderId === undefined) safeData.folderId = null;
+    if (safeData.folderId === undefined) {safeData.folderId = null;}
 
     return await addDoc(collection(db, NOTES_COLLECTION), safeData);
 };
@@ -194,7 +194,7 @@ export const getNote = async (id: string): Promise<Note | null> => {
 
 export const duplicateNote = async (originalNoteId: string, targetFolderId: string | null, userId: string) => {
     const originalNote = await getNote(originalNoteId);
-    if (!originalNote) throw new Error("Note not found");
+    if (!originalNote) {throw new Error("Note not found");}
 
     return await createNote({
         title: `${originalNote.title} (Copy)`,

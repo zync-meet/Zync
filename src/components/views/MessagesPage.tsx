@@ -59,7 +59,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
     }, [currentUser, propUserData]);
 
     const toggleCloseFriend = async () => {
-        if (!selectedUser || !currentUser) return;
+        if (!selectedUser || !currentUser) {return;}
         const friendId = selectedUser.uid;
         const isClose = localCloseFriendsIds.includes(friendId);
         
@@ -101,7 +101,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
     // Fetch all contacts (Teams + Connections)
     useEffect(() => {
         const fetchContacts = async () => {
-            if (!currentUser) return;
+            if (!currentUser) {return;}
             try {
                 const token = await currentUser.getIdToken();
                 const res = await fetch(`${API_BASE_URL}/api/users`, {
@@ -122,7 +122,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
 
     // Fetch pending requests
     const fetchRequests = async () => {
-        if (!currentUser) return;
+        if (!currentUser) {return;}
         try {
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/users/me`, {
@@ -198,7 +198,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
 
     // Check if selected user is in the same team (for UI distinction)
     const isSameTeam = (user: any) => {
-        if (!user || !currentUser) return false;
+        if (!user || !currentUser) {return false;}
         // Compare with the props.users (which represent the current team members view)
         return teamUsers.some(u => u.uid === user.uid);
     };
@@ -208,7 +208,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
     };
 
     const handleSendRequest = async () => {
-        if (!selectedUser || !requestMessage.trim()) return;
+        if (!selectedUser || !requestMessage.trim()) {return;}
         setIsSendingRequest(true);
         try {
             const token = await currentUser.getIdToken();
@@ -226,7 +226,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
                 })
             });
 
-            if (!response.ok) throw new Error('Failed to send request');
+            if (!response.ok) {throw new Error('Failed to send request');}
 
             // 2. Optimistically start the chat in Firestore
             const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");

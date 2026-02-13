@@ -59,7 +59,7 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) 
     const cols: Record<string, typeof allTasks> = {};
     COLUMNS.forEach(c => cols[c] = []);
     allTasks.forEach(task => {
-      if (cols[task.status]) cols[task.status].push(task);
+      if (cols[task.status]) {cols[task.status].push(task);}
     });
     return cols;
   }, [allTasks]);
@@ -76,11 +76,11 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) 
 
   const handleDrop = (e: React.DragEvent, targetStatus: string) => {
     e.preventDefault();
-    if (!draggedTask) return;
+    if (!draggedTask) {return;}
 
     if (draggedTask.task.status !== targetStatus) {
       let schemaStatus = targetStatus;
-      if (targetStatus === 'Done') schemaStatus = 'Completed';
+      if (targetStatus === 'Done') {schemaStatus = 'Completed';}
       onUpdateTask(draggedTask.stepId, draggedTask.task._id, { status: schemaStatus });
     }
     setDraggedTask(null);
@@ -190,16 +190,16 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) 
 
                           // Color logic based on status
                           let activeColorClass = 'bg-white/40';
-                          if (task.status === 'Active') activeColorClass = 'bg-green-500';
-                          else if (task.status === 'In Progress') activeColorClass = 'bg-orange-500';
-                          else if (task.status === 'Done' || task.status === 'Completed') activeColorClass = 'bg-yellow-500';
-                          else if (task.status === 'Ready') activeColorClass = 'bg-blue-500';
+                          if (task.status === 'Active') {activeColorClass = 'bg-green-500';}
+                          else if (task.status === 'In Progress') {activeColorClass = 'bg-orange-500';}
+                          else if (task.status === 'Done' || task.status === 'Completed') {activeColorClass = 'bg-yellow-500';}
+                          else if (task.status === 'Ready') {activeColorClass = 'bg-blue-500';}
 
                           let ringColorClass = '';
-                          if (task.status === 'Active') ringColorClass = 'ring-green-500';
-                          else if (task.status === 'In Progress') ringColorClass = 'ring-orange-500';
-                          else if (task.status === 'Done') ringColorClass = 'ring-yellow-500';
-                          else ringColorClass = 'ring-blue-500';
+                          if (task.status === 'Active') {ringColorClass = 'ring-green-500';}
+                          else if (task.status === 'In Progress') {ringColorClass = 'ring-orange-500';}
+                          else if (task.status === 'Done') {ringColorClass = 'ring-yellow-500';}
+                          else {ringColorClass = 'ring-blue-500';}
 
                           return (
                             <div key={step} className="flex items-center flex-1 last:flex-none">

@@ -11,7 +11,7 @@ export const usePresence = (userId: string | undefined) => {
     const [statuses, setStatuses] = useState<Record<string, UserStatus>>({});
 
     useEffect(() => {
-        if (!userId) return;
+        if (!userId) {return;}
 
         const socketUrl = import.meta.env.DEV ? "http://localhost:5000" : API_BASE_URL;
 

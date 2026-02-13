@@ -93,12 +93,12 @@ const Signup = () => {
         if (methods.length > 0) {
           const providerId = methods[0];
           let provider: any;
-          if (providerId === 'google.com') provider = new GoogleAuthProvider();
-          else if (providerId === 'github.com') provider = new GithubAuthProvider();
+          if (providerId === 'google.com') {provider = new GoogleAuthProvider();}
+          else if (providerId === 'github.com') {provider = new GithubAuthProvider();}
 
           if (provider) {
             const confirmLink = window.confirm(`You already have an account with ${providerId}. Sign in with it to link your new credential?`);
-            if (!confirmLink) return;
+            if (!confirmLink) {return;}
 
             const result = await signInWithPopup(auth, provider);
             await linkWithCredential(result.user, pendingCred);

@@ -81,7 +81,7 @@ const ToolbarDivider = () => (
 );
 
 const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTask }) => {
-  if (!editor) return null;
+  if (!editor) {return null;}
 
   // Text formatting handlers
   const toggleBold = () => {

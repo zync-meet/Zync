@@ -125,7 +125,7 @@ const ProjectDetails = () => {
 
   // Handle Architecture Analysis
   const handleAnalyzeArchitecture = async () => {
-    if (!project) return;
+    if (!project) {return;}
     setIsAnalyzing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}/analyze-architecture`, {
@@ -153,11 +153,11 @@ const ProjectDetails = () => {
   const [isSharing, setIsSharing] = useState(false);
 
   const handleShareProject = async () => {
-    if (!selectedShareUser || !project || !auth.currentUser) return;
+    if (!selectedShareUser || !project || !auth.currentUser) {return;}
     setIsSharing(true);
     try {
       const receiver = users.find(u => u.uid === selectedShareUser);
-      if (!receiver) throw new Error("User not found");
+      if (!receiver) {throw new Error("User not found");}
 
       const chatId = [auth.currentUser.uid, receiver.uid].sort().join("_");
       await addDoc(collection(db, "messages"), {
@@ -201,7 +201,7 @@ const ProjectDetails = () => {
 
   const fetchUsers = async () => {
     try {
-      if (!currentUser) return;
+      if (!currentUser) {return;}
       const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -226,7 +226,7 @@ const ProjectDetails = () => {
         options.headers = { Authorization: `Bearer ${token}` };
       }
       const response = await fetch(`${API_BASE_URL}/api/projects/${id}`, options);
-      if (!response.ok) throw new Error("Project not found");
+      if (!response.ok) {throw new Error("Project not found");}
       const data = await response.json();
       setProject(data);
 
@@ -272,7 +272,7 @@ const ProjectDetails = () => {
       toast.success(`Task ${data.taskId} completed via commit!`);
 
       setProject((prevProject) => {
-        if (!prevProject) return null;
+        if (!prevProject) {return null;}
 
         const newSteps = prevProject.steps.map(step => {
           const newTasks = step.tasks.map(task => {
@@ -314,10 +314,10 @@ const ProjectDetails = () => {
 
     // Find indices first
     const stepIndex = project.steps.findIndex(s => s._id === stepId || s.id === stepId);
-    if (stepIndex === -1) return;
+    if (stepIndex === -1) {return;}
 
     const taskIndex = project.steps[stepIndex].tasks.findIndex(t => t._id === taskId || t.id === taskId);
-    if (taskIndex === -1) return;
+    if (taskIndex === -1) {return;}
 
     // Create deep copy for immutability to trigger re-renders
     const newSteps = [...project.steps];
@@ -337,7 +337,7 @@ const ProjectDetails = () => {
       const realStepId = step._id;
       const realTaskId = step.tasks[taskIndex]._id;
 
-      if (!realStepId || !realTaskId) return;
+      if (!realStepId || !realTaskId) {return;}
 
       await fetch(`${API_BASE_URL}/api/projects/${project._id}/steps/${realStepId}/tasks/${realTaskId}`, {
         method: 'PUT',
@@ -357,7 +357,7 @@ const ProjectDetails = () => {
 
 
   const handleDeleteTask = async (stepId: string, taskId: string) => {
-    if (!project) return;
+    if (!project) {return;}
 
     // Optimistic UI Update
     const newSteps = project.steps.map(step => {
@@ -374,7 +374,7 @@ const ProjectDetails = () => {
 
     try {
       const step = project.steps.find(s => s._id === stepId || s.id === stepId);
-      if (!step) return;
+      if (!step) {return;}
       // Need real IDs for API
       const realStepId = step._id;
       // We can use the passed taskId if we assume it's the real one, but safer to have the real one
@@ -388,7 +388,7 @@ const ProjectDetails = () => {
         }
       });
 
-      if (!response.ok) throw new Error("Failed to delete");
+      if (!response.ok) {throw new Error("Failed to delete");}
       toast.success("Task deleted");
     } catch (error) {
       console.error("Delete failed", error);
@@ -404,7 +404,7 @@ const ProjectDetails = () => {
   };
 
   const handleAssignSubmit = async () => {
-    if (!selectedTaskForAssignment || !project) return;
+    if (!selectedTaskForAssignment || !project) {return;}
     setIsSubmittingAssignment(true);
 
     const { stepId, task } = selectedTaskForAssignment;

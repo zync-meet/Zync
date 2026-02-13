@@ -12,7 +12,7 @@ export const useChatNotifications = () => {
 
     useEffect(() => {
         const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-            if (!user) return;
+            if (!user) {return;}
 
             // Query messages where receiver is current user
             // We remove orderBy("createdAt") because:
@@ -45,7 +45,7 @@ export const useChatNotifications = () => {
 
                             // Prevent Duplicate Notifications for the same message ID
                             const msgId = change.doc.id;
-                            if (notifiedIds.current.has(msgId)) return;
+                            if (notifiedIds.current.has(msgId)) {return;}
                             notifiedIds.current.add(msgId);
 
                             // Check if user is already on Chat view

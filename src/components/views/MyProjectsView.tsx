@@ -56,7 +56,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
   // Fetch full user data including integrations
   const fetchUserData = async () => {
     try {
-      if (!currentUser?.uid) return;
+      if (!currentUser?.uid) {return;}
       const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/users/me`, {
         headers: {
@@ -132,8 +132,8 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
   const getFilteredAndSortedRepos = (filterType: string) => {
     let result = repos.filter(repo => {
       // Tab Filter
-      if (filterType === "all") return true;
-      if (filterType === "collaborator") return userData?.integrations?.github?.username && repo.owner.login !== userData.integrations.github.username;
+      if (filterType === "all") {return true;}
+      if (filterType === "collaborator") {return userData?.integrations?.github?.username && repo.owner.login !== userData.integrations.github.username;}
       return repo.visibility === filterType;
     });
 
@@ -149,9 +149,9 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
 
     // Sort
     result.sort((a, b) => {
-      if (sortBy === "stars") return b.stargazers_count - a.stargazers_count;
-      if (sortBy === "forks") return b.forks_count - a.forks_count;
-      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "stars") {return b.stargazers_count - a.stargazers_count;}
+      if (sortBy === "forks") {return b.forks_count - a.forks_count;}
+      if (sortBy === "name") {return a.name.localeCompare(b.name);}
       // Default: Updated
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });

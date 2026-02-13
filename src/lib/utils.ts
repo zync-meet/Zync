@@ -8,13 +8,13 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getFullUrl(path: string | undefined | null) {
-  if (!path) return '';
-  if (path.startsWith('http') || path.startsWith('blob:')) return path;
+  if (!path) {return '';}
+  if (path.startsWith('http') || path.startsWith('blob:')) {return path;}
   return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
 export function getUserName(user: any) {
-  if (!user) return "User";
+  if (!user) {return "User";}
   return user.displayName ||
     (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null) ||
     user.name ||

@@ -55,7 +55,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    if (!currentUser || !selectedUser) return;
+    if (!currentUser || !selectedUser) {return;}
 
     // Refactored to use a single top-level collection with chatId field
     // This requires a composite index on 'chatId' and 'timestamp'
@@ -134,7 +134,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!newMessage.trim() && !file) || !currentUser || isUploading) return;
+    if ((!newMessage.trim() && !file) || !currentUser || isUploading) {return;}
 
     setIsUploading(true);
     let fileUrl = null;
@@ -195,12 +195,12 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
 
     setNewMessage("");
     setFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) {fileInputRef.current.value = "";}
     setIsUploading(false);
   };
 
   const handleClearChat = async () => {
-    if (!currentUser || !selectedUser) return;
+    if (!currentUser || !selectedUser) {return;}
 
     if (confirm("Are you sure you want to clear this chat history? This cannot be undone.")) {
       try {
@@ -462,7 +462,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
                 className="h-6 w-6"
                 onClick={() => {
                   setFile(null);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
+                  if (fileInputRef.current) {fileInputRef.current.value = "";}
                 }}
               >
                 <X className="w-3 h-3" />

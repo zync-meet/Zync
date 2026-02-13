@@ -156,3 +156,7 @@ backend/.cache/
 backend/test-puppeteer.js
 backend/debug_*.png
 *.png
+
+# Google Service Account Key
+google.sheets.json
+google-credentials.json
