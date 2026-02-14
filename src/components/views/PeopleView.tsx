@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MessageSquare, Loader2, Mail, PanelLeftClose, PanelLeftOpen, Star, Check } from "lucide-react";
+import { Plus, MessageSquare, Loader2, PanelLeftClose, PanelLeftOpen, Check } from "lucide-react";
 import { getFullUrl, API_BASE_URL, getUserName, getUserInitials, cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import TeamOnboarding from "./TeamOnboarding";
@@ -23,15 +23,33 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import MessagesPage from "./MessagesPage";
 
+interface Team {
+    id: string;
+    name: string;
+    ownerId: string;
+    members: string[];
+    [key: string]: any;
+}
+
+interface User {
+    uid: string;
+    email: string;
+    displayName?: string;
+    photoURL?: string;
+    teamId?: Team | string; 
+    closeFriends?: string[];
+    [key: string]: any; 
+}
+
 interface PeopleViewProps {
-    users?: any[];
+    users?: User[];
     userStatuses: Record<string, any>;
-    onChat: (user: any) => void;
+    onChat: (user: User) => void;
     onMessages?: () => void;
     isPreview?: boolean;
 }
 
-const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPreview }: PeopleViewProps) => {
+const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: PeopleViewProps) => {
     const currentUser = auth.currentUser;
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -46,7 +64,12 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) {throw new Error('Failed to fetch user');}
-            return res.json();
+            const data = await res.json();
+            // Normalize teamId if it comes as object
+            if (data.teamId && typeof data.teamId === 'object') {
+                data.teamId = data.teamId.id;
+            }
+            return data;
         },
         enabled: !!currentUser && !isPreview,
         staleTime: 300000
@@ -82,16 +105,16 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
         staleTime: 300000
     });
 
-    const [teamInfo, setTeamInfo] = useState<any>(null);
+    const [teamInfo, setTeamInfo] = useState<Team | null>(null);
     const [hasTeam, setHasTeam] = useState<boolean>(true);
 
-    const myTeams = myTeamsData || [];
+    const myTeams: Team[] = myTeamsData || [];
 
     useEffect(() => {
         if (myTeams.length > 0) {
             setHasTeam(true);
-            if (!teamInfo || !myTeams.find((t: any) => t._id === teamInfo._id)) {
-                const activeTeam = myTeams.find((t: any) => t._id === userData?.teamId) || myTeams[0];
+            if (!teamInfo || !myTeams.find((t) => t.id === teamInfo.id)) {
+                const activeTeam = myTeams.find((t) => t.id === (userData?.teamId as string)) || myTeams[0];
                 setTeamInfo(activeTeam);
             }
         } else if (!myTeamsLoading && myTeams.length === 0 && !isPreview) {
@@ -100,21 +123,21 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
     }, [myTeams, teamInfo, userData, myTeamsLoading, isPreview]);
 
     const { data: teamUsersData, isLoading: usersLoading } = useQuery({
-        queryKey: ['teamUsers', teamInfo?._id],
+        queryKey: ['teamUsers', teamInfo?.id],
         queryFn: async () => {
-            if (!teamInfo?._id || !currentUser) {return [];}
+            if (!teamInfo?.id || !currentUser) {return [];}
             const token = await currentUser.getIdToken();
-            const res = await fetch(`${API_BASE_URL}/api/users?teamId=${teamInfo._id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/users?teamId=${teamInfo.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) {throw new Error('Failed to fetch team users');}
             return res.json();
         },
-        enabled: !!teamInfo?._id && !isPreview,
+        enabled: !!teamInfo?.id && !isPreview,
         staleTime: 300000
     });
 
-    const users = isPreview ? (propUsers || []) : (teamUsersData || []);
+    const users: User[] = isPreview ? (propUsers || []) : (teamUsersData || []);
 
     // Improved loading state to prevent "No members" flash during switch or init
     const loading = !isPreview && (
@@ -123,8 +146,8 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
     );
 
     const localCloseFriendsIds = userData?.closeFriends || [];
-    const allKnownUsers = allUsersData || [];
-    const closeFriendUsers = allKnownUsers.filter((u: any) => localCloseFriendsIds.includes(u.uid));
+    const allKnownUsers: User[] = allUsersData || [];
+    const closeFriendUsers: User[] = allKnownUsers.filter((u) => localCloseFriendsIds.includes(u.uid));
 
     const toggleCloseFriendMutation = useMutation({
         mutationFn: async (friendId: string) => {
@@ -154,8 +177,10 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
             });
             return { previousUserData };
         },
-        onError: (err, newTodo, context: any) => {
-            queryClient.setQueryData(['me', currentUser?.uid], context.previousUserData);
+        onError: (_err, _newTodo, context: any) => {
+            if (context?.previousUserData) {
+                queryClient.setQueryData(['me', currentUser?.uid], context.previousUserData);
+            }
             toast({
                 title: "Error",
                 description: "Failed to update close friend.",
@@ -306,7 +331,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
                                 <div className="space-y-1">
                                     {myTeams.map((team) => (
                                         <div
-                                            key={team._id}
+                                            key={team.id}
                                             onClick={() => {
                                                 setTeamInfo(team);
                                                 setShowMessages(false);
@@ -314,7 +339,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
                                             className={cn(
                                                 "flex items-center rounded-md transition-all cursor-pointer select-none border border-transparent",
                                                 effectiveCollapsed ? "justify-center px-0 py-2" : "px-2 py-1.5 text-sm",
-                                                teamInfo?._id === team._id
+                                                teamInfo?.id === team.id
                                                     ? "bg-secondary/80 text-foreground border-border/50 shadow-sm"
                                                     : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                                             )}
@@ -322,7 +347,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
                                             {!effectiveCollapsed && <span className="font-medium truncate flex-1">{team.name}</span>}
                                             {effectiveCollapsed && <span className="text-xs font-bold">{team.name.substring(0, 2).toUpperCase()}</span>}
 
-                                            {!effectiveCollapsed && teamInfo?._id === team._id && (
+                                            {!effectiveCollapsed && teamInfo?.id === team.id && (
                                                 <div className="w-1.5 h-1.5 rounded-full bg-primary ml-2" />
                                             )}
                                         </div>
@@ -618,7 +643,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
                                     </p>
                                 </div>
                             ) : (
-                                <div key={teamInfo?._id || 'members-list'} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                <div key={teamInfo?.id || 'members-list'} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                     {users.map((user, index) => {
                                         const statusData = !isPreview && userStatuses[user.uid]
                                             ? userStatuses[user.uid]
@@ -654,7 +679,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, onMessages, isPrev
 
                                         return (
                                             <Card
-                                                key={user._id || user.id}
+                                                key={user.uid || user.id}
                                                 className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-row items-center p-4 gap-4 h-auto border-border/50 bg-gradient-to-br from-card to-card/50 overflow-hidden relative animate-fade-in-up opacity-0"
                                                 style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
                                             >
