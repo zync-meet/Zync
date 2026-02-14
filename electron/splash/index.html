@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<!--
+=============================================================================
+ZYNC Desktop — Splash Screen
+=============================================================================
+
+Displayed during application startup while the main window loads.
+Features the ZYNC logo, animated loading indicator, and version info.
+
+This window is frameless (no title bar) and centered on the primary
+display. It auto-closes when the main process sends 'splash:close'.
+
+@author ZYNC Team
+@version 1.0.0
+=============================================================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
+    <title>ZYNC</title>
+    <style>
+        /* =================================================================
+           Splash Screen Styles (inline to avoid FOUC)
+           ================================================================= */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                         'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-app-region: drag;
+            user-select: none;
+        }
+
+        .splash-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            animation: fadeIn 600ms ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Logo */
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            color: white;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% {
+                box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+            }
+            50% {
+                box-shadow: 0 8px 48px rgba(99, 102, 241, 0.6);
+            }
+        }
+
+        /* App Name */
+        .app-name {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        /* Loading Indicator */
+        .loader {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .loader-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: rgba(99, 102, 241, 0.8);
+            animation: dotBounce 1.4s ease-in-out infinite;
+        }
+
+        .loader-dot:nth-child(1) { animation-delay: 0ms; }
+        .loader-dot:nth-child(2) { animation-delay: 160ms; }
+        .loader-dot:nth-child(3) { animation-delay: 320ms; }
+
+        @keyframes dotBounce {
+            0%, 80%, 100% {
+                transform: scale(0.6);
+                opacity: 0.4;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Status Text */
+        .status-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.5px;
+        }
+
+        /* Version */
+        .version {
+            position: absolute;
+            bottom: 16px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.5px;
+        }
+
+        /* Fade out animation */
+        .fade-out {
+            animation: fadeOut 300ms ease forwards;
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container" id="splash-content">
+        <div class="logo">Z</div>
+        <div class="app-name">ZYNC</div>
+        <div class="loader">
+            <div class="loader-dot"></div>
+            <div class="loader-dot"></div>
+            <div class="loader-dot"></div>
+        </div>
+        <div class="status-text" id="status-text">Loading…</div>
+    </div>
+
+    <div class="version" id="version-label">v0.0.0</div>
+
+    <script>
+        /**
+         * Splash screen renderer script.
+         *
+         * Listens for IPC messages from the main process to:
+         * 1. Update the loading status text
+         * 2. Close the splash screen with a fade animation
+         */
+        (function () {
+            'use strict';
+
+            const statusText = document.getElementById('status-text');
+            const splashContent = document.getElementById('splash-content');
+            const versionLabel = document.getElementById('version-label');
+
+            // Listen for status updates from the main process
+            if (window.electron && window.electron.ipcRenderer) {
+                window.electron.ipcRenderer.on('splash:status', (_event, message) => {
+                    if (statusText) statusText.textContent = message;
+                });
+
+                window.electron.ipcRenderer.on('splash:close', () => {
+                    // Fade out animation before closing
+                    document.body.classList.add('fade-out');
+                    setTimeout(() => {
+                        window.close();
+                    }, 300);
+                });
+            }
+
+            // Display version if available
+            if (window.versions && window.versions.app) {
+                if (versionLabel) versionLabel.textContent = `v${window.versions.app}`;
+            }
+
+            // Status text rotation for visual feedback
+            const statusMessages = [
+                'Loading…',
+                'Initializing services…',
+                'Setting up workspace…',
+                'Almost ready…',
+            ];
+            let messageIndex = 0;
+
+            setInterval(() => {
+                messageIndex = (messageIndex + 1) % statusMessages.length;
+                if (statusText) {
+                    statusText.textContent = statusMessages[messageIndex];
+                }
+            }, 2000);
+        })();
+    </script>
+</body>
+</html>
