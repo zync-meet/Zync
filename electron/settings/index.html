@@ -1,25 +1,713 @@
 <!DOCTYPE html>
+<!--
+=============================================================================
+ZYNC Desktop — Settings Window
+=============================================================================
+
+Comprehensive settings interface with tabbed navigation for all user
+preferences. Communicates with the main process via IPC for reading
+and writing settings.
+
+Tabs:
+  1. General    — Startup, tray behavior, language
+  2. Appearance — Theme, accent color, font scale
+  3. Notifications — Desktop notifications, DND, badge counts
+  4. Downloads  — Download path, platform downloads
+  5. Privacy    — Telemetry, crash reporting
+  6. Updates    — Auto-update, pre-release channel
+  7. Shortcuts  — Keyboard shortcut reference
+  8. About      — Version, credits, licenses
+
+@author ZYNC Team
+@version 1.0.0
+=============================================================================
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings</title>
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
+    <title>ZYNC — Settings</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="settings-container">
-        <h1>Settings</h1>
+    <!-- ===================================================================
+         Sidebar Navigation
+         =================================================================== -->
+    <nav id="sidebar" role="navigation" aria-label="Settings navigation">
+        <div class="sidebar-header">
+            <h1 class="app-title">ZYNC</h1>
+            <span class="app-subtitle">Settings</span>
+        </div>
 
-        <section class="settings-section">
-            <h2>Downloads</h2>
-            <p>Download the application for other platforms:</p>
-            <div class="download-buttons">
-                <button id="btn-win" class="download-btn">Windows (.exe)</button>
-                <button id="btn-mac" class="download-btn">macOS (.dmg)</button>
-                <button id="btn-linux" class="download-btn">Linux (.AppImage)</button>
+        <ul class="nav-list" role="tablist" aria-orientation="vertical">
+            <li>
+                <button class="nav-item active" data-tab="general" role="tab"
+                        aria-selected="true" aria-controls="tab-general">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    General
+                </button>
+            </li>
+            <li>
+                <button class="nav-item" data-tab="appearance" role="tab"
+                        aria-selected="false" aria-controls="tab-appearance">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    Appearance
+                </button>
+            </li>
+            <li>
+                <button class="nav-item" data-tab="notifications" role="tab"
+                        aria-selected="false" aria-controls="tab-notifications">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    Notifications
+                </button>
+            </li>
+            <li>
+                <button class="nav-item" data-tab="downloads" role="tab"
+                        aria-selected="false" aria-controls="tab-downloads">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Downloads
+                </button>
+            </li>
+            <li>
+                <button class="nav-item" data-tab="privacy" role="tab"
+                        aria-selected="false" aria-controls="tab-privacy">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    Privacy
+                </button>
+            </li>
+            <li>
+                <button class="nav-item" data-tab="updates" role="tab"
+                        aria-selected="false" aria-controls="tab-updates">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    Updates
+                </button>
+            </li>
+            <li>
+                <button class="nav-item" data-tab="shortcuts" role="tab"
+                        aria-selected="false" aria-controls="tab-shortcuts">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                        <line x1="6" y1="8" x2="6" y2="8"></line>
+                        <line x1="10" y1="8" x2="10" y2="8"></line>
+                        <line x1="14" y1="8" x2="14" y2="8"></line>
+                        <line x1="18" y1="8" x2="18" y2="8"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    Shortcuts
+                </button>
+            </li>
+            <li>
+                <button class="nav-item" data-tab="about" role="tab"
+                        aria-selected="false" aria-controls="tab-about">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    About
+                </button>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <span id="settings-version" class="version-label">v0.0.0</span>
+        </div>
+    </nav>
+
+    <!-- ===================================================================
+         Main Content Area
+         =================================================================== -->
+    <main id="content" role="main">
+        <!-- ===============================================================
+             Tab: General
+             =============================================================== -->
+        <section id="tab-general" class="tab-panel active" role="tabpanel"
+                 aria-labelledby="tab-general-label">
+            <h2 class="tab-title">General</h2>
+            <p class="tab-description">Configure startup behavior and system integration.</p>
+
+            <div class="settings-group">
+                <h3 class="group-title">Startup</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="startOnLogin">Start on Login</label>
+                        <p class="setting-desc">Automatically launch ZYNC when you log in to your computer.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="startOnLogin" data-setting="startOnLogin">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="startMinimized">Start Minimized</label>
+                        <p class="setting-desc">Launch ZYNC minimized to the system tray.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="startMinimized" data-setting="startMinimized">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">System Tray</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="showTrayIcon">Show Tray Icon</label>
+                        <p class="setting-desc">Display ZYNC in the system tray.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showTrayIcon" data-setting="showTrayIcon">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="minimizeToTray">Minimize to Tray</label>
+                        <p class="setting-desc">When minimizing, hide ZYNC to the system tray instead of the taskbar.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="minimizeToTray" data-setting="minimizeToTray">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="closeToTray">Close to Tray</label>
+                        <p class="setting-desc">When closing the window, keep ZYNC running in the system tray.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="closeToTray" data-setting="closeToTray">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Language</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="language">Application Language</label>
+                        <p class="setting-desc">Choose your preferred language.</p>
+                    </div>
+                    <select id="language" class="setting-select" data-setting="language">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                        <option value="de">Deutsch</option>
+                        <option value="ja">日本語</option>
+                        <option value="zh">中文</option>
+                        <option value="ko">한국어</option>
+                        <option value="hi">हिन्दी</option>
+                    </select>
+                </div>
             </div>
         </section>
-    </div>
+
+        <!-- ===============================================================
+             Tab: Appearance
+             =============================================================== -->
+        <section id="tab-appearance" class="tab-panel" role="tabpanel"
+                 aria-labelledby="tab-appearance-label">
+            <h2 class="tab-title">Appearance</h2>
+            <p class="tab-description">Customize the look and feel of ZYNC.</p>
+
+            <div class="settings-group">
+                <h3 class="group-title">Theme</h3>
+
+                <div class="theme-selector">
+                    <button class="theme-option" data-theme="light">
+                        <div class="theme-preview theme-preview-light"></div>
+                        <span>Light</span>
+                    </button>
+                    <button class="theme-option" data-theme="dark">
+                        <div class="theme-preview theme-preview-dark"></div>
+                        <span>Dark</span>
+                    </button>
+                    <button class="theme-option active" data-theme="system">
+                        <div class="theme-preview theme-preview-system"></div>
+                        <span>System</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Accent Color</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="accentColor">Primary Accent Color</label>
+                        <p class="setting-desc">Used for buttons, links, and active states.</p>
+                    </div>
+                    <input type="color" id="accentColor" class="color-picker"
+                           data-setting="accentColor" value="#6366F1">
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Display</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="fontScale">Font Scale</label>
+                        <p class="setting-desc">Adjust the text size. Default: 100%</p>
+                    </div>
+                    <div class="range-control">
+                        <input type="range" id="fontScale" data-setting="fontScale"
+                               min="0.8" max="1.4" step="0.05" value="1.0">
+                        <span id="fontScaleValue" class="range-value">100%</span>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="enableAnimations">Animations</label>
+                        <p class="setting-desc">Enable UI animations and transitions.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="enableAnimations" data-setting="enableAnimations" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===============================================================
+             Tab: Notifications
+             =============================================================== -->
+        <section id="tab-notifications" class="tab-panel" role="tabpanel"
+                 aria-labelledby="tab-notifications-label">
+            <h2 class="tab-title">Notifications</h2>
+            <p class="tab-description">Control how and when ZYNC sends you notifications.</p>
+
+            <div class="settings-group">
+                <h3 class="group-title">Desktop Notifications</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="notificationsEnabled">Enable Notifications</label>
+                        <p class="setting-desc">Show desktop notifications for messages and events.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="notificationsEnabled" data-setting="notificationsEnabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="notificationSound">Notification Sounds</label>
+                        <p class="setting-desc">Play a sound when notifications arrive.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="notificationSound" data-setting="notificationSound" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="showBadgeCount">Badge Count</label>
+                        <p class="setting-desc">Show unread count on the dock/taskbar icon.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showBadgeCount" data-setting="showBadgeCount" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Do Not Disturb</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="doNotDisturb">Do Not Disturb</label>
+                        <p class="setting-desc">Silence all notifications until manually disabled.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="doNotDisturb" data-setting="doNotDisturb">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===============================================================
+             Tab: Downloads
+             =============================================================== -->
+        <section id="tab-downloads" class="tab-panel" role="tabpanel"
+                 aria-labelledby="tab-downloads-label">
+            <h2 class="tab-title">Downloads</h2>
+            <p class="tab-description">Manage download settings and get ZYNC for other platforms.</p>
+
+            <div class="settings-group">
+                <h3 class="group-title">Download Location</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="downloadPath">Save Downloads To</label>
+                        <p class="setting-desc" id="downloadPathDisplay">~/Downloads</p>
+                    </div>
+                    <button id="btn-change-download-path" class="btn-secondary">Change…</button>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="askDownloadLocation">Always Ask</label>
+                        <p class="setting-desc">Ask where to save before each download.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="askDownloadLocation" data-setting="askDownloadLocation">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Platform Downloads</h3>
+                <p class="group-desc">Download ZYNC for other platforms:</p>
+
+                <div class="download-buttons">
+                    <button id="btn-win" class="download-btn">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+                        </svg>
+                        Windows (.exe)
+                    </button>
+                    <button id="btn-mac" class="download-btn">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                        </svg>
+                        macOS (.dmg)
+                    </button>
+                    <button id="btn-linux" class="download-btn">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 0 0-.11.135c-.26.268-.45.576-.57.88-.192.488-.2 1.013-.095 1.512.033.166.077.327.132.479-.166.056-.329.139-.488.244-.438.286-.786.696-.926 1.174-.098.337-.106.692-.033 1.032.199.929 1.1 1.691 1.894 2.058.402.184.82.302 1.228.363.368.056.722.063 1.054.03.346-.034.64-.131.862-.27.176-.11.304-.249.387-.39.082.028.17.048.263.05.308.016.577-.098.78-.294.164-.159.27-.36.309-.572.137-.19.216-.432.207-.696a.604.604 0 0 0-.007-.054c.188-.126.353-.298.478-.507.072-.123.135-.256.181-.398.14-.36.108-.733-.06-1.045-.165-.305-.444-.546-.793-.694-.143-.06-.294-.1-.447-.118 0-.003 0-.005-.001-.008-.018-.162-.06-.322-.122-.476-.086-.21-.202-.405-.345-.575-.108-.129-.24-.248-.392-.348-.173-.115-.374-.2-.6-.255-.168-.042-.354-.063-.55-.055-.074.003-.148.011-.223.023-.05-.117-.12-.234-.214-.343-.066-.076-.143-.145-.233-.205a1.288 1.288 0 0 0-.454-.213c.11-.255.16-.514.147-.767-.019-.384-.163-.731-.407-1.027a1.839 1.839 0 0 0-.527-.394c.16-.11.3-.25.409-.424a2.59 2.59 0 0 0 .123-.227c.348-.627.486-1.346.425-2.075-.01-.123-.03-.246-.057-.369a2.96 2.96 0 0 0-.096-.34c1.058-.612 1.975-1.484 2.543-2.612.543-1.077.743-2.299.626-3.48-.144-1.452-.74-3.018-1.89-3.97C15.506.36 14.034 0 12.504 0z"/>
+                        </svg>
+                        Linux (.AppImage)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===============================================================
+             Tab: Privacy
+             =============================================================== -->
+        <section id="tab-privacy" class="tab-panel" role="tabpanel"
+                 aria-labelledby="tab-privacy-label">
+            <h2 class="tab-title">Privacy & Security</h2>
+            <p class="tab-description">Control your data and privacy preferences.</p>
+
+            <div class="settings-group">
+                <h3 class="group-title">Data Collection</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="telemetryEnabled">Usage Analytics</label>
+                        <p class="setting-desc">Help improve ZYNC by sending anonymous usage data.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="telemetryEnabled" data-setting="telemetryEnabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="crashReportingEnabled">Crash Reports</label>
+                        <p class="setting-desc">Automatically send crash reports to help fix bugs.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="crashReportingEnabled" data-setting="crashReportingEnabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Data Management</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="clearDataOnQuit">Clear Data on Quit</label>
+                        <p class="setting-desc">Remove temporary data and caches when closing ZYNC.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="clearDataOnQuit" data-setting="clearDataOnQuit">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label>Clear All Data</label>
+                        <p class="setting-desc">Delete all local data, caches, and settings. This cannot be undone.</p>
+                    </div>
+                    <button id="btn-clear-all-data" class="btn-danger">Clear All Data…</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===============================================================
+             Tab: Updates
+             =============================================================== -->
+        <section id="tab-updates" class="tab-panel" role="tabpanel"
+                 aria-labelledby="tab-updates-label">
+            <h2 class="tab-title">Updates</h2>
+            <p class="tab-description">Manage automatic updates and release channels.</p>
+
+            <div class="settings-group">
+                <h3 class="group-title">Automatic Updates</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="autoCheckUpdates">Check for Updates</label>
+                        <p class="setting-desc">Periodically check for new versions.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoCheckUpdates" data-setting="autoCheckUpdates" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="autoDownloadUpdates">Auto-Download Updates</label>
+                        <p class="setting-desc">Automatically download updates in the background.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoDownloadUpdates" data-setting="autoDownloadUpdates">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Release Channel</h3>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label for="preReleaseChannel">Pre-Release Channel</label>
+                        <p class="setting-desc">Receive pre-release (beta) updates before they're publicly available.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="preReleaseChannel" data-setting="preReleaseChannel">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <label>Current Version</label>
+                        <p class="setting-desc" id="current-version-label">v0.0.0</p>
+                    </div>
+                    <button id="btn-check-updates" class="btn-primary">Check for Updates</button>
+                </div>
+                <div id="update-status" class="update-status" style="display: none;">
+                    <div class="update-spinner"></div>
+                    <span id="update-status-text">Checking for updates…</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===============================================================
+             Tab: Shortcuts
+             =============================================================== -->
+        <section id="tab-shortcuts" class="tab-panel" role="tabpanel"
+                 aria-labelledby="tab-shortcuts-label">
+            <h2 class="tab-title">Keyboard Shortcuts</h2>
+            <p class="tab-description">Quick reference for keyboard shortcuts.</p>
+
+            <div class="settings-group">
+                <h3 class="group-title">General</h3>
+                <div class="shortcut-list">
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Open Settings</span>
+                        <kbd class="shortcut-key">Ctrl + ,</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Toggle Sidebar</span>
+                        <kbd class="shortcut-key">Ctrl + B</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Quick Search</span>
+                        <kbd class="shortcut-key">Ctrl + K</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Close Window</span>
+                        <kbd class="shortcut-key">Ctrl + W</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Quit ZYNC</span>
+                        <kbd class="shortcut-key">Ctrl + Q</kbd>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Navigation</h3>
+                <div class="shortcut-list">
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Go to Projects</span>
+                        <kbd class="shortcut-key">Ctrl + 1</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Go to Messages</span>
+                        <kbd class="shortcut-key">Ctrl + 2</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Go to Teams</span>
+                        <kbd class="shortcut-key">Ctrl + 3</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Go to Calendar</span>
+                        <kbd class="shortcut-key">Ctrl + 4</kbd>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Editor</h3>
+                <div class="shortcut-list">
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Bold</span>
+                        <kbd class="shortcut-key">Ctrl + B</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Italic</span>
+                        <kbd class="shortcut-key">Ctrl + I</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Underline</span>
+                        <kbd class="shortcut-key">Ctrl + U</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Save</span>
+                        <kbd class="shortcut-key">Ctrl + S</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Undo</span>
+                        <kbd class="shortcut-key">Ctrl + Z</kbd>
+                    </div>
+                    <div class="shortcut-row">
+                        <span class="shortcut-label">Redo</span>
+                        <kbd class="shortcut-key">Ctrl + Shift + Z</kbd>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===============================================================
+             Tab: About
+             =============================================================== -->
+        <section id="tab-about" class="tab-panel" role="tabpanel"
+                 aria-labelledby="tab-about-label">
+            <h2 class="tab-title">About ZYNC</h2>
+
+            <div class="about-hero">
+                <div class="about-logo">Z</div>
+                <h3 class="about-app-name">ZYNC</h3>
+                <p class="about-tagline">Streamlined Project Management for Modern Teams</p>
+                <p id="about-version" class="about-version">Version 0.0.0</p>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">System Information</h3>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <span class="info-label">Electron</span>
+                        <span id="info-electron" class="info-value">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Chrome</span>
+                        <span id="info-chrome" class="info-value">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Node.js</span>
+                        <span id="info-node" class="info-value">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">V8</span>
+                        <span id="info-v8" class="info-value">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Platform</span>
+                        <span id="info-platform" class="info-value">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Architecture</span>
+                        <span id="info-arch" class="info-value">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3 class="group-title">Links</h3>
+                <div class="about-links">
+                    <button class="link-btn" data-url="https://github.com/AXLShorts/Zync">
+                        Source Code (GitHub)
+                    </button>
+                    <button class="link-btn" data-url="https://github.com/AXLShorts/Zync/issues">
+                        Report a Bug
+                    </button>
+                    <button class="link-btn" data-url="https://github.com/AXLShorts/Zync/blob/main/LICENSE">
+                        License (MIT)
+                    </button>
+                </div>
+            </div>
+
+            <div class="about-footer">
+                <p>Made with ♥ by the ZYNC Team</p>
+                <p class="about-copyright">© 2024 ZYNC. All rights reserved.</p>
+            </div>
+        </section>
+    </main>
+
     <script src="renderer.js"></script>
 </body>
 </html>
