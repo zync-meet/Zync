@@ -97,7 +97,7 @@ jobs:
       # -----------------------------------------------------------------------
       
       - name: 🧹 Process Stale Issues and PRs
-        uses: actions/stale@v9
+        uses: actions/stale@v10
         with:
           # -------------------------------------------------------------------
           # Authentication
