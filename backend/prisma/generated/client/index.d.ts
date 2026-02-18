@@ -121,53 +121,6 @@ export class PrismaClient<
   $use(cb: Prisma.Middleware): void
 
 /**
-   * Executes a prepared raw query and returns the number of affected rows.
-   * @example
-   * ```
-   * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
-   * ```
-   * 
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
-   */
-  $executeRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<number>;
-
-  /**
-   * Executes a raw query and returns the number of affected rows.
-   * Susceptible to SQL injections, see documentation.
-   * @example
-   * ```
-   * const result = await prisma.$executeRawUnsafe('UPDATE User SET cool = $1 WHERE email = $2 ;', true, 'user@email.com')
-   * ```
-   * 
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
-   */
-  $executeRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<number>;
-
-  /**
-   * Performs a prepared raw query and returns the `SELECT` data.
-   * @example
-   * ```
-   * const result = await prisma.$queryRaw`SELECT * FROM User WHERE id = ${1} OR email = ${'user@email.com'};`
-   * ```
-   * 
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
-   */
-  $queryRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<T>;
-
-  /**
-   * Performs a raw query and returns the `SELECT` data.
-   * Susceptible to SQL injections, see documentation.
-   * @example
-   * ```
-   * const result = await prisma.$queryRawUnsafe('SELECT * FROM User WHERE id = $1 OR email = $2;', 1, 'user@email.com')
-   * ```
-   * 
-   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
-   */
-  $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<T>;
-
-
-  /**
    * Allows the running of a sequence of read/write operations that are guaranteed to either succeed or fail as a whole.
    * @example
    * ```
@@ -180,10 +133,24 @@ export class PrismaClient<
    * 
    * Read more in our [docs](https://www.prisma.io/docs/concepts/components/prisma-client/transactions).
    */
-  $transaction<P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { isolationLevel?: Prisma.TransactionIsolationLevel }): $Utils.JsPromise<runtime.Types.Utils.UnwrapTuple<P>>
+  $transaction<P extends Prisma.PrismaPromise<any>[]>(arg: [...P]): $Utils.JsPromise<runtime.Types.Utils.UnwrapTuple<P>>
 
-  $transaction<R>(fn: (prisma: Omit<PrismaClient, runtime.ITXClientDenyList>) => $Utils.JsPromise<R>, options?: { maxWait?: number, timeout?: number, isolationLevel?: Prisma.TransactionIsolationLevel }): $Utils.JsPromise<R>
+  $transaction<R>(fn: (prisma: Omit<PrismaClient, runtime.ITXClientDenyList>) => $Utils.JsPromise<R>, options?: { maxWait?: number, timeout?: number }): $Utils.JsPromise<R>
 
+  /**
+   * Executes a raw MongoDB command and returns the result of it.
+   * @example
+   * ```
+   * const user = await prisma.$runCommandRaw({
+   *   aggregate: 'User',
+   *   pipeline: [{ $match: { name: 'Bob' } }, { $project: { email: true, _id: false } }],
+   *   explain: false,
+   * })
+   * ```
+   * 
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
+   */
+  $runCommandRaw(command: Prisma.InputJsonObject): Prisma.PrismaPromise<Prisma.JsonObject>
 
   $extends: $Extensions.ExtendsHook<"extends", Prisma.TypeMapCb, ExtArgs>
 
@@ -753,7 +720,7 @@ export namespace Prisma {
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
       modelProps: "user" | "project" | "step" | "projectTask" | "repository" | "note" | "folder" | "meeting" | "session" | "team"
-      txIsolationLevel: Prisma.TransactionIsolationLevel
+      txIsolationLevel: never
     }
     model: {
       User: {
@@ -788,10 +755,6 @@ export namespace Prisma {
             args: Prisma.UserCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.UserCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$UserPayload>[]
-          }
           delete: {
             args: Prisma.UserDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$UserPayload>
@@ -819,6 +782,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.UserGroupByArgs<ExtArgs>
             result: $Utils.Optional<UserGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.UserFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.UserAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.UserCountArgs<ExtArgs>
@@ -858,10 +829,6 @@ export namespace Prisma {
             args: Prisma.ProjectCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.ProjectCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ProjectPayload>[]
-          }
           delete: {
             args: Prisma.ProjectDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$ProjectPayload>
@@ -889,6 +856,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.ProjectGroupByArgs<ExtArgs>
             result: $Utils.Optional<ProjectGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.ProjectFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.ProjectAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.ProjectCountArgs<ExtArgs>
@@ -928,10 +903,6 @@ export namespace Prisma {
             args: Prisma.StepCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.StepCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$StepPayload>[]
-          }
           delete: {
             args: Prisma.StepDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$StepPayload>
@@ -959,6 +930,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.StepGroupByArgs<ExtArgs>
             result: $Utils.Optional<StepGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.StepFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.StepAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.StepCountArgs<ExtArgs>
@@ -998,10 +977,6 @@ export namespace Prisma {
             args: Prisma.ProjectTaskCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.ProjectTaskCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ProjectTaskPayload>[]
-          }
           delete: {
             args: Prisma.ProjectTaskDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$ProjectTaskPayload>
@@ -1029,6 +1004,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.ProjectTaskGroupByArgs<ExtArgs>
             result: $Utils.Optional<ProjectTaskGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.ProjectTaskFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.ProjectTaskAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.ProjectTaskCountArgs<ExtArgs>
@@ -1068,10 +1051,6 @@ export namespace Prisma {
             args: Prisma.RepositoryCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.RepositoryCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$RepositoryPayload>[]
-          }
           delete: {
             args: Prisma.RepositoryDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$RepositoryPayload>
@@ -1099,6 +1078,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.RepositoryGroupByArgs<ExtArgs>
             result: $Utils.Optional<RepositoryGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.RepositoryFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.RepositoryAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.RepositoryCountArgs<ExtArgs>
@@ -1138,10 +1125,6 @@ export namespace Prisma {
             args: Prisma.NoteCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.NoteCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$NotePayload>[]
-          }
           delete: {
             args: Prisma.NoteDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$NotePayload>
@@ -1169,6 +1152,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.NoteGroupByArgs<ExtArgs>
             result: $Utils.Optional<NoteGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.NoteFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.NoteAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.NoteCountArgs<ExtArgs>
@@ -1208,10 +1199,6 @@ export namespace Prisma {
             args: Prisma.FolderCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.FolderCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$FolderPayload>[]
-          }
           delete: {
             args: Prisma.FolderDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$FolderPayload>
@@ -1239,6 +1226,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.FolderGroupByArgs<ExtArgs>
             result: $Utils.Optional<FolderGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.FolderFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.FolderAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.FolderCountArgs<ExtArgs>
@@ -1278,10 +1273,6 @@ export namespace Prisma {
             args: Prisma.MeetingCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.MeetingCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MeetingPayload>[]
-          }
           delete: {
             args: Prisma.MeetingDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$MeetingPayload>
@@ -1309,6 +1300,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.MeetingGroupByArgs<ExtArgs>
             result: $Utils.Optional<MeetingGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.MeetingFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.MeetingAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.MeetingCountArgs<ExtArgs>
@@ -1348,10 +1347,6 @@ export namespace Prisma {
             args: Prisma.SessionCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.SessionCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SessionPayload>[]
-          }
           delete: {
             args: Prisma.SessionDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$SessionPayload>
@@ -1379,6 +1374,14 @@ export namespace Prisma {
           groupBy: {
             args: Prisma.SessionGroupByArgs<ExtArgs>
             result: $Utils.Optional<SessionGroupByOutputType>[]
+          }
+          findRaw: {
+            args: Prisma.SessionFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.SessionAggregateRawArgs<ExtArgs>
+            result: JsonObject
           }
           count: {
             args: Prisma.SessionCountArgs<ExtArgs>
@@ -1418,10 +1421,6 @@ export namespace Prisma {
             args: Prisma.TeamCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
-          createManyAndReturn: {
-            args: Prisma.TeamCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$TeamPayload>[]
-          }
           delete: {
             args: Prisma.TeamDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$TeamPayload>
@@ -1450,6 +1449,14 @@ export namespace Prisma {
             args: Prisma.TeamGroupByArgs<ExtArgs>
             result: $Utils.Optional<TeamGroupByOutputType>[]
           }
+          findRaw: {
+            args: Prisma.TeamFindRawArgs<ExtArgs>
+            result: JsonObject
+          }
+          aggregateRaw: {
+            args: Prisma.TeamAggregateRawArgs<ExtArgs>
+            result: JsonObject
+          }
           count: {
             args: Prisma.TeamCountArgs<ExtArgs>
             result: $Utils.Optional<TeamCountAggregateOutputType> | number
@@ -1461,21 +1468,9 @@ export namespace Prisma {
     other: {
       payload: any
       operations: {
-        $executeRaw: {
-          args: [query: TemplateStringsArray | Prisma.Sql, ...values: any[]],
-          result: any
-        }
-        $executeRawUnsafe: {
-          args: [query: string, ...values: any[]],
-          result: any
-        }
-        $queryRaw: {
-          args: [query: TemplateStringsArray | Prisma.Sql, ...values: any[]],
-          result: any
-        }
-        $queryRawUnsafe: {
-          args: [query: string, ...values: any[]],
-          result: any
+        $runCommandRaw: {
+          args: Prisma.InputJsonObject,
+          result: Prisma.JsonObject
         }
       }
     }
@@ -1521,7 +1516,6 @@ export namespace Prisma {
     transactionOptions?: {
       maxWait?: number
       timeout?: number
-      isolationLevel?: Prisma.TransactionIsolationLevel
     }
   }
 
@@ -2005,32 +1999,6 @@ export namespace Prisma {
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
-  export type UserSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    uid?: boolean
-    email?: boolean
-    displayName?: boolean
-    firstName?: boolean
-    lastName?: boolean
-    photoURL?: boolean
-    phoneNumber?: boolean
-    connections?: boolean
-    closeFriends?: boolean
-    chatRequests?: boolean
-    githubIntegration?: boolean
-    googleIntegration?: boolean
-    isPhoneVerified?: boolean
-    phoneVerificationCode?: boolean
-    phoneVerificationCodeExpires?: boolean
-    deleteConfirmationCode?: boolean
-    deleteConfirmationExpires?: boolean
-    status?: boolean
-    lastSeen?: boolean
-    role?: boolean
-    teamMemberships?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["user"]>
 
   export type UserSelectScalar = {
     id?: boolean
@@ -2063,7 +2031,6 @@ export namespace Prisma {
     ownedProjects?: boolean | User$ownedProjectsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $UserPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "User"
@@ -2213,30 +2180,6 @@ export namespace Prisma {
     createMany<T extends UserCreateManyArgs>(args?: SelectSubset<T, UserCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Users and returns the data saved in the database.
-     * @param {UserCreateManyAndReturnArgs} args - Arguments to create many Users.
-     * @example
-     * // Create many Users
-     * const user = await prisma.user.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Users and only return the `id`
-     * const userWithIdOnly = await prisma.user.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends UserCreateManyAndReturnArgs>(args?: SelectSubset<T, UserCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a User.
      * @param {UserDeleteArgs} args - Arguments to delete one User.
      * @example
@@ -2318,6 +2261,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends UserUpsertArgs>(args: SelectSubset<T, UserUpsertArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Users that matches the filter.
+     * @param {UserFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const user = await prisma.user.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: UserFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a User.
+     * @param {UserAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const user = await prisma.user.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: UserAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -2718,22 +2684,6 @@ export namespace Prisma {
      * The data used to create many Users.
      */
     data: UserCreateManyInput | UserCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * User createManyAndReturn
-   */
-  export type UserCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the User
-     */
-    select?: UserSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Users.
-     */
-    data: UserCreateManyInput | UserCreateManyInput[]
-    skipDuplicates?: boolean
   }
 
   /**
@@ -2824,6 +2774,34 @@ export namespace Prisma {
      * Filter which Users to delete
      */
     where?: UserWhereInput
+  }
+
+  /**
+   * User findRaw
+   */
+  export type UserFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * User aggregateRaw
+   */
+  export type UserAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -3090,23 +3068,6 @@ export namespace Prisma {
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
-  export type ProjectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    name?: boolean
-    description?: boolean
-    ownerId?: boolean
-    team?: boolean
-    githubRepo?: boolean
-    githubRepoName?: boolean
-    githubRepoOwner?: boolean
-    githubRepoIds?: boolean
-    architecture?: boolean
-    meetLink?: boolean
-    isTrackingActive?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-    owner?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["project"]>
 
   export type ProjectSelectScalar = {
     id?: boolean
@@ -3129,9 +3090,6 @@ export namespace Prisma {
     owner?: boolean | UserDefaultArgs<ExtArgs>
     steps?: boolean | Project$stepsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
-  }
-  export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    owner?: boolean | UserDefaultArgs<ExtArgs>
   }
 
   export type $ProjectPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3273,30 +3231,6 @@ export namespace Prisma {
     createMany<T extends ProjectCreateManyArgs>(args?: SelectSubset<T, ProjectCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Projects and returns the data saved in the database.
-     * @param {ProjectCreateManyAndReturnArgs} args - Arguments to create many Projects.
-     * @example
-     * // Create many Projects
-     * const project = await prisma.project.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Projects and only return the `id`
-     * const projectWithIdOnly = await prisma.project.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends ProjectCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a Project.
      * @param {ProjectDeleteArgs} args - Arguments to delete one Project.
      * @example
@@ -3378,6 +3312,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends ProjectUpsertArgs>(args: SelectSubset<T, ProjectUpsertArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Projects that matches the filter.
+     * @param {ProjectFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const project = await prisma.project.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: ProjectFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a Project.
+     * @param {ProjectAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const project = await prisma.project.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: ProjectAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -3769,26 +3726,6 @@ export namespace Prisma {
      * The data used to create many Projects.
      */
     data: ProjectCreateManyInput | ProjectCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * Project createManyAndReturn
-   */
-  export type ProjectCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Project
-     */
-    select?: ProjectSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Projects.
-     */
-    data: ProjectCreateManyInput | ProjectCreateManyInput[]
-    skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ProjectIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -3879,6 +3816,34 @@ export namespace Prisma {
      * Filter which Projects to delete
      */
     where?: ProjectWhereInput
+  }
+
+  /**
+   * Project findRaw
+   */
+  export type ProjectFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * Project aggregateRaw
+   */
+  export type ProjectAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -4167,20 +4132,6 @@ export namespace Prisma {
     _count?: boolean | StepCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["step"]>
 
-  export type StepSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    title?: boolean
-    description?: boolean
-    order?: boolean
-    status?: boolean
-    assignedTo?: boolean
-    type?: boolean
-    page?: boolean
-    projectId?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-    project?: boolean | ProjectDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["step"]>
 
   export type StepSelectScalar = {
     id?: boolean
@@ -4200,9 +4151,6 @@ export namespace Prisma {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     tasks?: boolean | Step$tasksArgs<ExtArgs>
     _count?: boolean | StepCountOutputTypeDefaultArgs<ExtArgs>
-  }
-  export type StepIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    project?: boolean | ProjectDefaultArgs<ExtArgs>
   }
 
   export type $StepPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4341,30 +4289,6 @@ export namespace Prisma {
     createMany<T extends StepCreateManyArgs>(args?: SelectSubset<T, StepCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Steps and returns the data saved in the database.
-     * @param {StepCreateManyAndReturnArgs} args - Arguments to create many Steps.
-     * @example
-     * // Create many Steps
-     * const step = await prisma.step.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Steps and only return the `id`
-     * const stepWithIdOnly = await prisma.step.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends StepCreateManyAndReturnArgs>(args?: SelectSubset<T, StepCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StepPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a Step.
      * @param {StepDeleteArgs} args - Arguments to delete one Step.
      * @example
@@ -4446,6 +4370,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends StepUpsertArgs>(args: SelectSubset<T, StepUpsertArgs<ExtArgs>>): Prisma__StepClient<$Result.GetResult<Prisma.$StepPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Steps that matches the filter.
+     * @param {StepFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const step = await prisma.step.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: StepFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a Step.
+     * @param {StepAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const step = await prisma.step.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: StepAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -4834,26 +4781,6 @@ export namespace Prisma {
      * The data used to create many Steps.
      */
     data: StepCreateManyInput | StepCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * Step createManyAndReturn
-   */
-  export type StepCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Step
-     */
-    select?: StepSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Steps.
-     */
-    data: StepCreateManyInput | StepCreateManyInput[]
-    skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: StepIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -4944,6 +4871,34 @@ export namespace Prisma {
      * Filter which Steps to delete
      */
     where?: StepWhereInput
+  }
+
+  /**
+   * Step findRaw
+   */
+  export type StepFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * Step aggregateRaw
+   */
+  export type StepAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -5240,26 +5195,6 @@ export namespace Prisma {
     step?: boolean | StepDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["projectTask"]>
 
-  export type ProjectTaskSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    displayId?: boolean
-    title?: boolean
-    description?: boolean
-    status?: boolean
-    assignedTo?: boolean
-    assignedToName?: boolean
-    createdBy?: boolean
-    assignedBy?: boolean
-    commitMessage?: boolean
-    commitUrl?: boolean
-    commitAuthor?: boolean
-    commitTimestamp?: boolean
-    repoIds?: boolean
-    stepId?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-    step?: boolean | StepDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["projectTask"]>
 
   export type ProjectTaskSelectScalar = {
     id?: boolean
@@ -5282,9 +5217,6 @@ export namespace Prisma {
   }
 
   export type ProjectTaskInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    step?: boolean | StepDefaultArgs<ExtArgs>
-  }
-  export type ProjectTaskIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     step?: boolean | StepDefaultArgs<ExtArgs>
   }
 
@@ -5429,30 +5361,6 @@ export namespace Prisma {
     createMany<T extends ProjectTaskCreateManyArgs>(args?: SelectSubset<T, ProjectTaskCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many ProjectTasks and returns the data saved in the database.
-     * @param {ProjectTaskCreateManyAndReturnArgs} args - Arguments to create many ProjectTasks.
-     * @example
-     * // Create many ProjectTasks
-     * const projectTask = await prisma.projectTask.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many ProjectTasks and only return the `id`
-     * const projectTaskWithIdOnly = await prisma.projectTask.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends ProjectTaskCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectTaskCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectTaskPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a ProjectTask.
      * @param {ProjectTaskDeleteArgs} args - Arguments to delete one ProjectTask.
      * @example
@@ -5534,6 +5442,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends ProjectTaskUpsertArgs>(args: SelectSubset<T, ProjectTaskUpsertArgs<ExtArgs>>): Prisma__ProjectTaskClient<$Result.GetResult<Prisma.$ProjectTaskPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more ProjectTasks that matches the filter.
+     * @param {ProjectTaskFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const projectTask = await prisma.projectTask.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: ProjectTaskFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a ProjectTask.
+     * @param {ProjectTaskAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const projectTask = await prisma.projectTask.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: ProjectTaskAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -5927,26 +5858,6 @@ export namespace Prisma {
      * The data used to create many ProjectTasks.
      */
     data: ProjectTaskCreateManyInput | ProjectTaskCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * ProjectTask createManyAndReturn
-   */
-  export type ProjectTaskCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ProjectTask
-     */
-    select?: ProjectTaskSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many ProjectTasks.
-     */
-    data: ProjectTaskCreateManyInput | ProjectTaskCreateManyInput[]
-    skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ProjectTaskIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -6037,6 +5948,34 @@ export namespace Prisma {
      * Filter which ProjectTasks to delete
      */
     where?: ProjectTaskWhereInput
+  }
+
+  /**
+   * ProjectTask findRaw
+   */
+  export type ProjectTaskFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * ProjectTask aggregateRaw
+   */
+  export type ProjectTaskAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -6220,13 +6159,6 @@ export namespace Prisma {
     updatedAt?: boolean
   }, ExtArgs["result"]["repository"]>
 
-  export type RepositorySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    githubRepoId?: boolean
-    repoName?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["repository"]>
 
   export type RepositorySelectScalar = {
     id?: boolean
@@ -6364,30 +6296,6 @@ export namespace Prisma {
     createMany<T extends RepositoryCreateManyArgs>(args?: SelectSubset<T, RepositoryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Repositories and returns the data saved in the database.
-     * @param {RepositoryCreateManyAndReturnArgs} args - Arguments to create many Repositories.
-     * @example
-     * // Create many Repositories
-     * const repository = await prisma.repository.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Repositories and only return the `id`
-     * const repositoryWithIdOnly = await prisma.repository.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends RepositoryCreateManyAndReturnArgs>(args?: SelectSubset<T, RepositoryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RepositoryPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a Repository.
      * @param {RepositoryDeleteArgs} args - Arguments to delete one Repository.
      * @example
@@ -6469,6 +6377,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends RepositoryUpsertArgs>(args: SelectSubset<T, RepositoryUpsertArgs<ExtArgs>>): Prisma__RepositoryClient<$Result.GetResult<Prisma.$RepositoryPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Repositories that matches the filter.
+     * @param {RepositoryFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const repository = await prisma.repository.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: RepositoryFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a Repository.
+     * @param {RepositoryAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const repository = await prisma.repository.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: RepositoryAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -6825,22 +6756,6 @@ export namespace Prisma {
      * The data used to create many Repositories.
      */
     data: RepositoryCreateManyInput | RepositoryCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * Repository createManyAndReturn
-   */
-  export type RepositoryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Repository
-     */
-    select?: RepositorySelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Repositories.
-     */
-    data: RepositoryCreateManyInput | RepositoryCreateManyInput[]
-    skipDuplicates?: boolean
   }
 
   /**
@@ -6919,6 +6834,34 @@ export namespace Prisma {
      * Filter which Repositories to delete
      */
     where?: RepositoryWhereInput
+  }
+
+  /**
+   * Repository findRaw
+   */
+  export type RepositoryFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * Repository aggregateRaw
+   */
+  export type RepositoryAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -7130,18 +7073,6 @@ export namespace Prisma {
     updatedAt?: boolean
   }, ExtArgs["result"]["note"]>
 
-  export type NoteSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    title?: boolean
-    content?: boolean
-    ownerId?: boolean
-    folderId?: boolean
-    projectId?: boolean
-    sharedWith?: boolean
-    yjsState?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["note"]>
 
   export type NoteSelectScalar = {
     id?: boolean
@@ -7289,30 +7220,6 @@ export namespace Prisma {
     createMany<T extends NoteCreateManyArgs>(args?: SelectSubset<T, NoteCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Notes and returns the data saved in the database.
-     * @param {NoteCreateManyAndReturnArgs} args - Arguments to create many Notes.
-     * @example
-     * // Create many Notes
-     * const note = await prisma.note.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Notes and only return the `id`
-     * const noteWithIdOnly = await prisma.note.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends NoteCreateManyAndReturnArgs>(args?: SelectSubset<T, NoteCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotePayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a Note.
      * @param {NoteDeleteArgs} args - Arguments to delete one Note.
      * @example
@@ -7394,6 +7301,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends NoteUpsertArgs>(args: SelectSubset<T, NoteUpsertArgs<ExtArgs>>): Prisma__NoteClient<$Result.GetResult<Prisma.$NotePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Notes that matches the filter.
+     * @param {NoteFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const note = await prisma.note.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: NoteFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a Note.
+     * @param {NoteAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const note = await prisma.note.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: NoteAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -7755,22 +7685,6 @@ export namespace Prisma {
      * The data used to create many Notes.
      */
     data: NoteCreateManyInput | NoteCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * Note createManyAndReturn
-   */
-  export type NoteCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Note
-     */
-    select?: NoteSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Notes.
-     */
-    data: NoteCreateManyInput | NoteCreateManyInput[]
-    skipDuplicates?: boolean
   }
 
   /**
@@ -7849,6 +7763,34 @@ export namespace Prisma {
      * Filter which Notes to delete
      */
     where?: NoteWhereInput
+  }
+
+  /**
+   * Note findRaw
+   */
+  export type NoteFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * Note aggregateRaw
+   */
+  export type NoteAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -8064,18 +8006,6 @@ export namespace Prisma {
     updatedAt?: boolean
   }, ExtArgs["result"]["folder"]>
 
-  export type FolderSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    name?: boolean
-    ownerId?: boolean
-    parentId?: boolean
-    type?: boolean
-    color?: boolean
-    projectId?: boolean
-    collaborators?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["folder"]>
 
   export type FolderSelectScalar = {
     id?: boolean
@@ -8223,30 +8153,6 @@ export namespace Prisma {
     createMany<T extends FolderCreateManyArgs>(args?: SelectSubset<T, FolderCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Folders and returns the data saved in the database.
-     * @param {FolderCreateManyAndReturnArgs} args - Arguments to create many Folders.
-     * @example
-     * // Create many Folders
-     * const folder = await prisma.folder.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Folders and only return the `id`
-     * const folderWithIdOnly = await prisma.folder.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends FolderCreateManyAndReturnArgs>(args?: SelectSubset<T, FolderCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FolderPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a Folder.
      * @param {FolderDeleteArgs} args - Arguments to delete one Folder.
      * @example
@@ -8328,6 +8234,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends FolderUpsertArgs>(args: SelectSubset<T, FolderUpsertArgs<ExtArgs>>): Prisma__FolderClient<$Result.GetResult<Prisma.$FolderPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Folders that matches the filter.
+     * @param {FolderFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const folder = await prisma.folder.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: FolderFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a Folder.
+     * @param {FolderAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const folder = await prisma.folder.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: FolderAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -8689,22 +8618,6 @@ export namespace Prisma {
      * The data used to create many Folders.
      */
     data: FolderCreateManyInput | FolderCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * Folder createManyAndReturn
-   */
-  export type FolderCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Folder
-     */
-    select?: FolderSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Folders.
-     */
-    data: FolderCreateManyInput | FolderCreateManyInput[]
-    skipDuplicates?: boolean
   }
 
   /**
@@ -8783,6 +8696,34 @@ export namespace Prisma {
      * Filter which Folders to delete
      */
     where?: FolderWhereInput
+  }
+
+  /**
+   * Folder findRaw
+   */
+  export type FolderFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * Folder aggregateRaw
+   */
+  export type FolderAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -9022,21 +8963,6 @@ export namespace Prisma {
     updatedAt?: boolean
   }, ExtArgs["result"]["meeting"]>
 
-  export type MeetingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    title?: boolean
-    description?: boolean
-    organizerId?: boolean
-    organizerName?: boolean
-    meetLink?: boolean
-    projectId?: boolean
-    status?: boolean
-    startTime?: boolean
-    endTime?: boolean
-    participants?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["meeting"]>
 
   export type MeetingSelectScalar = {
     id?: boolean
@@ -9190,30 +9116,6 @@ export namespace Prisma {
     createMany<T extends MeetingCreateManyArgs>(args?: SelectSubset<T, MeetingCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Meetings and returns the data saved in the database.
-     * @param {MeetingCreateManyAndReturnArgs} args - Arguments to create many Meetings.
-     * @example
-     * // Create many Meetings
-     * const meeting = await prisma.meeting.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Meetings and only return the `id`
-     * const meetingWithIdOnly = await prisma.meeting.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends MeetingCreateManyAndReturnArgs>(args?: SelectSubset<T, MeetingCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MeetingPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a Meeting.
      * @param {MeetingDeleteArgs} args - Arguments to delete one Meeting.
      * @example
@@ -9295,6 +9197,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends MeetingUpsertArgs>(args: SelectSubset<T, MeetingUpsertArgs<ExtArgs>>): Prisma__MeetingClient<$Result.GetResult<Prisma.$MeetingPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Meetings that matches the filter.
+     * @param {MeetingFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const meeting = await prisma.meeting.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: MeetingFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a Meeting.
+     * @param {MeetingAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const meeting = await prisma.meeting.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: MeetingAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -9659,22 +9584,6 @@ export namespace Prisma {
      * The data used to create many Meetings.
      */
     data: MeetingCreateManyInput | MeetingCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * Meeting createManyAndReturn
-   */
-  export type MeetingCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Meeting
-     */
-    select?: MeetingSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Meetings.
-     */
-    data: MeetingCreateManyInput | MeetingCreateManyInput[]
-    skipDuplicates?: boolean
   }
 
   /**
@@ -9753,6 +9662,34 @@ export namespace Prisma {
      * Filter which Meetings to delete
      */
     where?: MeetingWhereInput
+  }
+
+  /**
+   * Meeting findRaw
+   */
+  export type MeetingFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * Meeting aggregateRaw
+   */
+  export type MeetingAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -10010,18 +9947,6 @@ export namespace Prisma {
     createdAt?: boolean
   }, ExtArgs["result"]["session"]>
 
-  export type SessionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    userId?: boolean
-    startTime?: boolean
-    endTime?: boolean
-    duration?: boolean
-    activeDuration?: boolean
-    lastAction?: boolean
-    date?: boolean
-    deviceInfo?: boolean
-    createdAt?: boolean
-  }, ExtArgs["result"]["session"]>
 
   export type SessionSelectScalar = {
     id?: boolean
@@ -10169,30 +10094,6 @@ export namespace Prisma {
     createMany<T extends SessionCreateManyArgs>(args?: SelectSubset<T, SessionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Sessions and returns the data saved in the database.
-     * @param {SessionCreateManyAndReturnArgs} args - Arguments to create many Sessions.
-     * @example
-     * // Create many Sessions
-     * const session = await prisma.session.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Sessions and only return the `id`
-     * const sessionWithIdOnly = await prisma.session.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends SessionCreateManyAndReturnArgs>(args?: SelectSubset<T, SessionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a Session.
      * @param {SessionDeleteArgs} args - Arguments to delete one Session.
      * @example
@@ -10274,6 +10175,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends SessionUpsertArgs>(args: SelectSubset<T, SessionUpsertArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Sessions that matches the filter.
+     * @param {SessionFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const session = await prisma.session.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: SessionFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a Session.
+     * @param {SessionAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const session = await prisma.session.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: SessionAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -10635,22 +10559,6 @@ export namespace Prisma {
      * The data used to create many Sessions.
      */
     data: SessionCreateManyInput | SessionCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * Session createManyAndReturn
-   */
-  export type SessionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Session
-     */
-    select?: SessionSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Sessions.
-     */
-    data: SessionCreateManyInput | SessionCreateManyInput[]
-    skipDuplicates?: boolean
   }
 
   /**
@@ -10729,6 +10637,34 @@ export namespace Prisma {
      * Filter which Sessions to delete
      */
     where?: SessionWhereInput
+  }
+
+  /**
+   * Session findRaw
+   */
+  export type SessionFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * Session aggregateRaw
+   */
+  export type SessionAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
   }
 
   /**
@@ -10928,16 +10864,6 @@ export namespace Prisma {
     updatedAt?: boolean
   }, ExtArgs["result"]["team"]>
 
-  export type TeamSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    name?: boolean
-    inviteCode?: boolean
-    ownerId?: boolean
-    members?: boolean
-    type?: boolean
-    createdAt?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["team"]>
 
   export type TeamSelectScalar = {
     id?: boolean
@@ -11081,30 +11007,6 @@ export namespace Prisma {
     createMany<T extends TeamCreateManyArgs>(args?: SelectSubset<T, TeamCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Teams and returns the data saved in the database.
-     * @param {TeamCreateManyAndReturnArgs} args - Arguments to create many Teams.
-     * @example
-     * // Create many Teams
-     * const team = await prisma.team.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many Teams and only return the `id`
-     * const teamWithIdOnly = await prisma.team.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends TeamCreateManyAndReturnArgs>(args?: SelectSubset<T, TeamCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
      * Delete a Team.
      * @param {TeamDeleteArgs} args - Arguments to delete one Team.
      * @example
@@ -11186,6 +11088,29 @@ export namespace Prisma {
      * })
      */
     upsert<T extends TeamUpsertArgs>(args: SelectSubset<T, TeamUpsertArgs<ExtArgs>>): Prisma__TeamClient<$Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+    /**
+     * Find zero or more Teams that matches the filter.
+     * @param {TeamFindRawArgs} args - Select which filters you would like to apply.
+     * @example
+     * const team = await prisma.team.findRaw({
+     *   filter: { age: { $gt: 25 } } 
+     * })
+     */
+    findRaw(args?: TeamFindRawArgs): Prisma.PrismaPromise<JsonObject>
+
+    /**
+     * Perform aggregation operations on a Team.
+     * @param {TeamAggregateRawArgs} args - Select which aggregations you would like to apply.
+     * @example
+     * const team = await prisma.team.aggregateRaw({
+     *   pipeline: [
+     *     { $match: { status: "registered" } },
+     *     { $group: { _id: "$country", total: { $sum: 1 } } }
+     *   ]
+     * })
+     */
+    aggregateRaw(args?: TeamAggregateRawArgs): Prisma.PrismaPromise<JsonObject>
 
 
     /**
@@ -11545,22 +11470,6 @@ export namespace Prisma {
      * The data used to create many Teams.
      */
     data: TeamCreateManyInput | TeamCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * Team createManyAndReturn
-   */
-  export type TeamCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Team
-     */
-    select?: TeamSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many Teams.
-     */
-    data: TeamCreateManyInput | TeamCreateManyInput[]
-    skipDuplicates?: boolean
   }
 
   /**
@@ -11642,6 +11551,34 @@ export namespace Prisma {
   }
 
   /**
+   * Team findRaw
+   */
+  export type TeamFindRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.
+     */
+    filter?: InputJsonValue
+    /**
+     * Additional options to pass to the `find` command ${@link https://docs.mongodb.com/manual/reference/command/find/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
+   * Team aggregateRaw
+   */
+  export type TeamAggregateRawArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.
+     */
+    pipeline?: InputJsonValue[]
+    /**
+     * Additional options to pass to the `aggregate` command ${@link https://docs.mongodb.com/manual/reference/command/aggregate/#command-fields MongoDB Docs}.
+     */
+    options?: InputJsonValue
+  }
+
+  /**
    * Team without action
    */
   export type TeamDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -11655,16 +11592,6 @@ export namespace Prisma {
   /**
    * Enums
    */
-
-  export const TransactionIsolationLevel: {
-    ReadUncommitted: 'ReadUncommitted',
-    ReadCommitted: 'ReadCommitted',
-    RepeatableRead: 'RepeatableRead',
-    Serializable: 'Serializable'
-  };
-
-  export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
-
 
   export const UserScalarFieldEnum: {
     id: 'id',
@@ -11856,44 +11783,12 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-  export const JsonNullValueInput: {
-    JsonNull: typeof JsonNull
-  };
-
-  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
-  export const NullableJsonNullValueInput: {
-    DbNull: typeof DbNull,
-    JsonNull: typeof JsonNull
-  };
-
-  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
-
-
   export const QueryMode: {
     default: 'default',
     insensitive: 'insensitive'
   };
 
   export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
-
-
-  export const JsonNullValueFilter: {
-    DbNull: typeof DbNull,
-    JsonNull: typeof JsonNull,
-    AnyNull: typeof AnyNull
-  };
-
-  export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
-
-
-  export const NullsOrder: {
-    first: 'first',
-    last: 'last'
-  };
-
-  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
   /**
@@ -12024,20 +11919,20 @@ export namespace Prisma {
     uid?: SortOrder
     email?: SortOrder
     displayName?: SortOrder
-    firstName?: SortOrderInput | SortOrder
-    lastName?: SortOrderInput | SortOrder
-    photoURL?: SortOrderInput | SortOrder
-    phoneNumber?: SortOrderInput | SortOrder
+    firstName?: SortOrder
+    lastName?: SortOrder
+    photoURL?: SortOrder
+    phoneNumber?: SortOrder
     connections?: SortOrder
     closeFriends?: SortOrder
     chatRequests?: SortOrder
-    githubIntegration?: SortOrderInput | SortOrder
-    googleIntegration?: SortOrderInput | SortOrder
+    githubIntegration?: SortOrder
+    googleIntegration?: SortOrder
     isPhoneVerified?: SortOrder
-    phoneVerificationCode?: SortOrderInput | SortOrder
-    phoneVerificationCodeExpires?: SortOrderInput | SortOrder
-    deleteConfirmationCode?: SortOrderInput | SortOrder
-    deleteConfirmationExpires?: SortOrderInput | SortOrder
+    phoneVerificationCode?: SortOrder
+    phoneVerificationCodeExpires?: SortOrder
+    deleteConfirmationCode?: SortOrder
+    deleteConfirmationExpires?: SortOrder
     status?: SortOrder
     lastSeen?: SortOrder
     role?: SortOrder
@@ -12083,20 +11978,20 @@ export namespace Prisma {
     uid?: SortOrder
     email?: SortOrder
     displayName?: SortOrder
-    firstName?: SortOrderInput | SortOrder
-    lastName?: SortOrderInput | SortOrder
-    photoURL?: SortOrderInput | SortOrder
-    phoneNumber?: SortOrderInput | SortOrder
+    firstName?: SortOrder
+    lastName?: SortOrder
+    photoURL?: SortOrder
+    phoneNumber?: SortOrder
     connections?: SortOrder
     closeFriends?: SortOrder
     chatRequests?: SortOrder
-    githubIntegration?: SortOrderInput | SortOrder
-    googleIntegration?: SortOrderInput | SortOrder
+    githubIntegration?: SortOrder
+    googleIntegration?: SortOrder
     isPhoneVerified?: SortOrder
-    phoneVerificationCode?: SortOrderInput | SortOrder
-    phoneVerificationCodeExpires?: SortOrderInput | SortOrder
-    deleteConfirmationCode?: SortOrderInput | SortOrder
-    deleteConfirmationExpires?: SortOrderInput | SortOrder
+    phoneVerificationCode?: SortOrder
+    phoneVerificationCodeExpires?: SortOrder
+    deleteConfirmationCode?: SortOrder
+    deleteConfirmationExpires?: SortOrder
     status?: SortOrder
     lastSeen?: SortOrder
     role?: SortOrder
@@ -12166,12 +12061,12 @@ export namespace Prisma {
     description?: SortOrder
     ownerId?: SortOrder
     team?: SortOrder
-    githubRepo?: SortOrderInput | SortOrder
-    githubRepoName?: SortOrderInput | SortOrder
-    githubRepoOwner?: SortOrderInput | SortOrder
+    githubRepo?: SortOrder
+    githubRepoName?: SortOrder
+    githubRepoOwner?: SortOrder
     githubRepoIds?: SortOrder
-    architecture?: SortOrderInput | SortOrder
-    meetLink?: SortOrderInput | SortOrder
+    architecture?: SortOrder
+    meetLink?: SortOrder
     isTrackingActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12207,12 +12102,12 @@ export namespace Prisma {
     description?: SortOrder
     ownerId?: SortOrder
     team?: SortOrder
-    githubRepo?: SortOrderInput | SortOrder
-    githubRepoName?: SortOrderInput | SortOrder
-    githubRepoOwner?: SortOrderInput | SortOrder
+    githubRepo?: SortOrder
+    githubRepoName?: SortOrder
+    githubRepoOwner?: SortOrder
     githubRepoIds?: SortOrder
-    architecture?: SortOrderInput | SortOrder
-    meetLink?: SortOrderInput | SortOrder
+    architecture?: SortOrder
+    meetLink?: SortOrder
     isTrackingActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12263,10 +12158,10 @@ export namespace Prisma {
   export type StepOrderByWithRelationInput = {
     id?: SortOrder
     title?: SortOrder
-    description?: SortOrderInput | SortOrder
+    description?: SortOrder
     order?: SortOrder
     status?: SortOrder
-    assignedTo?: SortOrderInput | SortOrder
+    assignedTo?: SortOrder
     type?: SortOrder
     page?: SortOrder
     projectId?: SortOrder
@@ -12298,10 +12193,10 @@ export namespace Prisma {
   export type StepOrderByWithAggregationInput = {
     id?: SortOrder
     title?: SortOrder
-    description?: SortOrderInput | SortOrder
+    description?: SortOrder
     order?: SortOrder
     status?: SortOrder
-    assignedTo?: SortOrderInput | SortOrder
+    assignedTo?: SortOrder
     type?: SortOrder
     page?: SortOrder
     projectId?: SortOrder
@@ -12357,18 +12252,18 @@ export namespace Prisma {
 
   export type ProjectTaskOrderByWithRelationInput = {
     id?: SortOrder
-    displayId?: SortOrderInput | SortOrder
+    displayId?: SortOrder
     title?: SortOrder
-    description?: SortOrderInput | SortOrder
+    description?: SortOrder
     status?: SortOrder
-    assignedTo?: SortOrderInput | SortOrder
-    assignedToName?: SortOrderInput | SortOrder
-    createdBy?: SortOrderInput | SortOrder
-    assignedBy?: SortOrderInput | SortOrder
-    commitMessage?: SortOrderInput | SortOrder
-    commitUrl?: SortOrderInput | SortOrder
-    commitAuthor?: SortOrderInput | SortOrder
-    commitTimestamp?: SortOrderInput | SortOrder
+    assignedTo?: SortOrder
+    assignedToName?: SortOrder
+    createdBy?: SortOrder
+    assignedBy?: SortOrder
+    commitMessage?: SortOrder
+    commitUrl?: SortOrder
+    commitAuthor?: SortOrder
+    commitTimestamp?: SortOrder
     repoIds?: SortOrder
     stepId?: SortOrder
     createdAt?: SortOrder
@@ -12402,18 +12297,18 @@ export namespace Prisma {
 
   export type ProjectTaskOrderByWithAggregationInput = {
     id?: SortOrder
-    displayId?: SortOrderInput | SortOrder
+    displayId?: SortOrder
     title?: SortOrder
-    description?: SortOrderInput | SortOrder
+    description?: SortOrder
     status?: SortOrder
-    assignedTo?: SortOrderInput | SortOrder
-    assignedToName?: SortOrderInput | SortOrder
-    createdBy?: SortOrderInput | SortOrder
-    assignedBy?: SortOrderInput | SortOrder
-    commitMessage?: SortOrderInput | SortOrder
-    commitUrl?: SortOrderInput | SortOrder
-    commitAuthor?: SortOrderInput | SortOrder
-    commitTimestamp?: SortOrderInput | SortOrder
+    assignedTo?: SortOrder
+    assignedToName?: SortOrder
+    createdBy?: SortOrder
+    assignedBy?: SortOrder
+    commitMessage?: SortOrder
+    commitUrl?: SortOrder
+    commitAuthor?: SortOrder
+    commitTimestamp?: SortOrder
     repoIds?: SortOrder
     stepId?: SortOrder
     createdAt?: SortOrder
@@ -12517,12 +12412,12 @@ export namespace Prisma {
   export type NoteOrderByWithRelationInput = {
     id?: SortOrder
     title?: SortOrder
-    content?: SortOrderInput | SortOrder
+    content?: SortOrder
     ownerId?: SortOrder
-    folderId?: SortOrderInput | SortOrder
-    projectId?: SortOrderInput | SortOrder
+    folderId?: SortOrder
+    projectId?: SortOrder
     sharedWith?: SortOrder
-    yjsState?: SortOrderInput | SortOrder
+    yjsState?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -12546,12 +12441,12 @@ export namespace Prisma {
   export type NoteOrderByWithAggregationInput = {
     id?: SortOrder
     title?: SortOrder
-    content?: SortOrderInput | SortOrder
+    content?: SortOrder
     ownerId?: SortOrder
-    folderId?: SortOrderInput | SortOrder
-    projectId?: SortOrderInput | SortOrder
+    folderId?: SortOrder
+    projectId?: SortOrder
     sharedWith?: SortOrder
-    yjsState?: SortOrderInput | SortOrder
+    yjsState?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: NoteCountOrderByAggregateInput
@@ -12595,10 +12490,10 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     ownerId?: SortOrder
-    parentId?: SortOrderInput | SortOrder
+    parentId?: SortOrder
     type?: SortOrder
     color?: SortOrder
-    projectId?: SortOrderInput | SortOrder
+    projectId?: SortOrder
     collaborators?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12625,10 +12520,10 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     ownerId?: SortOrder
-    parentId?: SortOrderInput | SortOrder
+    parentId?: SortOrder
     type?: SortOrder
     color?: SortOrder
-    projectId?: SortOrderInput | SortOrder
+    projectId?: SortOrder
     collaborators?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12675,14 +12570,14 @@ export namespace Prisma {
   export type MeetingOrderByWithRelationInput = {
     id?: SortOrder
     title?: SortOrder
-    description?: SortOrderInput | SortOrder
+    description?: SortOrder
     organizerId?: SortOrder
-    organizerName?: SortOrderInput | SortOrder
+    organizerName?: SortOrder
     meetLink?: SortOrder
-    projectId?: SortOrderInput | SortOrder
+    projectId?: SortOrder
     status?: SortOrder
     startTime?: SortOrder
-    endTime?: SortOrderInput | SortOrder
+    endTime?: SortOrder
     participants?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12710,14 +12605,14 @@ export namespace Prisma {
   export type MeetingOrderByWithAggregationInput = {
     id?: SortOrder
     title?: SortOrder
-    description?: SortOrderInput | SortOrder
+    description?: SortOrder
     organizerId?: SortOrder
-    organizerName?: SortOrderInput | SortOrder
+    organizerName?: SortOrder
     meetLink?: SortOrder
-    projectId?: SortOrderInput | SortOrder
+    projectId?: SortOrder
     status?: SortOrder
     startTime?: SortOrder
-    endTime?: SortOrderInput | SortOrder
+    endTime?: SortOrder
     participants?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12770,7 +12665,7 @@ export namespace Prisma {
     activeDuration?: SortOrder
     lastAction?: SortOrder
     date?: SortOrder
-    deviceInfo?: SortOrderInput | SortOrder
+    deviceInfo?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -12799,7 +12694,7 @@ export namespace Prisma {
     activeDuration?: SortOrder
     lastAction?: SortOrder
     date?: SortOrder
-    deviceInfo?: SortOrderInput | SortOrder
+    deviceInfo?: SortOrder
     createdAt?: SortOrder
     _count?: SessionCountOrderByAggregateInput
     _avg?: SessionAvgOrderByAggregateInput
@@ -12902,9 +12797,9 @@ export namespace Prisma {
     phoneNumber?: string | null
     connections?: UserCreateconnectionsInput | string[]
     closeFriends?: UserCreatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue
+    githubIntegration?: InputJsonValue | null
+    googleIntegration?: InputJsonValue | null
     isPhoneVerified?: boolean
     phoneVerificationCode?: string | null
     phoneVerificationCodeExpires?: Date | string | null
@@ -12930,9 +12825,9 @@ export namespace Prisma {
     phoneNumber?: string | null
     connections?: UserCreateconnectionsInput | string[]
     closeFriends?: UserCreatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue
+    githubIntegration?: InputJsonValue | null
+    googleIntegration?: InputJsonValue | null
     isPhoneVerified?: boolean
     phoneVerificationCode?: string | null
     phoneVerificationCodeExpires?: Date | string | null
@@ -12948,7 +12843,6 @@ export namespace Prisma {
   }
 
   export type UserUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     uid?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     displayName?: StringFieldUpdateOperationsInput | string
@@ -12958,9 +12852,9 @@ export namespace Prisma {
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     connections?: UserUpdateconnectionsInput | string[]
     closeFriends?: UserUpdatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue | InputJsonValue
+    githubIntegration?: InputJsonValue | InputJsonValue | null
+    googleIntegration?: InputJsonValue | InputJsonValue | null
     isPhoneVerified?: BoolFieldUpdateOperationsInput | boolean
     phoneVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     phoneVerificationCodeExpires?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -12976,7 +12870,6 @@ export namespace Prisma {
   }
 
   export type UserUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     uid?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     displayName?: StringFieldUpdateOperationsInput | string
@@ -12986,9 +12879,9 @@ export namespace Prisma {
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     connections?: UserUpdateconnectionsInput | string[]
     closeFriends?: UserUpdatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue | InputJsonValue
+    githubIntegration?: InputJsonValue | InputJsonValue | null
+    googleIntegration?: InputJsonValue | InputJsonValue | null
     isPhoneVerified?: BoolFieldUpdateOperationsInput | boolean
     phoneVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     phoneVerificationCodeExpires?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -13014,9 +12907,9 @@ export namespace Prisma {
     phoneNumber?: string | null
     connections?: UserCreateconnectionsInput | string[]
     closeFriends?: UserCreatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue
+    githubIntegration?: InputJsonValue | null
+    googleIntegration?: InputJsonValue | null
     isPhoneVerified?: boolean
     phoneVerificationCode?: string | null
     phoneVerificationCodeExpires?: Date | string | null
@@ -13031,7 +12924,6 @@ export namespace Prisma {
   }
 
   export type UserUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     uid?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     displayName?: StringFieldUpdateOperationsInput | string
@@ -13041,9 +12933,9 @@ export namespace Prisma {
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     connections?: UserUpdateconnectionsInput | string[]
     closeFriends?: UserUpdatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue | InputJsonValue
+    githubIntegration?: InputJsonValue | InputJsonValue | null
+    googleIntegration?: InputJsonValue | InputJsonValue | null
     isPhoneVerified?: BoolFieldUpdateOperationsInput | boolean
     phoneVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     phoneVerificationCodeExpires?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -13058,7 +12950,6 @@ export namespace Prisma {
   }
 
   export type UserUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     uid?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     displayName?: StringFieldUpdateOperationsInput | string
@@ -13068,9 +12959,9 @@ export namespace Prisma {
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     connections?: UserUpdateconnectionsInput | string[]
     closeFriends?: UserUpdatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue | InputJsonValue
+    githubIntegration?: InputJsonValue | InputJsonValue | null
+    googleIntegration?: InputJsonValue | InputJsonValue | null
     isPhoneVerified?: BoolFieldUpdateOperationsInput | boolean
     phoneVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     phoneVerificationCodeExpires?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -13093,7 +12984,7 @@ export namespace Prisma {
     githubRepoName?: string | null
     githubRepoOwner?: string | null
     githubRepoIds?: ProjectCreategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | null
     meetLink?: string | null
     isTrackingActive?: boolean
     createdAt?: Date | string
@@ -13112,7 +13003,7 @@ export namespace Prisma {
     githubRepoName?: string | null
     githubRepoOwner?: string | null
     githubRepoIds?: ProjectCreategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | null
     meetLink?: string | null
     isTrackingActive?: boolean
     createdAt?: Date | string
@@ -13121,7 +13012,6 @@ export namespace Prisma {
   }
 
   export type ProjectUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     team?: ProjectUpdateteamInput | string[]
@@ -13129,7 +13019,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13139,7 +13029,6 @@ export namespace Prisma {
   }
 
   export type ProjectUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
@@ -13148,7 +13037,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13166,7 +13055,7 @@ export namespace Prisma {
     githubRepoName?: string | null
     githubRepoOwner?: string | null
     githubRepoIds?: ProjectCreategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | null
     meetLink?: string | null
     isTrackingActive?: boolean
     createdAt?: Date | string
@@ -13174,7 +13063,6 @@ export namespace Prisma {
   }
 
   export type ProjectUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     team?: ProjectUpdateteamInput | string[]
@@ -13182,7 +13070,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13190,7 +13078,6 @@ export namespace Prisma {
   }
 
   export type ProjectUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
@@ -13199,7 +13086,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13237,7 +13124,6 @@ export namespace Prisma {
   }
 
   export type StepUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -13252,7 +13138,6 @@ export namespace Prisma {
   }
 
   export type StepUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -13281,7 +13166,6 @@ export namespace Prisma {
   }
 
   export type StepUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -13294,7 +13178,6 @@ export namespace Prisma {
   }
 
   export type StepUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -13348,7 +13231,6 @@ export namespace Prisma {
   }
 
   export type ProjectTaskUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     displayId?: NullableStringFieldUpdateOperationsInput | string | null
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13368,7 +13250,6 @@ export namespace Prisma {
   }
 
   export type ProjectTaskUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     displayId?: NullableStringFieldUpdateOperationsInput | string | null
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13408,7 +13289,6 @@ export namespace Prisma {
   }
 
   export type ProjectTaskUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     displayId?: NullableStringFieldUpdateOperationsInput | string | null
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13427,7 +13307,6 @@ export namespace Prisma {
   }
 
   export type ProjectTaskUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     displayId?: NullableStringFieldUpdateOperationsInput | string | null
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13463,7 +13342,6 @@ export namespace Prisma {
   }
 
   export type RepositoryUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     githubRepoId?: StringFieldUpdateOperationsInput | string
     repoName?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13471,7 +13349,6 @@ export namespace Prisma {
   }
 
   export type RepositoryUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     githubRepoId?: StringFieldUpdateOperationsInput | string
     repoName?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13487,7 +13364,6 @@ export namespace Prisma {
   }
 
   export type RepositoryUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     githubRepoId?: StringFieldUpdateOperationsInput | string
     repoName?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13495,7 +13371,6 @@ export namespace Prisma {
   }
 
   export type RepositoryUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     githubRepoId?: StringFieldUpdateOperationsInput | string
     repoName?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13505,7 +13380,7 @@ export namespace Prisma {
   export type NoteCreateInput = {
     id?: string
     title?: string
-    content?: NullableJsonNullValueInput | InputJsonValue
+    content?: InputJsonValue | null
     ownerId: string
     folderId?: string | null
     projectId?: string | null
@@ -13518,7 +13393,7 @@ export namespace Prisma {
   export type NoteUncheckedCreateInput = {
     id?: string
     title?: string
-    content?: NullableJsonNullValueInput | InputJsonValue
+    content?: InputJsonValue | null
     ownerId: string
     folderId?: string | null
     projectId?: string | null
@@ -13529,9 +13404,8 @@ export namespace Prisma {
   }
 
   export type NoteUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
-    content?: NullableJsonNullValueInput | InputJsonValue
+    content?: InputJsonValue | InputJsonValue | null
     ownerId?: StringFieldUpdateOperationsInput | string
     folderId?: NullableStringFieldUpdateOperationsInput | string | null
     projectId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13542,9 +13416,8 @@ export namespace Prisma {
   }
 
   export type NoteUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
-    content?: NullableJsonNullValueInput | InputJsonValue
+    content?: InputJsonValue | InputJsonValue | null
     ownerId?: StringFieldUpdateOperationsInput | string
     folderId?: NullableStringFieldUpdateOperationsInput | string | null
     projectId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13557,7 +13430,7 @@ export namespace Prisma {
   export type NoteCreateManyInput = {
     id?: string
     title?: string
-    content?: NullableJsonNullValueInput | InputJsonValue
+    content?: InputJsonValue | null
     ownerId: string
     folderId?: string | null
     projectId?: string | null
@@ -13568,9 +13441,8 @@ export namespace Prisma {
   }
 
   export type NoteUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
-    content?: NullableJsonNullValueInput | InputJsonValue
+    content?: InputJsonValue | InputJsonValue | null
     ownerId?: StringFieldUpdateOperationsInput | string
     folderId?: NullableStringFieldUpdateOperationsInput | string | null
     projectId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13581,9 +13453,8 @@ export namespace Prisma {
   }
 
   export type NoteUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
-    content?: NullableJsonNullValueInput | InputJsonValue
+    content?: InputJsonValue | InputJsonValue | null
     ownerId?: StringFieldUpdateOperationsInput | string
     folderId?: NullableStringFieldUpdateOperationsInput | string | null
     projectId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13620,7 +13491,6 @@ export namespace Prisma {
   }
 
   export type FolderUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13633,7 +13503,6 @@ export namespace Prisma {
   }
 
   export type FolderUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13659,7 +13528,6 @@ export namespace Prisma {
   }
 
   export type FolderUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13672,7 +13540,6 @@ export namespace Prisma {
   }
 
   export type FolderUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13695,7 +13562,7 @@ export namespace Prisma {
     status?: string
     startTime?: Date | string
     endTime?: Date | string | null
-    participants?: JsonNullValueInput | InputJsonValue
+    participants?: InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -13711,13 +13578,12 @@ export namespace Prisma {
     status?: string
     startTime?: Date | string
     endTime?: Date | string | null
-    participants?: JsonNullValueInput | InputJsonValue
+    participants?: InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
   export type MeetingUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     organizerId?: StringFieldUpdateOperationsInput | string
@@ -13727,13 +13593,12 @@ export namespace Prisma {
     status?: StringFieldUpdateOperationsInput | string
     startTime?: DateTimeFieldUpdateOperationsInput | Date | string
     endTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    participants?: JsonNullValueInput | InputJsonValue
+    participants?: InputJsonValue | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type MeetingUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     organizerId?: StringFieldUpdateOperationsInput | string
@@ -13743,7 +13608,7 @@ export namespace Prisma {
     status?: StringFieldUpdateOperationsInput | string
     startTime?: DateTimeFieldUpdateOperationsInput | Date | string
     endTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    participants?: JsonNullValueInput | InputJsonValue
+    participants?: InputJsonValue | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13759,13 +13624,12 @@ export namespace Prisma {
     status?: string
     startTime?: Date | string
     endTime?: Date | string | null
-    participants?: JsonNullValueInput | InputJsonValue
+    participants?: InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
   export type MeetingUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     organizerId?: StringFieldUpdateOperationsInput | string
@@ -13775,13 +13639,12 @@ export namespace Prisma {
     status?: StringFieldUpdateOperationsInput | string
     startTime?: DateTimeFieldUpdateOperationsInput | Date | string
     endTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    participants?: JsonNullValueInput | InputJsonValue
+    participants?: InputJsonValue | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type MeetingUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     organizerId?: StringFieldUpdateOperationsInput | string
@@ -13791,7 +13654,7 @@ export namespace Prisma {
     status?: StringFieldUpdateOperationsInput | string
     startTime?: DateTimeFieldUpdateOperationsInput | Date | string
     endTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    participants?: JsonNullValueInput | InputJsonValue
+    participants?: InputJsonValue | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13823,7 +13686,6 @@ export namespace Prisma {
   }
 
   export type SessionUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     startTime?: DateTimeFieldUpdateOperationsInput | Date | string
     endTime?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13836,7 +13698,6 @@ export namespace Prisma {
   }
 
   export type SessionUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     startTime?: DateTimeFieldUpdateOperationsInput | Date | string
     endTime?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13862,7 +13723,6 @@ export namespace Prisma {
   }
 
   export type SessionUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     startTime?: DateTimeFieldUpdateOperationsInput | Date | string
     endTime?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13875,7 +13735,6 @@ export namespace Prisma {
   }
 
   export type SessionUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     startTime?: DateTimeFieldUpdateOperationsInput | Date | string
     endTime?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13910,7 +13769,6 @@ export namespace Prisma {
   }
 
   export type TeamUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     inviteCode?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
@@ -13921,7 +13779,6 @@ export namespace Prisma {
   }
 
   export type TeamUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     inviteCode?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
@@ -13943,7 +13800,6 @@ export namespace Prisma {
   }
 
   export type TeamUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     inviteCode?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
@@ -13954,7 +13810,6 @@ export namespace Prisma {
   }
 
   export type TeamUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     inviteCode?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
@@ -13992,6 +13847,7 @@ export namespace Prisma {
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+    isSet?: boolean
   }
 
   export type StringNullableListFilter<$PrismaModel = never> = {
@@ -14009,19 +13865,8 @@ export namespace Prisma {
     | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
 
   export type JsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
   }
   export type JsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -14031,19 +13876,9 @@ export namespace Prisma {
     | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
 
   export type JsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    isSet?: boolean
   }
 
   export type BoolFilter<$PrismaModel = never> = {
@@ -14060,6 +13895,7 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+    isSet?: boolean
   }
 
   export type DateTimeFilter<$PrismaModel = never> = {
@@ -14077,11 +13913,6 @@ export namespace Prisma {
     every?: ProjectWhereInput
     some?: ProjectWhereInput
     none?: ProjectWhereInput
-  }
-
-  export type SortOrderInput = {
-    sort: SortOrder
-    nulls?: NullsOrder
   }
 
   export type ProjectOrderByRelationAggregateInput = {
@@ -14191,6 +14022,7 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
+    isSet?: boolean
   }
   export type JsonWithAggregatesFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -14200,19 +14032,8 @@ export namespace Prisma {
     | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
 
   export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedJsonFilter<$PrismaModel>
     _max?: NestedJsonFilter<$PrismaModel>
@@ -14225,22 +14046,12 @@ export namespace Prisma {
     | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
 
   export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedJsonNullableFilter<$PrismaModel>
     _max?: NestedJsonNullableFilter<$PrismaModel>
+    isSet?: boolean
   }
 
   export type BoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -14263,6 +14074,7 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+    isSet?: boolean
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -14523,6 +14335,7 @@ export namespace Prisma {
     in?: Buffer[] | ListBytesFieldRefInput<$PrismaModel> | null
     notIn?: Buffer[] | ListBytesFieldRefInput<$PrismaModel> | null
     not?: NestedBytesNullableFilter<$PrismaModel> | Buffer | null
+    isSet?: boolean
   }
 
   export type NoteCountOrderByAggregateInput = {
@@ -14568,6 +14381,7 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedBytesNullableFilter<$PrismaModel>
     _max?: NestedBytesNullableFilter<$PrismaModel>
+    isSet?: boolean
   }
 
   export type FolderOwnerIdParentIdNameCompoundUniqueInput = {
@@ -14771,6 +14585,7 @@ export namespace Prisma {
 
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
+    unset?: boolean
   }
 
   export type UserUpdateconnectionsInput = {
@@ -14789,6 +14604,7 @@ export namespace Prisma {
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
+    unset?: boolean
   }
 
   export type DateTimeFieldUpdateOperationsInput = {
@@ -15000,6 +14816,7 @@ export namespace Prisma {
 
   export type NullableBytesFieldUpdateOperationsInput = {
     set?: Buffer | null
+    unset?: boolean
   }
 
   export type FolderCreatecollaboratorsInput = {
@@ -15046,6 +14863,7 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+    isSet?: boolean
   }
 
   export type NestedBoolFilter<$PrismaModel = never> = {
@@ -15062,6 +14880,7 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+    isSet?: boolean
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -15118,6 +14937,7 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
+    isSet?: boolean
   }
 
   export type NestedIntNullableFilter<$PrismaModel = never> = {
@@ -15129,6 +14949,7 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
+    isSet?: boolean
   }
   export type NestedJsonFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -15138,19 +14959,8 @@ export namespace Prisma {
     | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
 
   export type NestedJsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -15160,19 +14970,9 @@ export namespace Prisma {
     | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
 
   export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    isSet?: boolean
   }
 
   export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -15195,6 +14995,7 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+    isSet?: boolean
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -15243,6 +15044,7 @@ export namespace Prisma {
     in?: Buffer[] | ListBytesFieldRefInput<$PrismaModel> | null
     notIn?: Buffer[] | ListBytesFieldRefInput<$PrismaModel> | null
     not?: NestedBytesNullableFilter<$PrismaModel> | Buffer | null
+    isSet?: boolean
   }
 
   export type NestedBytesNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -15253,6 +15055,7 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedBytesNullableFilter<$PrismaModel>
     _max?: NestedBytesNullableFilter<$PrismaModel>
+    isSet?: boolean
   }
 
   export type ProjectCreateWithoutOwnerInput = {
@@ -15264,7 +15067,7 @@ export namespace Prisma {
     githubRepoName?: string | null
     githubRepoOwner?: string | null
     githubRepoIds?: ProjectCreategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | null
     meetLink?: string | null
     isTrackingActive?: boolean
     createdAt?: Date | string
@@ -15281,7 +15084,7 @@ export namespace Prisma {
     githubRepoName?: string | null
     githubRepoOwner?: string | null
     githubRepoIds?: ProjectCreategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | null
     meetLink?: string | null
     isTrackingActive?: boolean
     createdAt?: Date | string
@@ -15296,7 +15099,6 @@ export namespace Prisma {
 
   export type ProjectCreateManyOwnerInputEnvelope = {
     data: ProjectCreateManyOwnerInput | ProjectCreateManyOwnerInput[]
-    skipDuplicates?: boolean
   }
 
   export type ProjectUpsertWithWhereUniqueWithoutOwnerInput = {
@@ -15346,9 +15148,9 @@ export namespace Prisma {
     phoneNumber?: string | null
     connections?: UserCreateconnectionsInput | string[]
     closeFriends?: UserCreatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue
+    githubIntegration?: InputJsonValue | null
+    googleIntegration?: InputJsonValue | null
     isPhoneVerified?: boolean
     phoneVerificationCode?: string | null
     phoneVerificationCodeExpires?: Date | string | null
@@ -15373,9 +15175,9 @@ export namespace Prisma {
     phoneNumber?: string | null
     connections?: UserCreateconnectionsInput | string[]
     closeFriends?: UserCreatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue
+    githubIntegration?: InputJsonValue | null
+    googleIntegration?: InputJsonValue | null
     isPhoneVerified?: boolean
     phoneVerificationCode?: string | null
     phoneVerificationCodeExpires?: Date | string | null
@@ -15429,7 +15231,6 @@ export namespace Prisma {
 
   export type StepCreateManyProjectInputEnvelope = {
     data: StepCreateManyProjectInput | StepCreateManyProjectInput[]
-    skipDuplicates?: boolean
   }
 
   export type UserUpsertWithoutOwnedProjectsInput = {
@@ -15444,7 +15245,6 @@ export namespace Prisma {
   }
 
   export type UserUpdateWithoutOwnedProjectsInput = {
-    id?: StringFieldUpdateOperationsInput | string
     uid?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     displayName?: StringFieldUpdateOperationsInput | string
@@ -15454,9 +15254,9 @@ export namespace Prisma {
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     connections?: UserUpdateconnectionsInput | string[]
     closeFriends?: UserUpdatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue | InputJsonValue
+    githubIntegration?: InputJsonValue | InputJsonValue | null
+    googleIntegration?: InputJsonValue | InputJsonValue | null
     isPhoneVerified?: BoolFieldUpdateOperationsInput | boolean
     phoneVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     phoneVerificationCodeExpires?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15471,7 +15271,6 @@ export namespace Prisma {
   }
 
   export type UserUncheckedUpdateWithoutOwnedProjectsInput = {
-    id?: StringFieldUpdateOperationsInput | string
     uid?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     displayName?: StringFieldUpdateOperationsInput | string
@@ -15481,9 +15280,9 @@ export namespace Prisma {
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     connections?: UserUpdateconnectionsInput | string[]
     closeFriends?: UserUpdatecloseFriendsInput | string[]
-    chatRequests?: JsonNullValueInput | InputJsonValue
-    githubIntegration?: NullableJsonNullValueInput | InputJsonValue
-    googleIntegration?: NullableJsonNullValueInput | InputJsonValue
+    chatRequests?: InputJsonValue | InputJsonValue
+    githubIntegration?: InputJsonValue | InputJsonValue | null
+    googleIntegration?: InputJsonValue | InputJsonValue | null
     isPhoneVerified?: BoolFieldUpdateOperationsInput | boolean
     phoneVerificationCode?: NullableStringFieldUpdateOperationsInput | string | null
     phoneVerificationCodeExpires?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15539,7 +15338,7 @@ export namespace Prisma {
     githubRepoName?: string | null
     githubRepoOwner?: string | null
     githubRepoIds?: ProjectCreategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | null
     meetLink?: string | null
     isTrackingActive?: boolean
     createdAt?: Date | string
@@ -15557,7 +15356,7 @@ export namespace Prisma {
     githubRepoName?: string | null
     githubRepoOwner?: string | null
     githubRepoIds?: ProjectCreategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | null
     meetLink?: string | null
     isTrackingActive?: boolean
     createdAt?: Date | string
@@ -15614,7 +15413,6 @@ export namespace Prisma {
 
   export type ProjectTaskCreateManyStepInputEnvelope = {
     data: ProjectTaskCreateManyStepInput | ProjectTaskCreateManyStepInput[]
-    skipDuplicates?: boolean
   }
 
   export type ProjectUpsertWithoutStepsInput = {
@@ -15629,7 +15427,6 @@ export namespace Prisma {
   }
 
   export type ProjectUpdateWithoutStepsInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     team?: ProjectUpdateteamInput | string[]
@@ -15637,7 +15434,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15646,7 +15443,6 @@ export namespace Prisma {
   }
 
   export type ProjectUncheckedUpdateWithoutStepsInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
@@ -15655,7 +15451,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15746,7 +15542,6 @@ export namespace Prisma {
   }
 
   export type StepUpdateWithoutTasksInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -15760,7 +15555,6 @@ export namespace Prisma {
   }
 
   export type StepUncheckedUpdateWithoutTasksInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -15782,7 +15576,7 @@ export namespace Prisma {
     githubRepoName?: string | null
     githubRepoOwner?: string | null
     githubRepoIds?: ProjectCreategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | null
     meetLink?: string | null
     isTrackingActive?: boolean
     createdAt?: Date | string
@@ -15790,7 +15584,6 @@ export namespace Prisma {
   }
 
   export type ProjectUpdateWithoutOwnerInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     team?: ProjectUpdateteamInput | string[]
@@ -15798,7 +15591,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15807,7 +15600,6 @@ export namespace Prisma {
   }
 
   export type ProjectUncheckedUpdateWithoutOwnerInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     team?: ProjectUpdateteamInput | string[]
@@ -15815,7 +15607,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15824,7 +15616,6 @@ export namespace Prisma {
   }
 
   export type ProjectUncheckedUpdateManyWithoutOwnerInput = {
-    id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     team?: ProjectUpdateteamInput | string[]
@@ -15832,7 +15623,7 @@ export namespace Prisma {
     githubRepoName?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoOwner?: NullableStringFieldUpdateOperationsInput | string | null
     githubRepoIds?: ProjectUpdategithubRepoIdsInput | string[]
-    architecture?: NullableJsonNullValueInput | InputJsonValue
+    architecture?: InputJsonValue | InputJsonValue | null
     meetLink?: NullableStringFieldUpdateOperationsInput | string | null
     isTrackingActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15853,7 +15644,6 @@ export namespace Prisma {
   }
 
   export type StepUpdateWithoutProjectInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -15867,7 +15657,6 @@ export namespace Prisma {
   }
 
   export type StepUncheckedUpdateWithoutProjectInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -15881,7 +15670,6 @@ export namespace Prisma {
   }
 
   export type StepUncheckedUpdateManyWithoutProjectInput = {
-    id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
@@ -15913,7 +15701,6 @@ export namespace Prisma {
   }
 
   export type ProjectTaskUpdateWithoutStepInput = {
-    id?: StringFieldUpdateOperationsInput | string
     displayId?: NullableStringFieldUpdateOperationsInput | string | null
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15932,7 +15719,6 @@ export namespace Prisma {
   }
 
   export type ProjectTaskUncheckedUpdateWithoutStepInput = {
-    id?: StringFieldUpdateOperationsInput | string
     displayId?: NullableStringFieldUpdateOperationsInput | string | null
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15951,7 +15737,6 @@ export namespace Prisma {
   }
 
   export type ProjectTaskUncheckedUpdateManyWithoutStepInput = {
-    id?: StringFieldUpdateOperationsInput | string
     displayId?: NullableStringFieldUpdateOperationsInput | string | null
     title?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null

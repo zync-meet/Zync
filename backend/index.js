@@ -130,7 +130,7 @@ app.use('/api/support', require('./routes/supportRoutes')); // Support Form
 // ==========================================
 prisma.$connect()
   .then(() => {
-    console.log('✅ Supabase PostgreSQL connected via Prisma');
+    console.log('✅ MongoDB connected via Prisma');
   })
   .catch((err) => {
     console.error(`Database connection error: ${err.message}`);

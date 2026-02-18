@@ -4,14 +4,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // directUrl = env("DIRECT_URL") // Re-enable when port 5432 is accessible (e.g. on Oracle Cloud)
+  provider = "mongodb"
+  url      = env("MONGO_URI")
 }
 
 // ─── USER ────────────────────────────────────────────────────────────
 model User {
-  id          String   @id @default(uuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   uid         String   @unique // Firebase UID — the universal join key
   email       String   @unique
   displayName String   @default("User")
@@ -48,24 +47,23 @@ model User {
   role String @default("user") // "user" | "admin"
 
   // Relations
-  ownedProjects Project[]  @relation("ProjectOwner")
-  teamMemberships String[] @default([]) // Team IDs the user belongs to
+  ownedProjects   Project[]  @relation("ProjectOwner")
+  teamMemberships String[]   @default([]) // Team IDs the user belongs to
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([uid])
-  @@index([email])
+  @@map("users")
 }
 
 // ─── PROJECT ─────────────────────────────────────────────────────────
 model Project {
-  id          String  @id @default(uuid())
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String
 
-  ownerId String
-  owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String  @db.ObjectId
+  owner   User    @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
   team String[] @default([]) // Array of Firebase UIDs
 
@@ -89,12 +87,12 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([ownerId])
+  @@map("projects")
 }
 
 // ─── STEP (was embedded in Project) ──────────────────────────────────
 model Step {
-  id          String  @id @default(uuid())
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
   title       String
   description String?
 
@@ -106,7 +104,7 @@ model Step {
   type       String  @default("Other") // Frontend, Backend, Database, Design, Other
   page       String  @default("General")
 
-  projectId String
+  projectId String  @db.ObjectId
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   tasks ProjectTask[]
@@ -114,12 +112,12 @@ model Step {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([projectId])
+  @@map("steps")
 }
 
 // ─── PROJECT TASK (was embedded in Step, replaces old Prisma Task) ───
 model ProjectTask {
-  id          String  @id @default(uuid())
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
   displayId   String? @unique // Human-readable ID like "TASK-42"
   title       String
   description String?
@@ -141,30 +139,33 @@ model ProjectTask {
   // GitHub repo link (replaces old repoIds)
   repoIds String[] @default([])
 
-  stepId String
-  step   Step   @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  stepId String  @db.ObjectId
+  step   Step    @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([stepId])
   @@index([assignedTo])
   @@index([status])
+
+  @@map("projecttasks")
 }
 
 // ─── REPOSITORY (GitHub App installs) ────────────────────────────────
 model Repository {
-  id           String @id @default(uuid())
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
   githubRepoId String @unique
   repoName     String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("repositories")
 }
 
 // ─── NOTE ────────────────────────────────────────────────────────────
 model Note {
-  id      String  @id @default(uuid())
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
   title   String  @default("Untitled")
   content Json? // Block-editor / rich-text content
 
@@ -179,13 +180,12 @@ model Note {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([ownerId])
-  @@index([folderId])
+  @@map("notes")
 }
 
 // ─── FOLDER ──────────────────────────────────────────────────────────
 model Folder {
-  id   String @id @default(uuid())
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
   name String
 
   ownerId  String // Firebase UID
@@ -201,12 +201,13 @@ model Folder {
   updatedAt DateTime @updatedAt
 
   @@unique([ownerId, parentId, name])
-  @@index([ownerId])
+
+  @@map("folders")
 }
 
 // ─── MEETING ─────────────────────────────────────────────────────────
 model Meeting {
-  id          String @id @default(uuid())
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
   title       String @default("Untitled Meeting")
   description String?
 
@@ -227,12 +228,12 @@ model Meeting {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([organizerId])
+  @@map("meetings")
 }
 
 // ─── SESSION (activity tracking) ─────────────────────────────────────
 model Session {
-  id     String @id @default(uuid())
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
   userId String // Firebase UID
 
   startTime      DateTime @default(now())
@@ -248,11 +249,13 @@ model Session {
 
   @@index([userId])
   @@index([userId, date])
+
+  @@map("sessions")
 }
 
 // ─── TEAM ────────────────────────────────────────────────────────────
 model Team {
-  id         String @id @default(uuid())
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
   name       String
   inviteCode String @unique
   ownerId    String // Firebase UID
@@ -263,4 +266,6 @@ model Team {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("teams")
 }

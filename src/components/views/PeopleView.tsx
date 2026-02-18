@@ -36,9 +36,9 @@ interface User {
     email: string;
     displayName?: string;
     photoURL?: string;
-    teamId?: Team | string; 
+    teamId?: Team | string;
     closeFriends?: string[];
-    [key: string]: any; 
+    [key: string]: any;
 }
 
 interface PeopleViewProps {
@@ -58,12 +58,12 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const { data: userData } = useQuery({
         queryKey: ['me', currentUser?.uid],
         queryFn: async () => {
-            if (!currentUser) {return null;}
+            if (!currentUser) { return null; }
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/users/me`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!res.ok) {throw new Error('Failed to fetch user');}
+            if (!res.ok) { throw new Error('Failed to fetch user'); }
             const data = await res.json();
             // Normalize teamId if it comes as object
             if (data.teamId && typeof data.teamId === 'object') {
@@ -78,12 +78,12 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const { data: myTeamsData, isLoading: myTeamsLoading } = useQuery({
         queryKey: ['myTeams', currentUser?.uid],
         queryFn: async () => {
-            if (!currentUser) {return [];}
+            if (!currentUser) { return []; }
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/teams/mine`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!res.ok) {throw new Error('Failed to fetch teams');}
+            if (!res.ok) { throw new Error('Failed to fetch teams'); }
             return res.json();
         },
         enabled: !!currentUser && !isPreview,
@@ -93,12 +93,12 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const { data: allUsersData } = useQuery({
         queryKey: ['allUsers', currentUser?.uid],
         queryFn: async () => {
-            if (!currentUser) {return [];}
+            if (!currentUser) { return []; }
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/users`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!res.ok) {throw new Error('Failed to fetch users');}
+            if (!res.ok) { throw new Error('Failed to fetch users'); }
             return res.json();
         },
         enabled: !!currentUser && !isPreview,
@@ -125,12 +125,12 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const { data: teamUsersData, isLoading: usersLoading } = useQuery({
         queryKey: ['teamUsers', teamInfo?.id],
         queryFn: async () => {
-            if (!teamInfo?.id || !currentUser) {return [];}
+            if (!teamInfo?.id || !currentUser) { return []; }
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/users?teamId=${teamInfo.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!res.ok) {throw new Error('Failed to fetch team users');}
+            if (!res.ok) { throw new Error('Failed to fetch team users'); }
             return res.json();
         },
         enabled: !!teamInfo?.id && !isPreview,
@@ -138,6 +138,8 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     });
 
     const users: User[] = isPreview ? (propUsers || []) : (teamUsersData || []);
+
+
 
     // Improved loading state to prevent "No members" flash during switch or init
     const loading = !isPreview && (
@@ -152,7 +154,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const toggleCloseFriendMutation = useMutation({
         mutationFn: async (friendId: string) => {
             const token = await currentUser?.getIdToken();
-            if (!token) {throw new Error("No token");}
+            if (!token) { throw new Error("No token"); }
             const res = await fetch(`${API_BASE_URL}/api/users/close-friends/toggle`, {
                 method: 'POST',
                 headers: {
@@ -161,14 +163,14 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                 },
                 body: JSON.stringify({ friendId })
             });
-            if (!res.ok) {throw new Error("Failed");}
+            if (!res.ok) { throw new Error("Failed"); }
             return res.json();
         },
         onMutate: async (friendId) => {
             await queryClient.cancelQueries({ queryKey: ['me', currentUser?.uid] });
             const previousUserData = queryClient.getQueryData(['me', currentUser?.uid]);
             queryClient.setQueryData(['me', currentUser?.uid], (old: any) => {
-                if (!old) {return old;}
+                if (!old) { return old; }
                 const isFriend = old.closeFriends?.includes(friendId);
                 const newFriends = isFriend
                     ? old.closeFriends.filter((id: string) => id !== friendId)
@@ -193,7 +195,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     });
 
     const toggleCloseFriend = async (friendId: string) => {
-        if (isPreview) {return;}
+        if (isPreview) { return; }
         toggleCloseFriendMutation.mutate(friendId);
     };
 
@@ -218,15 +220,15 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     // Load Preferences
     useEffect(() => {
         const storedWidth = localStorage.getItem('zync-people-sidebar-width');
-        if (storedWidth) {setSidebarWidth(parseInt(storedWidth));}
+        if (storedWidth) { setSidebarWidth(parseInt(storedWidth)); }
         const storedCollapsed = localStorage.getItem('zync-people-sidebar-collapsed');
-        if (storedCollapsed) {setIsCollapsed(storedCollapsed === 'true');}
+        if (storedCollapsed) { setIsCollapsed(storedCollapsed === 'true'); }
     }, []);
 
     // Resize Logic
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
-            if (!isResizing) {return;}
+            if (!isResizing) { return; }
             const newWidth = Math.min(Math.max(e.clientX - (sidebarRef.current?.getBoundingClientRect().left || 0), 160), 480);
             setSidebarWidth(newWidth);
         };
@@ -258,7 +260,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
         const newState = !isCollapsed;
         setIsCollapsed(newState);
         localStorage.setItem('ZYNC-people-sidebar-collapsed', newState.toString());
-        if (!newState) {setIsHovered(false);}
+        if (!newState) { setIsHovered(false); }
     };
 
 
@@ -543,7 +545,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                                 </div>
                                                 <DialogFooter>
                                                     <Button type="submit" disabled={inviteLoading} onClick={async () => {
-                                                        if (!inviteEmail) {return;}
+                                                        if (!inviteEmail) { return; }
                                                         setInviteLoading(true);
                                                         try {
                                                             const token = await currentUser?.getIdToken();

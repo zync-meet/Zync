@@ -256,4 +256,75 @@ router.post('/invite', verifyToken, async (req, res) => {
     }
 });
 
+// Leave Team (Member leaves voluntarily)
+router.post('/:teamId/leave', verifyToken, async (req, res) => {
+    const { teamId } = req.params;
+    const uid = req.user.uid;
+
+    try {
+        const team = await prisma.team.findUnique({ where: { id: teamId } });
+        if (!team) return res.status(404).json({ message: 'Team not found' });
+
+        if (team.ownerId === uid) {
+            return res.status(400).json({ message: 'The owner cannot leave the team. Transfer ownership or delete the team instead.' });
+        }
+
+        if (!team.members.includes(uid)) {
+            return res.status(400).json({ message: 'You are not a member of this team' });
+        }
+
+        // Remove from team members
+        await prisma.team.update({
+            where: { id: teamId },
+            data: { members: team.members.filter(id => id !== uid) }
+        });
+
+        // Remove from user's teamMemberships
+        const user = await prisma.user.findUnique({ where: { uid } });
+        if (user) {
+            await prisma.user.update({
+                where: { uid },
+                data: { teamMemberships: user.teamMemberships.filter(id => id !== teamId) }
+            });
+        }
+
+        res.status(200).json({ message: 'Left team successfully' });
+    } catch (error) {
+        console.error('Error leaving team:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get Team Details with Member Info
+router.get('/:teamId/details', verifyToken, async (req, res) => {
+    const { teamId } = req.params;
+
+    try {
+        const team = await prisma.team.findUnique({ where: { id: teamId } });
+        if (!team) return res.status(404).json({ message: 'Team not found' });
+
+        // Resolve member UIDs to user objects
+        const memberDetails = await Promise.all(
+            team.members.map(async (memberUid) => {
+                const user = await prisma.user.findUnique({ where: { uid: memberUid } });
+                return user ? {
+                    uid: user.uid,
+                    displayName: user.displayName || user.email?.split('@')[0] || 'Unknown',
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    isOwner: memberUid === team.ownerId
+                } : { uid: memberUid, displayName: 'Unknown User', email: '', photoURL: null, isOwner: false };
+            })
+        );
+
+        res.json({
+            ...team,
+            memberDetails
+        });
+    } catch (error) {
+        console.error('Error fetching team details:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

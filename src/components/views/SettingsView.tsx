@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserSync } from "@/hooks/use-user-sync";
 import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Headphones, MessageSquare, Newspaper } from "lucide-react";
+import { Loader2, Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Headphones, MessageSquare, Newspaper, UserMinus, Trash2, Copy, LogOut, Crown, Users } from "lucide-react";
 import { cn, API_BASE_URL, getFullUrl } from "@/lib/utils";
 import {
   Command,
@@ -54,6 +55,8 @@ export default function SettingsView() {
   const [userData, setUserData] = useState<any>(null); // Local state
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
+  const [teamData, setTeamData] = useState<any>(null);
+  const [teamLoading, setTeamLoading] = useState(false);
 
   // Auth Listener to ensure we have the latest user state (e.g. after linking)
   useEffect(() => {
@@ -275,10 +278,7 @@ export default function SettingsView() {
       // Update Local State
       setUserData((prev: any) => ({
         ...prev,
-        integrations: {
-          ...prev?.integrations,
-          github: { ...prev?.integrations?.github, connected: true, username: data.username }
-        }
+        githubIntegration: { ...prev?.githubIntegration, connected: true, username: data.username }
       }));
 
     } catch (error: any) {
@@ -311,10 +311,7 @@ export default function SettingsView() {
       toast({ title: "Disconnected", description: "GitHub account unlinked." });
       setUserData((prev: any) => ({
         ...prev,
-        integrations: {
-          ...prev?.integrations,
-          github: { ...prev?.integrations?.github, connected: false, username: null }
-        }
+        githubIntegration: { ...prev?.githubIntegration, connected: false, username: null }
       }));
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -682,6 +679,19 @@ export default function SettingsView() {
             </Card>
           </TabsContent>
 
+          {/* TEAM TAB */}
+          <TabsContent value="team">
+            <TeamTabContent
+              currentUser={currentUser}
+              userData={userData}
+              teamData={teamData}
+              setTeamData={setTeamData}
+              teamLoading={teamLoading}
+              setTeamLoading={setTeamLoading}
+              setUserData={setUserData}
+            />
+          </TabsContent>
+
           {/* INTEGRATIONS TAB */}
           <TabsContent value="integrations">
             <Card>
@@ -697,17 +707,17 @@ export default function SettingsView() {
                     <div>
                       <p className="font-medium">GitHub</p>
                       <p className="text-sm text-muted-foreground">
-                        {userData?.integrations?.github?.connected
-                          ? `Connected as ${userData.integrations.github.username}`
+                        {userData?.githubIntegration?.connected
+                          ? `Connected as ${userData.githubIntegration.username}`
                           : "Connect repositories to ZYNC."}
                       </p>
                     </div>
                   </div>
                   <Button
-                    variant={userData?.integrations?.github?.connected ? "destructive" : "secondary"}
-                    onClick={userData?.integrations?.github?.connected ? handleGithubDisconnect : handleGithubConnect}
+                    variant={userData?.githubIntegration?.connected ? "destructive" : "secondary"}
+                    onClick={userData?.githubIntegration?.connected ? handleGithubDisconnect : handleGithubConnect}
                   >
-                    {userData?.integrations?.github?.connected ? "Unlink" : "Connect"}
+                    {userData?.githubIntegration?.connected ? "Unlink" : "Connect"}
                   </Button>
                 </div>
 
@@ -935,6 +945,291 @@ export default function SettingsView() {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+// ─── TEAM TAB COMPONENT ─────────────────────────────────────────────
+function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoading, setTeamLoading, setUserData }: any) {
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Fetch team details when tab mounts or userData changes
+  useEffect(() => {
+    const fetchTeamDetails = async () => {
+      if (!currentUser || !userData?.teamMemberships?.length) {
+        setTeamData(null);
+        return;
+      }
+
+      setTeamLoading(true);
+      try {
+        const token = await currentUser.getIdToken();
+        const teamId = userData.teamMemberships[0];
+        const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/details`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setTeamData(data);
+        } else {
+          setTeamData(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch team details:", err);
+        setTeamData(null);
+      } finally {
+        setTeamLoading(false);
+      }
+    };
+
+    fetchTeamDetails();
+  }, [currentUser, userData?.teamMemberships]);
+
+  const isOwner = teamData?.ownerId === currentUser?.uid;
+
+  const handleRemoveMember = async (memberUid: string) => {
+    if (!teamData || !currentUser) return;
+    if (!window.confirm("Remove this member from the team?")) return;
+
+    setActionLoading(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/teams/${teamData.id}/members/${memberUid}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to remove member');
+      }
+
+      toast({ title: "Member Removed", description: "Successfully removed from the team." });
+      // Refresh team data
+      setTeamData((prev: any) => ({
+        ...prev,
+        members: prev.members.filter((uid: string) => uid !== memberUid),
+        memberDetails: prev.memberDetails.filter((m: any) => m.uid !== memberUid)
+      }));
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLeaveTeam = async () => {
+    if (!teamData || !currentUser) return;
+    if (!window.confirm("Are you sure you want to leave this team?")) return;
+
+    setActionLoading(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/teams/${teamData.id}/leave`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to leave team');
+      }
+
+      toast({ title: "Left Team", description: "You have left the team." });
+      setTeamData(null);
+      // Update local user data to remove teamMembership
+      setUserData((prev: any) => ({
+        ...prev,
+        teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamData.id) || []
+      }));
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!teamData || !currentUser) return;
+    if (!window.confirm("Are you sure you want to DELETE this team? This action cannot be undone.")) return;
+
+    setActionLoading(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/teams/${teamData.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to delete team');
+      }
+
+      toast({ title: "Team Deleted", description: "The team has been permanently deleted." });
+      setTeamData(null);
+      setUserData((prev: any) => ({
+        ...prev,
+        teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamData.id) || []
+      }));
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const copyInviteCode = () => {
+    if (teamData?.inviteCode) {
+      navigator.clipboard.writeText(teamData.inviteCode);
+      toast({ title: "Copied!", description: "Invite code copied to clipboard." });
+    }
+  };
+
+  if (teamLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!teamData) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Team</CardTitle>
+          <CardDescription>You are not part of any team yet.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Users className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground text-sm max-w-sm">
+              Create a team or join one using an invite code to start collaborating with your colleagues.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Team Info */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>{teamData.name}</CardTitle>
+              <CardDescription>{teamData.type} · {teamData.members?.length || 0} member{teamData.members?.length !== 1 ? 's' : ''}</CardDescription>
+            </div>
+            {isOwner && (
+              <Badge variant="secondary" className="gap-1">
+                <Crown className="h-3 w-3" />
+                Owner
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <div className="space-y-1 flex-1">
+              <Label className="text-xs text-muted-foreground">Invite Code</Label>
+              <div className="flex items-center gap-2">
+                <code className="px-3 py-1.5 rounded-md bg-muted text-sm font-mono tracking-wider">{teamData.inviteCode}</code>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyInviteCode}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Members List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Members</CardTitle>
+          <CardDescription>
+            {isOwner ? "Manage your team members." : "View team members."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {teamData.memberDetails?.map((member: any) => (
+            <div key={member.uid} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={member.photoURL ? getFullUrl(member.photoURL) : undefined} />
+                  <AvatarFallback className="text-xs">
+                    {member.displayName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium flex items-center gap-1.5">
+                    {member.displayName}
+                    {member.isOwner && (
+                      <Crown className="h-3.5 w-3.5 text-amber-500" />
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{member.email}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              {isOwner && !member.isOwner && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => handleRemoveMember(member.uid)}
+                  disabled={actionLoading}
+                >
+                  <UserMinus className="h-4 w-4 mr-1" />
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Actions Card */}
+      <Card className={isOwner ? "border-destructive/50" : ""}>
+        <CardHeader>
+          <CardTitle className={isOwner ? "text-destructive" : ""}>{isOwner ? "Danger Zone" : "Team Actions"}</CardTitle>
+          <CardDescription>
+            {isOwner
+              ? "Permanently delete this team and remove all members."
+              : "Leave this team to stop receiving updates and lose access to team resources."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isOwner ? (
+            <div className="space-y-4">
+              <div className="bg-destructive/10 p-4 rounded-md text-sm text-destructive font-medium border border-destructive/20">
+                <AlertTriangle className="w-4 h-4 inline mr-2" />
+                Deleting the team will remove all members and cannot be undone.
+              </div>
+              <Button variant="destructive" onClick={handleDeleteTeam} disabled={actionLoading}>
+                {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Team
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline" onClick={handleLeaveTeam} disabled={actionLoading}>
+              {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <LogOut className="mr-2 h-4 w-4" />
+              Leave Team
+            </Button>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

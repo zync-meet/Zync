@@ -613,8 +613,8 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           setUserData(data);
 
           // If connected to GitHub, fetch public profile
-          if (data?.integrations?.github?.connected && data?.integrations?.github?.username) {
-            const username = data.integrations.github.username;
+          if (data?.githubIntegration?.connected && data?.githubIntegration?.username) {
+            const username = data.githubIntegration.username;
             fetch(`https://api.github.com/users/${username}`)
               .then(ghRes => ghRes.json())
               .then(ghData => setGithubProfile(ghData))

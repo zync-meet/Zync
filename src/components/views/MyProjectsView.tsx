@@ -9,6 +9,8 @@ import { Github, Loader2, Link as LinkIcon, ExternalLink, Star, GitFork, Search 
 import { API_BASE_URL } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { GithubAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import {
   Select,
   SelectContent,
@@ -19,11 +21,9 @@ import {
 
 interface MongoUser {
   uid: string;
-  integrations?: {
-    github?: {
-      connected: boolean;
-      username?: string;
-    };
+  githubIntegration?: {
+    connected: boolean;
+    username?: string;
   };
 }
 
@@ -56,7 +56,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
   // Fetch full user data including integrations
   const fetchUserData = async () => {
     try {
-      if (!currentUser?.uid) {return;}
+      if (!currentUser?.uid) { return; }
       const token = await currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/users/me`, {
         headers: {
@@ -84,7 +84,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
   // Fetch Repositories
   useEffect(() => {
     const fetchRepos = async () => {
-      if (userData?.integrations?.github?.connected) {
+      if (userData?.githubIntegration?.connected) {
         setLoading(true);
         try {
           const token = await currentUser.getIdToken();
@@ -122,18 +122,44 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
     }
   }, [userData, currentUser, toast]);
 
-  const handleConnect = () => {
-    toast({
-      title: "GitHub Connection",
-      description: "Please sign out and sign in again with GitHub to connect your repositories, or check Settings.",
-    });
+  const [connecting, setConnecting] = useState(false);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const provider = new GithubAuthProvider();
+      provider.addScope('repo');
+      provider.addScope('read:user');
+
+      const result = await signInWithPopup(auth, provider);
+      const credential = GithubAuthProvider.credentialFromResult(result);
+      const githubToken = credential?.accessToken;
+
+      if (githubToken && result.user) {
+        const firebaseToken = await result.user.getIdToken();
+        await fetch(`${API_BASE_URL}/api/github/connect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${firebaseToken}` },
+          body: JSON.stringify({ accessToken: githubToken, username: result.user.displayName || 'unknown' })
+        });
+
+        toast({ title: "GitHub Connected!", description: "Your repositories are now linked." });
+        // Refresh user data to show repos
+        await fetchUserData();
+      }
+    } catch (error: any) {
+      console.error("GitHub connect error:", error);
+      toast({ title: "Connection Failed", description: error.message || "Could not connect to GitHub.", variant: "destructive" });
+    } finally {
+      setConnecting(false);
+    }
   };
 
   const getFilteredAndSortedRepos = (filterType: string) => {
     let result = repos.filter(repo => {
       // Tab Filter
-      if (filterType === "all") {return true;}
-      if (filterType === "collaborator") {return userData?.integrations?.github?.username && repo.owner.login !== userData.integrations.github.username;}
+      if (filterType === "all") { return true; }
+      if (filterType === "collaborator") { return userData?.githubIntegration?.username && repo.owner.login !== userData.githubIntegration.username; }
       return repo.visibility === filterType;
     });
 
@@ -149,9 +175,9 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
 
     // Sort
     result.sort((a, b) => {
-      if (sortBy === "stars") {return b.stargazers_count - a.stargazers_count;}
-      if (sortBy === "forks") {return b.forks_count - a.forks_count;}
-      if (sortBy === "name") {return a.name.localeCompare(b.name);}
+      if (sortBy === "stars") { return b.stargazers_count - a.stargazers_count; }
+      if (sortBy === "forks") { return b.forks_count - a.forks_count; }
+      if (sortBy === "name") { return a.name.localeCompare(b.name); }
       // Default: Updated
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
@@ -167,7 +193,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
     );
   }
 
-  const isConnected = userData?.integrations?.github?.connected;
+  const isConnected = userData?.githubIntegration?.connected;
 
   if (!isConnected) {
     return (
@@ -176,14 +202,14 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
           <Github className="h-16 w-16" />
         </div>
         <div className="max-w-md space-y-2">
-          <h2 className="text-2xl font-bold">Connect to GitHub</h2>
+          <h2 className="text-2xl font-bold">Link your GitHub Projects</h2>
           <p className="text-muted-foreground">
-            Link your GitHub account to access your repositories directly within ZYNC.
+            Connect your GitHub account to access and manage your repositories directly within ZYNC.
           </p>
         </div>
-        <Button size="lg" onClick={handleConnect} className="gap-2">
-          <Github className="h-5 w-5" />
-          Connect GitHub
+        <Button size="lg" onClick={handleConnect} disabled={connecting} className="gap-2">
+          {connecting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Github className="h-5 w-5" />}
+          {connecting ? "Connecting..." : "Link GitHub Projects"}
         </Button>
       </div>
     );
@@ -201,7 +227,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="gap-1 bg-green-500/10 text-green-500 border-green-500/20">
             <Github className="h-3 w-3" />
-            Connected as {userData.integrations?.github?.username || "GitHub User"}
+            Connected as {userData.githubIntegration?.username || "GitHub User"}
           </Badge>
         </div>
       </div>
