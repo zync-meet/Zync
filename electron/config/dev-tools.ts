@@ -109,7 +109,8 @@ export async function installReactDevTools(): Promise<boolean> {
 
     try {
         // Try to load electron-devtools-installer if available
-        const installer = await import('electron-devtools-installer').catch(() => null);
+        // const installer = await import('electron-devtools-installer').catch(() => null);
+        const installer: any = null; // skipped due to install error
 
         if (installer) {
             const { default: installExtension, REACT_DEVELOPER_TOOLS } = installer;

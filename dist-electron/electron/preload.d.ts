@@ -9,14 +9,22 @@
  *
  * All APIs exposed here must be documented in `electron/preload/types.ts`.
  *
- * security:
- * - Direct access to ipcRenderer is never exposed
- * - All exposed functions perform basic validation
- * - Only whitelisted channels are allowed
+ * Security Model:
+ * ─────────────────────────────────────────────────────────────────────────────
+ * - Direct access to ipcRenderer is NEVER exposed to the renderer process
+ * - All exposed functions perform argument validation before forwarding
+ * - Only explicitly whitelisted IPC channels are accessible
+ * - No raw Node.js APIs (fs, child_process, etc.) are exposed
+ * - The contextBridge ensures renderer cannot prototype-pollute these objects
+ *
+ * API Surface:
+ * ─────────────────────────────────────────────────────────────────────────────
+ * window.electron   — Main API (navigation, window mgmt, file ops, settings)
+ * window.versions   — Runtime version info (node, chrome, electron, app)
  *
  * @module electron/preload
  * @author ZYNC Team
- * @version 1.0.0
+ * @version 2.0.0
  * @license MIT
  * =============================================================================
  */

@@ -231,7 +231,7 @@ function createMainWindow(): void {
     hardenWindow(mainWindow);
 
     // Setup permission handler for this window's session
-    setupPermissionHandlers(mainWindow.webContents.session);
+    setupPermissionHandlers();
 
     // Attach renderer crash handler for auto-recovery
     attachRendererCrashHandler(mainWindow, 'main-window');

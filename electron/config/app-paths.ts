@@ -81,7 +81,7 @@ export function resolveAppPaths(): AppPaths {
 
     return {
         userData,
-        cache: app.getPath('cache') || path.join(userData, 'cache'),
+        cache: (app.getPath('cache' as any) || path.join(userData, 'cache')),
         temp: app.getPath('temp'),
         logs: app.getPath('logs'),
         downloads: app.getPath('downloads'),

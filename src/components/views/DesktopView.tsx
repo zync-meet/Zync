@@ -598,18 +598,25 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const [userData, setUserData] = useState<any>(null);
   const [githubProfile, setGithubProfile] = useState<any>(null);
 
-  // Fetch Full User Data (including integrations)
+  // Fetch Full User Data (including integrations and team info)
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser?.uid) {
         try {
           const token = await currentUser.getIdToken();
-          const res = await fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`, {
+          // Use /me endpoint which returns teamId with team info
+          const res = await fetch(`${API_BASE_URL}/api/users/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
           const data = await res.json();
+
+          // Normalize teamId: /me returns it as an object, extract the id string
+          if (data.teamId && typeof data.teamId === 'object') {
+            data.teamId = data.teamId.id;
+          }
+
           setUserData(data);
 
           // If connected to GitHub, fetch public profile

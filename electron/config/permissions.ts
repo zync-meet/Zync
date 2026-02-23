@@ -181,9 +181,10 @@ function handlePermissionRequest(
  * @returns {boolean} Whether the permission is currently granted
  */
 function handlePermissionCheck(
-    _webContents: WebContents,
+    _webContents: WebContents | null,
     permission: string,
     requestingOrigin: string,
+    details: unknown // added to match signature
 ): boolean {
     // Always-allowed permissions are always granted
     if (ALWAYS_ALLOWED_PERMISSIONS.has(permission)) {
@@ -228,7 +229,7 @@ export function setupPermissionHandlers(): void {
     defaultSession.setPermissionRequestHandler(handlePermissionRequest);
 
     // Register the permission check handler
-    defaultSession.setPermissionCheckHandler(handlePermissionCheck);
+    defaultSession.setPermissionCheckHandler(handlePermissionCheck as any);
 
     console.info('[Permissions] Permission handlers registered');
     console.info(`[Permissions] Always allowed: ${[...ALWAYS_ALLOWED_PERMISSIONS].join(', ')}`);
