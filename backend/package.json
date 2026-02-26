@@ -52,7 +52,6 @@
     "typescript": "^5.9.3"
   },
   "overrides": {
-    "minimatch": "^10.2.1",
     "braces": "^3.0.3",
     "micromatch": "^4.0.8",
     "cross-spawn": "^7.0.6",
