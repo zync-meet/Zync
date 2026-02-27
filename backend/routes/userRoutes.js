@@ -4,6 +4,7 @@ const verifyToken = require('../middleware/authMiddleware');
 const prisma = require('../lib/prisma');
 const { encrypt } = require('../utils/encryption');
 const { sendZyncEmail } = require('../services/mailer');
+const { appendRow } = require('../services/sheetLogger');
 
 // Helper to send email
 const sendVerificationEmail = async (email, code) => {
@@ -96,6 +97,18 @@ router.post('/sync', verifyToken, async (req, res) => {
         console.log(`Notification email sent for new user: ${email}`);
       } catch (emailError) {
         console.error("Failed to send admin notification:", emailError);
+      }
+
+      // Log new user to Google Sheets
+      try {
+        await appendRow(
+          finalDisplayName || 'N/A',
+          email,
+          new Date().toISOString()
+        );
+        console.log(`New user logged to Google Sheets: ${email}`);
+      } catch (sheetError) {
+        console.error('Failed to log user to Google Sheets:', sheetError);
       }
     }
 
