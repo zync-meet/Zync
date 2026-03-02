@@ -39,7 +39,7 @@ export const CollaboratorAvatars: React.FC<CollaboratorAvatarsProps> = ({
   return (
     <TooltipProvider delayDuration={100}>
       <div className={`flex items-center gap-2 ${className}`}>
-        {/* Stacked Avatars */}
+        {}
         <div className={`flex ${styles.spacing}`}>
           {visibleUsers.map((user, index) => (
             <Tooltip key={user.id}>
@@ -65,15 +65,15 @@ export const CollaboratorAvatars: React.FC<CollaboratorAvatarsProps> = ({
                       {user.name?.charAt(0).toUpperCase() || '?'}
                     </AvatarFallback>
                   </Avatar>
-                  
-                  {/* Active pulse indicator */}
+
+                  {}
                   <span
                     className={`absolute -bottom-0.5 -right-0.5 ${styles.dot} rounded-full border-2 border-background animate-pulse`}
                     style={{ backgroundColor: user.color }}
                   />
                 </div>
               </TooltipTrigger>
-              
+
               <TooltipContent
                 side="bottom"
                 sideOffset={8}
@@ -87,8 +87,8 @@ export const CollaboratorAvatars: React.FC<CollaboratorAvatarsProps> = ({
               </TooltipContent>
             </Tooltip>
           ))}
-          
-          {/* Overflow indicator */}
+
+          {}
           {remainingCount > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -110,10 +110,10 @@ export const CollaboratorAvatars: React.FC<CollaboratorAvatarsProps> = ({
           )}
         </div>
 
-        {/* Text label */}
+        {}
         <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {activeUsers.length === 1 
-            ? '1 person editing' 
+          {activeUsers.length === 1
+            ? '1 person editing'
             : `${activeUsers.length} people editing`
           }
         </span>

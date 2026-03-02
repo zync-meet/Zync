@@ -52,7 +52,7 @@ const FeaturesSection = () => {
   return (
     <section id="features" className="py-20 lg:py-28 bg-background scroll-mt-20">
       <div className="container mx-auto px-4">
-        {/* Section Header */}
+        {}
         <div className="max-w-2xl mx-auto text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-serif-elegant">
             Everything to ship faster
@@ -63,7 +63,7 @@ const FeaturesSection = () => {
           </p>
         </div>
 
-        {/* Features Grid */}
+        {}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-20">
           {features.map((feature) => (
             <div
@@ -83,11 +83,11 @@ const FeaturesSection = () => {
           ))}
         </div>
 
-        {/* Feature Highlight - Team Management */}
+        {}
         <div className="grid lg:grid-cols-2 gap-12 items-center py-16 border-t border-border/30">
           <div className="order-2 lg:order-1">
             <div className="bg-card rounded-xl border border-border/50 p-5 overflow-hidden">
-              {/* Team List Preview */}
+              {}
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-3 border-b border-border/50">
                   <h4 className="font-medium text-foreground text-sm">Team</h4>

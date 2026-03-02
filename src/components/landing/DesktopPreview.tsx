@@ -34,14 +34,11 @@ import {
 } from "@/components/kibo-ui/contribution-graph";
 import { eachDayOfInterval, formatISO } from "date-fns";
 
-/**
- * DesktopPreview - A self-contained desktop mockup for the landing page.
- * Designed to match the actual Zync app UI as closely as possible.
- */
+
 const DesktopPreview = () => {
     const [activeSection, setActiveSection] = useState("My Workspace");
 
-    // Mock Projects (matching actual Workspace style)
+
     const mockProjects = [
         {
             id: 1,
@@ -82,18 +79,18 @@ const DesktopPreview = () => {
         { icon: Settings, label: "Settings" },
     ];
 
-    // Generate deterministic mock data for Kibo UI graph
+
     const yearStart = new Date(2026, 0, 1);
     const yearEnd = new Date(2026, 11, 31);
     const days = eachDayOfInterval({ start: yearStart, end: yearEnd });
 
     const graphData = days.map((date) => {
         const dateStr = formatISO(date, { representation: "date" });
-        // Deterministic random-like pattern based on date
+
         const dayNum = date.getDate() + date.getMonth() * 30;
         const seed = (dayNum * 17) % 100;
         const count = seed < 40 ? 0 : seed < 70 ? 2 : seed < 90 ? 5 : 12;
-        // Calculate level based on count
+
         const level = count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : count < 10 ? 3 : 4;
         return {
             date: dateStr,
@@ -104,9 +101,9 @@ const DesktopPreview = () => {
 
     return (
         <div className="w-full aspect-[16/10] bg-background rounded-lg border border-border/50 overflow-hidden flex shadow-xl">
-            {/* Sidebar - Using standard theme colors now */}
+            {}
             <aside className="w-48 bg-muted/40 border-r border-border flex flex-col hidden md:flex shrink-0">
-                {/* Logo */}
+                {}
                 <div className="p-3 border-b border-border h-12 flex items-center">
                     <div className="flex items-center px-1">
                         <img
@@ -117,7 +114,7 @@ const DesktopPreview = () => {
                     </div>
                 </div>
 
-                {/* Nav Items */}
+                {}
                 <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto custom-scrollbar">
                     {sidebarItems.map(item => (
                         <button
@@ -134,7 +131,7 @@ const DesktopPreview = () => {
                     ))}
                 </nav>
 
-                {/* User */}
+                {}
                 <div className="p-2 border-t border-border">
                     <div className="flex items-center gap-2 p-1.5 rounded-md hover:bg-secondary/50 cursor-pointer">
                         <Avatar className="w-6 h-6 border border-border">
@@ -149,9 +146,9 @@ const DesktopPreview = () => {
                 </div>
             </aside>
 
-            {/* Main Content */}
+            {}
             <main className="flex-1 flex flex-col overflow-hidden bg-background">
-                {/* Top Bar */}
+                {}
                 <header className="h-10 border-b border-border/50 flex items-center justify-between px-4 bg-background/80 backdrop-blur-sm">
                     <Input
                         placeholder="Search..."
@@ -164,11 +161,11 @@ const DesktopPreview = () => {
                     </div>
                 </header>
 
-                {/* Content Area */}
+                {}
                 <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                     {activeSection === "My Workspace" && (
                         <div className="space-y-4 max-w-4xl mx-auto">
-                            {/* Header - Matching actual Workspace */}
+                            {}
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h2 className="text-base font-bold tracking-tight text-foreground">My Workspace</h2>
@@ -181,7 +178,7 @@ const DesktopPreview = () => {
                                 </Button>
                             </div>
 
-                            {/* Project Cards - Matching actual style */}
+                            {}
                             <div className="grid grid-cols-2 lg:grid-cols-2 gap-3">
                                 {mockProjects.map(project => (
                                     <Card
@@ -246,7 +243,7 @@ const DesktopPreview = () => {
 
                     {activeSection === "Dashboard" && (
                         <div className="space-y-4 max-w-4xl mx-auto">
-                            {/* GitHub Profile Card */}
+                            {}
                             <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
                                 <CardContent className="p-4">
                                     <div className="flex items-center gap-4">
@@ -277,7 +274,7 @@ const DesktopPreview = () => {
                                 </CardContent>
                             </Card>
 
-                            {/* Contribution Graph - Kibo UI */}
+                            {}
                             <Card className="p-4 overflow-hidden">
                                 <ContributionGraph data={graphData} blockSize={9} blockMargin={2} blockRadius={1}>
                                     <div className="flex items-center justify-between mb-3">
@@ -285,7 +282,7 @@ const DesktopPreview = () => {
                                         <span className="text-[10px] text-muted-foreground font-medium">2026</span>
                                     </div>
 
-                                    {/* Container with overflow handling for the graph */}
+                                    {}
                                     <div className="w-full overflow-x-auto pb-2 custom-scrollbar">
                                         <ContributionGraphCalendar>
                                             {({ activity, dayIndex, weekIndex }) => (
@@ -381,7 +378,7 @@ const DesktopPreview = () => {
                         </div>
                     )}
 
-                    {/* Default for other sections */}
+                    {}
                     {!["My Workspace", "Dashboard", "Calendar", "People"].includes(activeSection) && (
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <div className="w-10 h-10 bg-secondary/50 rounded-full flex items-center justify-center mb-2">

@@ -17,14 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-/**
- * MobilePreview - A self-contained mobile mockup for the landing page.
- * Designed to match the actual Zync mobile app UI as closely as possible.
- */
+
 const MobilePreview = () => {
     const [activeTab, setActiveTab] = useState("home");
 
-    // Mock Projects (matching actual Workspace style)
+
     const mockProjects = [
         {
             id: 1,
@@ -71,7 +68,7 @@ const MobilePreview = () => {
             <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
             <div className="rounded-[2rem] overflow-hidden w-full h-full bg-background flex flex-col relative">
 
-                {/* Header */}
+                {}
                 <header className="flex items-center justify-between px-4 py-2 border-b border-border/40 bg-background">
                     <div className="flex items-center">
                         <img
@@ -85,11 +82,11 @@ const MobilePreview = () => {
                     </Avatar>
                 </header>
 
-                {/* Content */}
+                {}
                 <main className="flex-1 overflow-y-auto pb-20">
                     {activeTab === "home" && (
                         <div className="p-3 space-y-3">
-                            {/* Header matching Workspace */}
+                            {}
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h2 className="text-sm font-bold text-foreground">My Workspace</h2>
@@ -100,7 +97,7 @@ const MobilePreview = () => {
                                 </Button>
                             </div>
 
-                            {/* Project Cards - Matching actual mobile Workspace */}
+                            {}
                             {mockProjects.map(project => (
                                 <Card
                                     key={project.id}
@@ -274,7 +271,7 @@ const MobilePreview = () => {
                     )}
                 </main>
 
-                {/* Bottom Navigation - Matching actual mobile nav */}
+                {}
                 <nav className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/40 px-2 py-1.5">
                     <div className="flex items-center justify-between">
                         {[
@@ -293,7 +290,7 @@ const MobilePreview = () => {
                             </button>
                         ))}
 
-                        {/* Center FAB */}
+                        {}
                         <div className="relative -top-3">
                             <button className="w-9 h-9 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center ring-2 ring-background">
                                 <Plus className="w-4 h-4" />

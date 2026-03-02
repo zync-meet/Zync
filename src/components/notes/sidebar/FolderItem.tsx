@@ -19,14 +19,14 @@ interface FolderItemProps {
     onCreateNote: () => void;
     onShare: () => void;
     isCollapsed: boolean;
-    // DnD & Copy/Paste Props
+
     onDragStart: (e: React.DragEvent, noteId: string) => void;
     onDragOver: (e: React.DragEvent) => void;
     onDrop: (e: React.DragEvent, targetFolderId: string | null) => void;
     onCopy: (noteId: string) => void;
     onPaste: (folderId: string | null) => void;
     canPaste: boolean;
-    // Actions
+
     onDeleteNote: (id: string) => void;
     onDuplicateNote: (id: string) => void;
     onRenameNote: (id: string, newTitle: string) => void;
@@ -52,7 +52,7 @@ export const FolderItem: React.FC<FolderItemProps> = ({
             }}
             onDragLeave={() => setIsDragOverFolder(false)}
             onDrop={(e) => {
-                e.stopPropagation(); // prevent dropping on parent
+                e.stopPropagation();
                 setIsDragOverFolder(false);
                 onDrop(e, folder.id);
             }}

@@ -15,12 +15,12 @@ const HeroSection = () => {
 
   return (
     <section className="relative pt-28 lg:pt-36 pb-16 lg:pb-24 hero-gradient overflow-hidden">
-      {/* Subtle background gradient */}
+      {}
       <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] to-transparent pointer-events-none" />
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Beta Badge */}
+          {}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full mb-8 animate-fade-in">
             <Zap className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold tracking-wider text-primary uppercase">
@@ -28,14 +28,14 @@ const HeroSection = () => {
             </span>
           </div>
 
-          {/* Main Heading */}
+          {}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 text-foreground font-serif-elegant leading-[1.1]">
             Build software,
             <br />
             <span className="text-primary">together.</span>
           </h1>
 
-          {/* Subtitle */}
+          {}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
             Zync brings your team's planning, tasks, and communication into one focused workspace.
             AI-powered project setup. GitHub integration. Real-time collaboration.

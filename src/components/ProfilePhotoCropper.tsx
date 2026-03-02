@@ -18,9 +18,7 @@ interface ProfilePhotoCropperProps {
     onCropComplete: (croppedBlob: Blob) => void;
 }
 
-/**
- * Creates a cropped image blob from the source image and crop area.
- */
+
 async function getCroppedImg(
     imageSrc: string,
     pixelCrop: Area,
@@ -32,24 +30,24 @@ async function getCroppedImg(
 
     const rotRad = (rotation * Math.PI) / 180;
 
-    // Calculate bounding box of the rotated image
+
     const { width: bBoxWidth, height: bBoxHeight } = rotateSize(
         image.width,
         image.height,
         rotation
     );
 
-    // Set canvas size to bounding box
+
     canvas.width = bBoxWidth;
     canvas.height = bBoxHeight;
 
-    // Translate canvas center, rotate, then draw
+
     ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
     ctx.rotate(rotRad);
     ctx.translate(-image.width / 2, -image.height / 2);
     ctx.drawImage(image, 0, 0);
 
-    // Extract the cropped area
+
     const croppedCanvas = document.createElement("canvas");
     const croppedCtx = croppedCanvas.getContext("2d")!;
     croppedCanvas.width = pixelCrop.width;
@@ -147,7 +145,7 @@ const ProfilePhotoCropper: React.FC<ProfilePhotoCropperProps> = ({
                     <DialogTitle>Adjust Profile Photo</DialogTitle>
                 </DialogHeader>
 
-                {/* Cropper Area */}
+                {}
                 <div className="relative w-full h-[350px] bg-black/90">
                     <Cropper
                         image={imageSrc}
@@ -164,9 +162,9 @@ const ProfilePhotoCropper: React.FC<ProfilePhotoCropperProps> = ({
                     />
                 </div>
 
-                {/* Controls */}
+                {}
                 <div className="px-6 py-4 space-y-4">
-                    {/* Zoom */}
+                    {}
                     <div className="flex items-center gap-3">
                         <ZoomOut className="w-4 h-4 text-muted-foreground shrink-0" />
                         <Slider
@@ -180,7 +178,7 @@ const ProfilePhotoCropper: React.FC<ProfilePhotoCropperProps> = ({
                         <ZoomIn className="w-4 h-4 text-muted-foreground shrink-0" />
                     </div>
 
-                    {/* Rotation */}
+                    {}
                     <div className="flex items-center gap-3">
                         <RotateCcw className="w-4 h-4 text-muted-foreground shrink-0" />
                         <Slider
@@ -194,7 +192,7 @@ const ProfilePhotoCropper: React.FC<ProfilePhotoCropperProps> = ({
                         <RotateCw className="w-4 h-4 text-muted-foreground shrink-0" />
                     </div>
 
-                    {/* Quick rotate buttons */}
+                    {}
                     <div className="flex justify-center gap-2">
                         <Button
                             type="button"

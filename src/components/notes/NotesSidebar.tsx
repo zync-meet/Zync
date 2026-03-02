@@ -44,10 +44,10 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
   const [newFolderMode, setNewFolderMode] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
-  // Optimistic deletion state
+
   const [hiddenNoteIds, setHiddenNoteIds] = useState<Set<string>>(new Set());
 
-  // Resizable & Collapsible State
+
   const [width, setWidth] = useState(256);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -55,7 +55,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load Preferences
+
   useEffect(() => {
     const storedWidth = localStorage.getItem('ZYNC-sidebar-width');
     if (storedWidth) {setWidth(parseInt(storedWidth));}
@@ -63,7 +63,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
     if (storedCollapsed) {setIsCollapsed(storedCollapsed === 'true');}
   }, []);
 
-  // Resize Logic
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) {return;}
@@ -101,7 +101,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
     if (!newState) {setIsHovered(false);}
   };
 
-  // Share Dialog State
+
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [folderToShare, setFolderToShare] = useState<Folder | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
@@ -150,7 +150,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
         id: noteRef.id,
         _id: noteRef.id,
         content: [],
-        createdAt: new Date(), // Local optimisitc update
+        createdAt: new Date(),
         updatedAt: new Date(),
         ...initialData
       };
@@ -162,9 +162,9 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
     }
   };
 
-  // Note actions
+
   const handleDeleteNote = async (noteId: string) => {
-    // Optimistic UI update
+
     setHiddenNoteIds(prev => new Set(prev).add(noteId));
 
     try {
@@ -183,7 +183,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
 
   const handleDuplicateNote = async (noteId: string) => {
     try {
-      await duplicateNote(noteId, null, userId); // Duplicate to root or same folder? Service handles logic
+      await duplicateNote(noteId, null, userId);
       toast.success("Note duplicated");
       onRefresh();
     } catch (error) {
@@ -200,22 +200,22 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
     }
   };
 
-  // Split folders and notes
-  const myFolders = folders.filter(f => f.ownerId === userId);
-  const sharedFolders = folders.filter(f => f.ownerId !== userId); // Should be covered by subscription filter
 
-  // Filter out hidden notes (optimistic delete)
+  const myFolders = folders.filter(f => f.ownerId === userId);
+  const sharedFolders = folders.filter(f => f.ownerId !== userId);
+
+
   const visibleNotes = notes.filter(n => !hiddenNoteIds.has(n.id));
   const myUnorganizedNotes = visibleNotes.filter(n => !n.folderId && n.ownerId === userId);
 
-  // DnD State
+
   const handleDragStart = (e: React.DragEvent, noteId: string) => {
     e.dataTransfer.setData("noteId", noteId);
     e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Allow drop
+    e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
 
@@ -233,7 +233,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
     }
   };
 
-  // Clipboard State for Copy/Paste
+
   const [clipboardNoteId, setClipboardNoteId] = useState<string | null>(null);
 
   const handleCopy = (noteId: string) => {
@@ -247,7 +247,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
       await duplicateNote(clipboardNoteId, targetFolderId, userId);
       toast.success("Note pasted");
       onRefresh();
-      // Don't clear clipboard to allow multiple pastes
+
     } catch (err) {
       console.error(err);
       toast.error("Failed to paste note");
@@ -302,7 +302,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 scrollbar-hide space-y-1">
-          {/* New Folder Input */}
+          {}
           {newFolderMode && !effectiveCollapsed && (
             <div className="flex items-center px-2 py-1 mb-2 rounded-sm shadow-sm border bg-white border-gray-200 dark:bg-slate-800 dark:border-slate-600">
               <input
@@ -319,7 +319,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
             </div>
           )}
 
-          {/* SHARED SECTION */}
+          {}
           {sharedFolders.length > 0 && (
             <div className="mb-4">
               {!effectiveCollapsed && (
@@ -336,7 +336,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
                   onSelectNote={onSelectNote}
                   onCreateNote={() => handleCreateNote(folder.id)}
                   onShare={() => handleShareClick(folder)}
-                  isOwner={false} // Shared folders not owned by me
+                  isOwner={false}
                   isCollapsed={effectiveCollapsed}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}

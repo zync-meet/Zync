@@ -16,7 +16,7 @@ const TrustSection = () => {
           Today <span className="font-semibold text-foreground">14,297</span> companies worldwide are using Zync to increase their productivity
         </p>
 
-        {/* Company Logos */}
+        {}
         <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-16 mb-8">
           {companies.map((company) => (
             <div
@@ -28,7 +28,7 @@ const TrustSection = () => {
           ))}
         </div>
 
-        {/* Rating */}
+        {}
         <div className="flex items-center justify-center gap-3">
           <div className="flex items-center gap-1 px-3 py-1.5 bg-card rounded-full border border-border/50 shadow-sm">
             <span className="text-sm font-semibold text-foreground">Rating</span>

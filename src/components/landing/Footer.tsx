@@ -17,7 +17,7 @@ const Footer = () => {
     ],
     Legal: [
       { name: "Privacy Policy", href: "/privacy-policy" },
-      { name: "Terms of Service", href: "/privacy-policy" }, // Use same page for now
+      { name: "Terms of Service", href: "/privacy-policy" },
     ],
   };
 
@@ -31,7 +31,7 @@ const Footer = () => {
     <footer className="bg-background border-t border-border/50">
       <div className="container mx-auto px-4 py-12 lg:py-16">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-12">
-          {/* Logo and Description */}
+          {}
           <div className="col-span-2 md:col-span-1 lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-7 w-7 bg-foreground rounded-lg flex items-center justify-center">
@@ -59,7 +59,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Product Links */}
+          {}
           <div>
             <h4 className="font-medium text-foreground mb-4 text-sm">Product</h4>
             <ul className="space-y-2.5">
@@ -76,7 +76,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Legal Links */}
+          {}
           <div>
             <h4 className="font-medium text-foreground mb-4 text-sm">Legal</h4>
             <ul className="space-y-2.5">
@@ -94,7 +94,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Bottom Bar */}
+        {}
         <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-muted-foreground">
             © 2026 Zync · Public Beta 1.0

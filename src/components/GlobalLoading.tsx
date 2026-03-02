@@ -10,14 +10,14 @@ export const GlobalLoading = () => {
     let timeout: ReturnType<typeof setTimeout>;
 
     if (isFetching > 0) {
-      // If not already showing, wait 200ms before showing
+
       if (!showLoading) {
         timeout = setTimeout(() => {
           setShowLoading(true);
         }, 200);
       }
     } else {
-      // Hide immediately when fetching stops
+
       setShowLoading(false);
     }
 

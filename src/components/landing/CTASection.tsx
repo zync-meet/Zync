@@ -14,7 +14,7 @@ const CTASection = () => {
 
   return (
     <section id="cta" className="py-20 lg:py-28 bg-sidebar relative overflow-hidden scroll-mt-20">
-      {/* Subtle background pattern */}
+      {}
       <div className="absolute inset-0 opacity-[0.02]" style={{
         backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
         backgroundSize: '24px 24px'
@@ -30,7 +30,7 @@ const CTASection = () => {
             build software—and get free access while we grow.
           </p>
 
-          {/* Email Form */}
+          {}
           <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-4">
             <Input
               type="email"

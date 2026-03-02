@@ -39,12 +39,12 @@ export const MobileLayout = ({
         { id: 'Profile', icon: User, label: 'Profile' },
     ];
 
-    // Helper to determine if we are on a "main" tab or a sub-view
+
     const isMainTab = navItems.some(item => item.id === activeTab);
 
     return (
         <div className="flex flex-col h-screen w-full bg-background text-foreground overflow-hidden">
-            {/* Top App Bar - Fixed */}
+            {}
             <header className="h-14 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 shrink-0 z-40">
                 <div className="flex items-center gap-3">
                     <Sheet>
@@ -55,7 +55,7 @@ export const MobileLayout = ({
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[85%] sm:w-[350px] p-0">
-                            {/* Drawer Content */}
+                            {}
                             <div className="flex flex-col h-full bg-background">
                                 {user && (
                                     <div className="p-6 border-b flex items-center gap-4 bg-muted/20">
@@ -90,13 +90,13 @@ export const MobileLayout = ({
                 </div>
             </header>
 
-            {/* Main Content - Scrollable */}
+            {}
             <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background relative" id="mobile-main-content">
                 {children}
             </main>
 
-            {/* FAB - Positioned absolute bottom right above nav */}
-            {/* Only show FAB if on Fab-relevant tabs (optional, but typical) */}
+            {}
+            {}
             {onFabClick && (
                 <div className="absolute bottom-20 right-4 z-50">
                     <Button
@@ -109,7 +109,7 @@ export const MobileLayout = ({
                 </div>
             )}
 
-            {/* Bottom Navigation - Fixed */}
+            {}
             <nav className="h-16 border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shrink-0 z-40 pb-safe">
                 <div className="grid grid-cols-5 h-full">
                     {navItems.map((item) => {

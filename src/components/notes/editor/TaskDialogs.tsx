@@ -16,7 +16,7 @@ import {
     CommandList,
 } from "@/components/ui/command";
 
-// TaskSearch Component for Linking
+
 const TaskSearch = ({ user, onSelect }: { user: any, onSelect: (task: TaskSearchResult) => void }) => {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<TaskSearchResult[]>([]);
@@ -70,7 +70,7 @@ export const TaskDialogs: React.FC<TaskDialogsProps> = ({
 }) => {
     return (
         <>
-            {/* Create Task Dialog */}
+            {}
             <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -101,7 +101,7 @@ export const TaskDialogs: React.FC<TaskDialogsProps> = ({
                 </DialogContent>
             </Dialog>
 
-            {/* Link Task Dialog */}
+            {}
             <Dialog open={taskLinkDialogOpen} onOpenChange={setTaskLinkDialogOpen}>
                 <DialogContent>
                     <DialogHeader>

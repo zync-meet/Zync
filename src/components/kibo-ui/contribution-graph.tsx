@@ -8,7 +8,7 @@ import {
     type ReactNode,
 } from "react";
 
-// Types
+
 interface Activity {
     date: string;
     count: number;
@@ -22,7 +22,7 @@ interface ContributionGraphContextValue {
     blockRadius: number;
 }
 
-// Context
+
 const ContributionGraphContext = createContext<ContributionGraphContextValue | null>(null);
 
 const useContributionGraph = () => {
@@ -33,7 +33,7 @@ const useContributionGraph = () => {
     return context;
 };
 
-// Main Component
+
 interface ContributionGraphProps extends ComponentProps<"div"> {
     data: Activity[];
     blockSize?: number;
@@ -62,7 +62,7 @@ const ContributionGraph = ({
     );
 };
 
-// Calendar Component - properly groups into weeks
+
 interface ContributionGraphCalendarProps {
     children: (props: {
         activity: Activity;
@@ -78,10 +78,10 @@ const ContributionGraphCalendar = ({
 
     if (data.length === 0) {return null;}
 
-    // Create a map for quick lookup
+
     const dataMap = new Map(data.map((d) => [d.date, d]));
 
-    // Get the date range
+
     const sortedData = [...data].sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
@@ -89,11 +89,11 @@ const ContributionGraphCalendar = ({
     const startDate = new Date(sortedData[0].date);
     const endDate = new Date(sortedData[sortedData.length - 1].date);
 
-    // Adjust start to beginning of week (Sunday)
+
     const adjustedStart = new Date(startDate);
     adjustedStart.setDate(adjustedStart.getDate() - adjustedStart.getDay());
 
-    // Build weeks array
+
     const weeks: Activity[][] = [];
     const currentDate = new Date(adjustedStart);
 
@@ -116,9 +116,9 @@ const ContributionGraphCalendar = ({
 
     const height = 7 * (blockSize + blockMargin);
     const width = weeks.length * (blockSize + blockMargin);
-    const marginLeft = 30; // Space for day labels
+    const marginLeft = 30;
 
-    // Month labels
+
     const months: { name: string; weekIndex: number }[] = [];
     let lastMonth = -1;
     weeks.forEach((week, weekIndex) => {
@@ -135,7 +135,7 @@ const ContributionGraphCalendar = ({
 
     return (
         <div className="flex flex-col">
-            {/* Month labels */}
+            {}
             <div
                 className="flex text-xs text-muted-foreground mb-2 relative"
                 style={{ marginLeft: marginLeft, height: '1.2em' }}
@@ -154,7 +154,7 @@ const ContributionGraphCalendar = ({
             </div>
 
             <div className="flex">
-                {/* Day labels */}
+                {}
                 <div className="flex flex-col justify-between text-xs text-muted-foreground mr-2 h-full py-[1px]" style={{ height: height }}>
                     <span className="opacity-0">Sum</span>
                     <span>Mon</span>
@@ -177,7 +177,7 @@ const ContributionGraphCalendar = ({
     );
 };
 
-// Block Component
+
 interface ContributionGraphBlockProps {
     activity: Activity;
     dayIndex: number;
@@ -223,7 +223,7 @@ const ContributionGraphBlock = ({
     );
 };
 
-// Footer Component
+
 interface ContributionGraphFooterProps extends ComponentProps<"div"> {
     children: ReactNode;
 }
@@ -246,7 +246,7 @@ const ContributionGraphFooter = ({
     );
 };
 
-// Total Count Component
+
 const ContributionGraphTotalCount = ({
     className,
     ...props
@@ -262,7 +262,7 @@ const ContributionGraphTotalCount = ({
     );
 };
 
-// Legend Component
+
 const ContributionGraphLegend = ({
     className,
     ...props

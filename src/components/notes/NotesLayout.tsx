@@ -76,7 +76,7 @@ interface NotesLayoutProps {
   className?: string;
 }
 
-// Sortable Note Item Wrapper
+
 interface NoteListItemProps {
   note: Note;
   isSelected: boolean;
@@ -111,7 +111,7 @@ const SortableNoteListItem = ({ note, ...props }: NoteListItemProps) => {
   );
 };
 
-// Note List Item Component
+
 const NoteListItem: React.FC<{
   note: Note;
   isSelected: boolean;
@@ -518,7 +518,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   };
 
   const handleDeleteNote = async (id: string) => {
-    // Confirm dialog is a bit aggressive, maybe just do it? Or use a custom dialog. 
+    // Confirm dialog is a bit aggressive, maybe just do it? Or use a custom dialog.
     // Standard confirm is fine for now/MVP.
     if (!window.confirm("Are you sure you want to delete this note?")) {return;}
 

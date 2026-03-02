@@ -30,23 +30,14 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     const [role, setRole] = useState<'viewer' | 'editor'>('editor');
     const [loading, setLoading] = useState(false);
 
-    // Deriving public link (simple approach for now)
+
     const publicLink = `${window.location.origin}/notes/${noteId}`;
 
     const handleInvite = async () => {
         if (!email) {return;}
         setLoading(true);
         try {
-            // Since we don't have a backend "search user by email" endpoint readily available here,
-            // we might need to assume we add by email via backend logic or just simulate for now if SDK allows.
-            // BUT, better approach: The service `updateNotePermissions` likely takes a userId. 
-            // We'll ask the User to input User ID for now OR we assume the backend handles email lookups (feature gap).
-            // Let's assume for this step we need to implement the backend/service part later if missing.
-            // Wait, `updateNotePermissions` takes `userId`. We don't have the ID from email here.
-            // For MVP/Demo: Just copy link.
 
-            // Actually, let's just implement "Copy Link" mainly, and maybe a placeholder for "Invite by Email".
-            // Real invites need a user lookup.
 
             toast.info("Invite by email coming soon! Please share the link.");
 
@@ -61,7 +52,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
         if (!currentPermissions) {return;}
 
         const newPermissions = { ...currentPermissions };
-        delete newPermissions[userId]; // Remove user
+        delete newPermissions[userId];
 
         try {
             await updateNotePermissions(noteId, newPermissions);
@@ -89,7 +80,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 
                 <div className="space-y-6 py-4">
 
-                    {/* Public Link Section */}
+                    {}
                     <div className="space-y-2">
                         <Label>Note Link</Label>
                         <div className="flex gap-2">
@@ -100,7 +91,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                         </div>
                     </div>
 
-                    {/* Invite Section (Placeholder/UI only until user search implemented) */}
+                    {}
                     <div className="space-y-2">
                         <Label>Invite by Email (Coming Soon)</Label>
                         <div className="flex gap-2">
@@ -115,12 +106,12 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                         </div>
                     </div>
 
-                    {/* Existing Collaborators List */}
+                    {}
                     {Object.keys(currentPermissions).length > 0 && (
                         <div className="space-y-2">
                             <Label>People with access</Label>
                             <div className="text-sm text-muted-foreground border rounded-md p-2">
-                                {/* Iterate and show avatars/names if available */}
+                                {}
                                 {Object.entries(currentPermissions).map(([uid, role]) => (
                                     <div key={uid} className="flex justify-between items-center py-2 border-b last:border-0">
                                         <span className="font-mono text-xs">{uid.slice(0, 8)}...</span>

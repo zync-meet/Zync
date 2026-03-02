@@ -47,7 +47,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                 </div>
             </div>
 
-            {/* Title Input */}
+            {}
             <input
                 id="note-title"
                 name="title"

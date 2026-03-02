@@ -44,7 +44,7 @@ interface FixedToolbarProps {
   onLinkTask?: () => void;
 }
 
-// Toolbar Button Component
+
 const ToolbarButton: React.FC<{
   icon: React.ReactNode;
   tooltip: string;
@@ -75,7 +75,7 @@ const ToolbarButton: React.FC<{
   </TooltipProvider>
 );
 
-// Divider Component
+
 const ToolbarDivider = () => (
   <div className="w-px h-6 bg-zinc-700 mx-1" />
 );
@@ -83,7 +83,7 @@ const ToolbarDivider = () => (
 const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTask }) => {
   if (!editor) {return null;}
 
-  // Text formatting handlers
+
   const toggleBold = () => {
     editor.toggleStyles({ bold: true });
   };
@@ -104,7 +104,7 @@ const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTa
     editor.toggleStyles({ code: true });
   };
 
-  // Block type handlers
+
   const setHeading1 = () => {
     editor.updateBlock(editor.getTextCursorPosition().block, {
       type: "heading",
@@ -144,7 +144,7 @@ const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTa
     });
   };
 
-  // Check active states
+
   const getActiveStyles = () => {
     try {
       return editor.getActiveStyles();
@@ -174,7 +174,7 @@ const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTa
         className
       )}
     >
-      {/* Undo/Redo */}
+      {}
       <ToolbarButton
         icon={<Undo2 size={16} className="text-zinc-400" />}
         tooltip="Undo (Ctrl+Z)"
@@ -188,7 +188,7 @@ const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTa
 
       <ToolbarDivider />
 
-      {/* Text Formatting */}
+      {}
       <ToolbarButton
         icon={<Bold size={16} className={cn(activeStyles.bold ? "text-white" : "text-zinc-400")} />}
         tooltip="Bold (Ctrl+B)"
@@ -222,7 +222,7 @@ const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTa
 
       <ToolbarDivider />
 
-      {/* Headings */}
+      {}
       <ToolbarButton
         icon={<Heading1 size={16} className={cn(currentBlockType === "heading" ? "text-white" : "text-zinc-400")} />}
         tooltip="Heading 1"
@@ -241,7 +241,7 @@ const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTa
 
       <ToolbarDivider />
 
-      {/* Lists */}
+      {}
       <ToolbarButton
         icon={<List size={16} className={cn(currentBlockType === "bulletListItem" ? "text-white" : "text-zinc-400")} />}
         tooltip="Bullet List"
@@ -261,7 +261,7 @@ const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTa
         isActive={currentBlockType === "checkListItem"}
       />
 
-      {/* Features */}
+      {}
       {onLinkTask && (
         <>
           <ToolbarDivider />
