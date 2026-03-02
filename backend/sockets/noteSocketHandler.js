@@ -1,48 +1,45 @@
 const logger = require('../utils/logger');
 
 module.exports = (io) => {
-  const notesNamespace = io.of('/notes'); // Dedicated namespace for notes
+  const notesNamespace = io.of('/notes');
 
-  // Track active users per note: noteId -> Map(userId -> userInfo)
+
   const notePresence = new Map();
 
-  // Helper to broadcast presence update to all users in a note
+
   const broadcastPresence = (noteId) => {
     if (!notePresence.has(noteId)) return;
-    
+
     const users = notePresence.get(noteId);
     const userList = Array.from(users.values());
-    
-    // 🔍 DEBUG: Log broadcast data
+
+
     logger.debug(`[NoteSocket] 📡 Broadcasting presence_update for note ${noteId}:`);
     logger.debug(`[NoteSocket] 📡 User count: ${userList.length}`);
     logger.debug(`[NoteSocket] 📡 Users:`, userList.map(u => ({ id: u.id, name: u.name })));
-    
+
     notesNamespace.to(noteId).emit('presence_update', userList);
   };
 
   notesNamespace.on('connection', (socket) => {
     logger.info('[NoteSocket] ✅ User connected:', socket.id);
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // JOIN NOTE - User joins a note room and announces presence
-    // ═══════════════════════════════════════════════════════════════════════
-    
+
     socket.on('join_note', ({ noteId, userId, userName, userAvatar, userColor }) => {
-      // 🔍 DEBUG: Log join request
+
       logger.debug(`[NoteSocket] 🚪 join_note received:`, { noteId, userId, userName });
-      
-      // Join the socket room
+
+
       socket.join(noteId);
       socket.noteId = noteId;
       socket.odId = userId;
 
-      // Initialize presence map for this note if needed
+
       if (!notePresence.has(noteId)) {
         notePresence.set(noteId, new Map());
       }
 
-      // Add user to presence
+
       const users = notePresence.get(noteId);
       users.set(userId, {
         id: userId,
@@ -55,15 +52,12 @@ module.exports = (io) => {
 
       logger.info(`[NoteSocket] ✅ ${userName} (${userId}) joined note ${noteId}`);
       logger.debug(`[NoteSocket] 📊 Total users in note ${noteId}: ${users.size}`);
-      
-      // Broadcast updated presence to all users
+
+
       broadcastPresence(noteId);
     });
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // LEGACY JOIN (backwards compatibility)
-    // ═══════════════════════════════════════════════════════════════════════
-    
+
     socket.on('join-note', (noteId) => {
       socket.join(noteId);
       socket.noteId = noteId;
@@ -89,14 +83,11 @@ module.exports = (io) => {
       broadcastPresence(noteId);
     });
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // CURSOR MOVE - User moves cursor to a different block
-    // ═══════════════════════════════════════════════════════════════════════
-    
+
     socket.on('cursor_move', ({ noteId, userId, blockId }) => {
-      // 🔍 DEBUG: Log incoming cursor_move
+
       logger.debug(`[NoteSocket] 📍 cursor_move received:`, { noteId, userId, blockId });
-      
+
       if (!notePresence.has(noteId)) {
         logger.warn(`[NoteSocket] ⚠️ No presence map for note ${noteId}`);
         return;
@@ -107,21 +98,21 @@ module.exports = (io) => {
         const user = users.get(userId);
         user.blockId = blockId;
         user.lastActive = Date.now();
-        
+
         logger.debug(`[NoteSocket] 📍 Updated ${user.name}'s cursor to block ${blockId}`);
         logger.debug(`[NoteSocket] 📍 Emitting cursor_update to all users in note ${noteId}`);
-        
-        // Broadcast cursor update to all users
+
+
         broadcastPresence(noteId);
-        
-        // Also emit specific cursor event for real-time updates
+
+
         notesNamespace.to(noteId).emit('cursor_update', { userId, blockId });
       } else {
         logger.warn(`[NoteSocket] ⚠️ User ${userId} not found in presence map`);
       }
     });
 
-    // Legacy cursor event
+
     socket.on('presence-cursor', ({ noteId, odId, blockId }) => {
       if (!notePresence.has(noteId)) return;
 
@@ -134,28 +125,25 @@ module.exports = (io) => {
       }
     });
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // LEAVE NOTE - User leaves a note
-    // ═══════════════════════════════════════════════════════════════════════
-    
+
     socket.on('leave_note', ({ noteId, userId }) => {
       socket.leave(noteId);
-      
+
       if (notePresence.has(noteId)) {
         const users = notePresence.get(noteId);
         users.delete(userId);
-        
+
         broadcastPresence(noteId);
         notesNamespace.to(noteId).emit('user_left', userId);
-        
-        // Cleanup empty notes
+
+
         if (users.size === 0) {
           notePresence.delete(noteId);
         }
       }
     });
 
-    // Legacy leave events
+
     socket.on('leave-note', (noteId) => {
       socket.leave(noteId);
     });
@@ -169,10 +157,7 @@ module.exports = (io) => {
       }
     });
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // Y.JS DOCUMENT SYNC (for real-time collaboration)
-    // ═══════════════════════════════════════════════════════════════════════
-    
+
     socket.on('note-update', ({ noteId, update }) => {
       socket.to(noteId).emit('note-update', update);
     });
@@ -181,10 +166,7 @@ module.exports = (io) => {
       socket.to(noteId).emit('awareness-update', update);
     });
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // DISCONNECT - Cleanup when socket disconnects
-    // ═══════════════════════════════════════════════════════════════════════
-    
+
     socket.on('disconnect', () => {
       const noteId = socket.noteId;
       const odId = socket.odId || socket.handshake?.query?.userId;
@@ -192,13 +174,13 @@ module.exports = (io) => {
       if (noteId && odId && notePresence.has(noteId)) {
         const users = notePresence.get(noteId);
         users.delete(odId);
-        
+
         logger.info(`[NoteSocket] User ${odId} disconnected from note ${noteId}`);
-        
+
         broadcastPresence(noteId);
         notesNamespace.to(noteId).emit('user_left', odId);
 
-        // Cleanup empty notes
+
         if (users.size === 0) {
           notePresence.delete(noteId);
         }
@@ -206,14 +188,14 @@ module.exports = (io) => {
     });
   });
 
-  // Periodic cleanup of stale users (every 30 seconds)
+
   setInterval(() => {
     const now = Date.now();
-    const staleThreshold = 120000; // 2 minutes
+    const staleThreshold = 120000;
 
     for (const [noteId, users] of notePresence.entries()) {
       let hasStaleUsers = false;
-      
+
       for (const [odId, user] of users.entries()) {
         if (now - user.lastActive > staleThreshold) {
           users.delete(odId);

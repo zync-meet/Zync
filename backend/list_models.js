@@ -7,7 +7,7 @@ async function listModels() {
     try {
         console.log("Testing alternate model availability...");
 
-        // Trying older or specific versions
+
         const modelsToTest = ["gemini-1.5-flash-8b", "gemini-1.5-pro-latest", "gemini-pro-vision"];
 
         for (const modelName of modelsToTest) {

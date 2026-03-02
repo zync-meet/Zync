@@ -45,7 +45,7 @@ describe("Email Templates", () => {
       expect(result).toContain("Alice wants to build software together with you");
       expect(result).toContain("Topic: Project Alpha");
       expect(result).toContain("https://meet.google.com/abc-defg-hij");
-      // Date verification can be tricky due to locale/timezone, so we check for presence
+
       expect(result).not.toContain("Date: Today");
       expect(result).not.toContain("Time: Now");
     });
@@ -82,7 +82,7 @@ describe("Email Templates", () => {
       expect(result).toContain("john@example.com");
       expect(result).toContain("I need help with login.");
       expect(result).toContain("From User");
-      // Check timestamp formatting implicitly by checking a part of it, e.g., year
+
       expect(result).toContain("2023");
     });
 

@@ -3,21 +3,17 @@ const router = express.Router();
 const { send_ZYNC_email } = require('../services/googleMeet');
 const { getSupportNotificationTemplate } = require('../utils/emailTemplates');
 
-/**
- * @route   POST /api/support
- * @desc    Receive support form submissions and notify developers
- * @access  Public
- */
+
 router.post('/', async (req, res) => {
     try {
         const { firstName, lastName, email, phone, message } = req.body;
 
-        // Basic Validation
+
         if (!firstName || !email || !message) {
             return res.status(400).json({ message: 'Please provide at least first name, email, and a message.' });
         }
 
-        // Get recipients from ENV
+
         const recipientsString = process.env.SUPPORT_RECIPIENTS || 'chitukullakshya@gmail.com';
         const recipients = recipientsString.split(',').map(email => email.trim()).filter(Boolean);
 
@@ -26,7 +22,7 @@ router.post('/', async (req, res) => {
             return res.status(500).json({ message: 'Server configuration error' });
         }
 
-        // Generate the professional HTML content
+
         const htmlContent = getSupportNotificationTemplate({
             firstName,
             lastName,
@@ -35,17 +31,15 @@ router.post('/', async (req, res) => {
             message
         });
 
-        // Subject for the email
+
         const subject = `[SUPPORT] New Message from ${firstName} ${lastName}`;
 
-        // Send emails to all developers in background
-        // Using Promise.allSettled to ensure we try to send to everyone even if one fails
+
         const emailPromises = recipients.map(recipientEmail =>
             send_ZYNC_email(recipientEmail, subject, htmlContent)
         );
 
-        // We don't want to block the response on sending ALL emails, 
-        // but it's good to ensure at least one attempt is made or handle it gracefully
+
         Promise.allSettled(emailPromises).then(results => {
             const successful = results.filter(r => r.status === 'fulfilled').length;
             const failed = results.filter(r => r.status === 'rejected').length;

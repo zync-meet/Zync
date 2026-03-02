@@ -3,7 +3,7 @@ const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
 const prisma = require('../lib/prisma');
 
-// Helper to generate unique 6-digit code
+
 const generateInviteCode = async () => {
     let code;
     let isUnique = false;
@@ -15,7 +15,7 @@ const generateInviteCode = async () => {
     return code;
 };
 
-// Get Teams Owned by User
+
 router.get('/owned', verifyToken, async (req, res) => {
     const uid = req.user.uid;
     try {
@@ -27,7 +27,7 @@ router.get('/owned', verifyToken, async (req, res) => {
     }
 });
 
-// Get All Teams User is Member Of
+
 router.get('/mine', verifyToken, async (req, res) => {
     const uid = req.user.uid;
     try {
@@ -41,7 +41,7 @@ router.get('/mine', verifyToken, async (req, res) => {
     }
 });
 
-// Create Team
+
 router.post('/create', verifyToken, async (req, res) => {
     const { name, type, initialInvites } = req.body;
     const uid = req.user.uid;
@@ -64,7 +64,7 @@ router.post('/create', verifyToken, async (req, res) => {
             }
         });
 
-        // Update user's teamMemberships
+
         await prisma.user.update({
             where: { uid },
             data: {
@@ -72,7 +72,7 @@ router.post('/create', verifyToken, async (req, res) => {
             }
         });
 
-        // Send Initial Invites
+
         if (initialInvites && Array.isArray(initialInvites) && initialInvites.length > 0) {
             const { sendZYNCEmail } = require('../services/mailer');
             initialInvites.forEach(async (email) => {
@@ -102,7 +102,7 @@ router.post('/create', verifyToken, async (req, res) => {
     }
 });
 
-// Join Team
+
 router.post('/join', verifyToken, async (req, res) => {
     const { inviteCode } = req.body;
     const uid = req.user.uid;
@@ -120,13 +120,13 @@ router.post('/join', verifyToken, async (req, res) => {
         const user = await prisma.user.findUnique({ where: { uid } });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Add to team members
+
         const updatedTeam = await prisma.team.update({
             where: { id: team.id },
             data: { members: { push: uid } }
         });
 
-        // Update user's teamMemberships
+
         await prisma.user.update({
             where: { uid },
             data: { teamMemberships: { push: team.id } }
@@ -140,7 +140,7 @@ router.post('/join', verifyToken, async (req, res) => {
     }
 });
 
-// Delete Team (Owner Only)
+
 router.delete('/:teamId', verifyToken, async (req, res) => {
     const { teamId } = req.params;
     const uid = req.user.uid;
@@ -153,7 +153,7 @@ router.delete('/:teamId', verifyToken, async (req, res) => {
             return res.status(403).json({ message: 'Only the team owner can delete the team' });
         }
 
-        // Remove teamId from all members' teamMemberships
+
         for (const memberUid of team.members) {
             const member = await prisma.user.findUnique({ where: { uid: memberUid } });
             if (member) {
@@ -175,7 +175,7 @@ router.delete('/:teamId', verifyToken, async (req, res) => {
     }
 });
 
-// Remove Member (Owner Only)
+
 router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
     const { teamId, memberUid } = req.params;
     const uid = req.user.uid;
@@ -192,7 +192,7 @@ router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
             return res.status(400).json({ message: 'Cannot remove the owner. Delete the team instead.' });
         }
 
-        // Remove from team members array
+
         await prisma.team.update({
             where: { id: teamId },
             data: {
@@ -200,7 +200,7 @@ router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
             }
         });
 
-        // Update user to remove teamMembership
+
         const member = await prisma.user.findUnique({ where: { uid: memberUid } });
         if (member) {
             await prisma.user.update({
@@ -218,7 +218,7 @@ router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
     }
 });
 
-// Invite Member
+
 router.post('/invite', verifyToken, async (req, res) => {
     const { email } = req.body;
     const uid = req.user.uid;
@@ -231,7 +231,7 @@ router.post('/invite', verifyToken, async (req, res) => {
             return res.status(400).json({ message: 'You must be in a team to invite members' });
         }
 
-        // Use the first team membership
+
         const teamId = user.teamMemberships[0];
         const team = await prisma.team.findUnique({ where: { id: teamId } });
         if (!team) return res.status(404).json({ message: 'Team not found' });
@@ -256,7 +256,7 @@ router.post('/invite', verifyToken, async (req, res) => {
     }
 });
 
-// Leave Team (Member leaves voluntarily)
+
 router.post('/:teamId/leave', verifyToken, async (req, res) => {
     const { teamId } = req.params;
     const uid = req.user.uid;
@@ -273,13 +273,13 @@ router.post('/:teamId/leave', verifyToken, async (req, res) => {
             return res.status(400).json({ message: 'You are not a member of this team' });
         }
 
-        // Remove from team members
+
         await prisma.team.update({
             where: { id: teamId },
             data: { members: team.members.filter(id => id !== uid) }
         });
 
-        // Remove from user's teamMemberships
+
         const user = await prisma.user.findUnique({ where: { uid } });
         if (user) {
             await prisma.user.update({
@@ -295,7 +295,7 @@ router.post('/:teamId/leave', verifyToken, async (req, res) => {
     }
 });
 
-// Get Team Details with Member Info
+
 router.get('/:teamId/details', verifyToken, async (req, res) => {
     const { teamId } = req.params;
 
@@ -303,7 +303,7 @@ router.get('/:teamId/details', verifyToken, async (req, res) => {
         const team = await prisma.team.findUnique({ where: { id: teamId } });
         if (!team) return res.status(404).json({ message: 'Team not found' });
 
-        // Resolve member UIDs to user objects
+
         const memberDetails = await Promise.all(
             team.members.map(async (memberUid) => {
                 const user = await prisma.user.findUnique({ where: { uid: memberUid } });

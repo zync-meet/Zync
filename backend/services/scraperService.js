@@ -1,17 +1,9 @@
-/**
- * Scraper Service
- * Contains Puppeteer scraping logic for all inspiration sources.
- * All functions accept a shared browser instance and query parameter.
- */
-
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
 puppeteer.use(StealthPlugin());
 
-// Launch options optimized for Render.com
-// Note: --no-sandbox and --disable-setuid-sandbox are insecure and removed by default.
-// Use PUPPETEER_NO_SANDBOX=true to re-enable them if absolutely necessary.
+
 const LAUNCH_OPTIONS = {
     headless: 'new',
     args: [
@@ -21,11 +13,9 @@ const LAUNCH_OPTIONS = {
     ]
 };
 
-/**
- * Launch a shared browser instance
- */
+
 async function launchBrowser() {
-    // Create a copy of options to avoid mutating the global constant
+
     const options = { ...LAUNCH_OPTIONS, args: [...LAUNCH_OPTIONS.args] };
 
     if (process.env.PUPPETEER_NO_SANDBOX === 'true') {
@@ -42,10 +32,7 @@ async function launchBrowser() {
     return await puppeteer.launch(options);
 }
 
-/**
- * Lapa Ninja Scraper (Client-Side Rendered via Algolia)
- * URL: https://www.lapa.ninja/search/?q=${query}
- */
+
 async function scrapeLapaNinja(browser, query) {
     if (!browser) return [];
     const page = await browser.newPage();
@@ -58,7 +45,7 @@ async function scrapeLapaNinja(browser, query) {
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-        // Wait for Algolia to render results (with graceful failure)
+
         try {
             await page.waitForSelector('.ais-Hits-item', { timeout: 10000 });
         } catch {
@@ -66,13 +53,13 @@ async function scrapeLapaNinja(browser, query) {
             return [];
         }
 
-        // Scroll to load more items
+
         for (let i = 0; i < 3; i++) {
             await page.evaluate(() => window.scrollBy(0, 1000));
             await new Promise(r => setTimeout(r, 500));
         }
 
-        // Try clicking "Next" pagination if available
+
         try {
             const nextBtn = await page.$('.ais-Pagination-item--nextPage a');
             if (nextBtn) {
@@ -80,7 +67,7 @@ async function scrapeLapaNinja(browser, query) {
                 await new Promise(r => setTimeout(r, 1500));
             }
         } catch {
-            // No pagination, that's fine
+
         }
 
         const results = await page.evaluate(() => {
@@ -107,19 +94,16 @@ async function scrapeLapaNinja(browser, query) {
     }
 }
 
-/**
- * Godly Scraper (Virtualized Scroll)
- * URL: https://godly.website/?term=${query}
- */
+
 async function scrapeGodly(browser, query) {
     if (!browser) return [];
     const page = await browser.newPage();
 
     try {
-        // Set large viewport
+
         await page.setViewport({ width: 1600, height: 1200 });
 
-        // Block heavy resources
+
         await page.setRequestInterception(true);
         page.on('request', (req) => {
             if (['font', 'stylesheet', 'media'].includes(req.resourceType())) {
@@ -135,10 +119,10 @@ async function scrapeGodly(browser, query) {
 
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-        // Wait for articles
+
         await page.waitForSelector('article', { timeout: 15000 });
 
-        // CRITICAL: Scroll to trigger lazy loading
+
         await page.evaluate(() => window.scrollBy(0, 1000));
         await new Promise(r => setTimeout(r, 1000));
 
@@ -150,7 +134,7 @@ async function scrapeGodly(browser, query) {
 
                 let imageUrl = '';
                 if (bgDiv && bgDiv.style.backgroundImage) {
-                    // Extract URL from 'url("...")'
+
                     imageUrl = bgDiv.style.backgroundImage.slice(5, -2);
                 }
 
@@ -174,10 +158,7 @@ async function scrapeGodly(browser, query) {
     }
 }
 
-/**
- * SiteInspire Scraper (SSR)
- * URL: https://www.siteinspire.com/search?query=${query}
- */
+
 async function scrapeSiteInspire(browser, query) {
     if (!browser) return [];
     const page = await browser.newPage();
@@ -189,7 +170,7 @@ async function scrapeSiteInspire(browser, query) {
 
         await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-        // Wait for grid (with graceful failure for queries with no results)
+
         try {
             await page.waitForSelector('.WebsiteCard', { timeout: 8000 });
         } catch {
@@ -197,7 +178,7 @@ async function scrapeSiteInspire(browser, query) {
             return [];
         }
 
-        // Scroll to load more
+
         await page.evaluate(() => window.scrollBy(0, 800));
         await new Promise(r => setTimeout(r, 500));
 
@@ -208,7 +189,7 @@ async function scrapeSiteInspire(browser, query) {
                 const img = card.querySelector('img.WebsiteCard__image') || card.querySelector('img');
                 const titleEl = card.querySelector('.WebsiteCaption__title');
 
-                // Use img.src directly (browser resolves it to absolute URL)
+
                 const imageUrl = img?.src || '';
 
                 return {
@@ -231,10 +212,7 @@ async function scrapeSiteInspire(browser, query) {
     }
 }
 
-/**
- * Dribbble Scraper (Stealth)
- * URL: https://dribbble.com/search/${query}
- */
+
 async function scrapeDribbble(browser, query) {
     if (!browser) return [];
     const page = await browser.newPage();
@@ -249,14 +227,14 @@ async function scrapeDribbble(browser, query) {
 
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-        // Wait for thumbnails
+
         try {
             await page.waitForSelector('li.shot-thumbnail', { timeout: 15000 });
         } catch {
             console.log('DEBUG: Timeout waiting for Dribbble selector');
         }
 
-        // Scroll to load more
+
         for (let i = 0; i < 3; i++) {
             await page.evaluate(() => window.scrollBy(0, window.innerHeight));
             await new Promise(r => setTimeout(r, 1500));
@@ -317,10 +295,7 @@ async function scrapeDribbble(browser, query) {
     }
 }
 
-/**
- * Awwwards Scraper (Premium Web Design)
- * URL: https://www.awwwards.com/websites/?q=${query}
- */
+
 async function scrapeAwwwards(browser, query) {
     if (!browser) return [];
     const page = await browser.newPage();
@@ -335,7 +310,7 @@ async function scrapeAwwwards(browser, query) {
 
         await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-        // Wait for cards (with graceful failure)
+
         try {
             await page.waitForSelector('.card-site', { timeout: 10000 });
         } catch {
@@ -343,7 +318,7 @@ async function scrapeAwwwards(browser, query) {
             return [];
         }
 
-        // Scroll to trigger lazy loading
+
         for (let i = 0; i < 3; i++) {
             await page.evaluate(() => window.scrollBy(0, 800));
             await new Promise(r => setTimeout(r, 500));
@@ -354,20 +329,20 @@ async function scrapeAwwwards(browser, query) {
                 const linkEl = card.querySelector('a.figure-rollover__link');
                 const imgEl = card.querySelector('img');
 
-                // Get title from aria-label
+
                 const title = linkEl?.getAttribute('aria-label') || 'Awwwards Site';
 
-                // Get link (relative, need to prepend)
+
                 let link = linkEl?.getAttribute('href') || '';
                 if (link && !link.startsWith('http')) {
                     link = 'https://www.awwwards.com' + link;
                 }
 
-                // Get image from srcset or data-srcset (prefer 2x version)
+
                 let imageUrl = '';
                 const srcset = imgEl?.getAttribute('srcset') || imgEl?.getAttribute('data-srcset');
                 if (srcset) {
-                    // Format: "url_1x 1x, url_2x 2x"
+
                     const parts = srcset.split(',');
                     const highRes = parts.find(p => p.includes('2x')) || parts[0];
                     imageUrl = highRes?.trim().split(' ')[0] || '';

@@ -13,7 +13,7 @@ console.log('\n--- Fixed key ---');
 console.log('Lines:', fixedKey.split('\n').length);
 console.log('Empty lines:', fixedKey.split('\n').filter(l => l.trim() === '').length);
 
-// Write the fixed key to a file
+
 const envLine = `GITHUB_PRIVATE_KEY="${fixedKey}"`;
 fs.writeFileSync('fixed_github_key.txt', envLine);
 

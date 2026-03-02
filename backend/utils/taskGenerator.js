@@ -1,19 +1,12 @@
 const { Groq } = require('groq-sdk');
 const { PrismaClient } = require('@prisma/client');
 
-// Initialize Groq
+
 const prisma = new PrismaClient();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MODEL_NAME = "llama-3.3-70b-versatile";
 
-/**
- * Generates technical tasks from a user idea and links them to repositories.
- * 
- * @param {number} userId - The ID of the user initiating the task generation.
- * @param {string} idea - The high-level description of the project or feature.
- * @param {number[]} repoIds - Array of internal Repository IDs (integers) to link tasks to.
- * @returns {Promise<Array>} - The created tasks.
- */
+
 async function generateTasksFromIdea(userId, idea, repoIds) {
   try {
     const prompt = `
@@ -22,7 +15,7 @@ async function generateTasksFromIdea(userId, idea, repoIds) {
       Feature Request: "${idea}"
 
       Repo Context: The user selected ${repoIds.length} repositories.
-      
+
       Return a JSON array of objects. Each object must have:
       - title: Short clear title
       - description: Technical description of implementation
@@ -32,7 +25,7 @@ async function generateTasksFromIdea(userId, idea, repoIds) {
       [
         { "title": "Create API Route", "description": "POST /api/v1/resource", "type": "Backend" }
       ]
-      
+
       Output strictly JSON.
     `;
 
@@ -47,7 +40,7 @@ async function generateTasksFromIdea(userId, idea, repoIds) {
 
     try {
       const parsed = JSON.parse(jsonString);
-      // Handle if AI wrapped it in { "tasks": [...] } or returned array directly
+
       if (Array.isArray(parsed)) generatedTasks = parsed;
       else if (parsed.tasks && Array.isArray(parsed.tasks)) generatedTasks = parsed.tasks;
     } catch (e) {
@@ -57,10 +50,9 @@ async function generateTasksFromIdea(userId, idea, repoIds) {
 
     const createdTasks = [];
 
-    // 2. Save Tasks to DB and Link Repos
-    // We use a transaction to ensure integrity
+
     await prisma.$transaction(async (tx) => {
-      // Get current count to generate sequential IDs (e.g., TASK-001)
+
       const lastTask = await tx.task.findFirst({
         orderBy: { displayId: 'desc' }
       });
@@ -73,7 +65,7 @@ async function generateTasksFromIdea(userId, idea, repoIds) {
         }
       }
 
-      // Create the Task concurrently
+
       const newTasks = await Promise.all(generatedTasks.map((taskData, index) => {
         const currentIdNum = nextIdNum + index;
         const displayId = `TASK-${String(currentIdNum).padStart(3, '0')}`;
@@ -99,5 +91,5 @@ async function generateTasksFromIdea(userId, idea, repoIds) {
   }
 }
 
-// Map the export name to match usage if necessary, or just export the function
+
 module.exports = { generateArchitectureTasks: generateTasksFromIdea };

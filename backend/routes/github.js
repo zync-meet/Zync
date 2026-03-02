@@ -20,7 +20,7 @@ const decryptToken = (ciphertext) => {
   return bytes.toString(CryptoJS.enc.Utf8);
 };
 
-// POST /connect - Validate and save GitHub token
+
 router.post('/connect', verifyToken, async (req, res) => {
   const { accessToken } = req.body;
   const uid = req.user.uid;
@@ -69,7 +69,7 @@ router.post('/connect', verifyToken, async (req, res) => {
   }
 });
 
-// DELETE /disconnect - Unlink GitHub account
+
 router.delete('/disconnect', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
@@ -96,7 +96,7 @@ router.delete('/disconnect', verifyToken, async (req, res) => {
   }
 });
 
-// POST /callback - OAuth callback to exchange code for access token
+
 router.post('/callback', verifyToken, async (req, res) => {
   const { code } = req.body;
   const uid = req.user.uid;
@@ -162,7 +162,7 @@ router.post('/callback', verifyToken, async (req, res) => {
   }
 });
 
-// GET /repos - Fetch user's repositories
+
 router.get('/repos', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
@@ -217,7 +217,7 @@ router.get('/repos', verifyToken, async (req, res) => {
   }
 });
 
-// POST /install - Save Installation ID from Callback
+
 router.post('/install', verifyToken, async (req, res) => {
   const { installationId } = req.body;
   const uid = req.user.uid;
@@ -249,7 +249,7 @@ router.post('/install', verifyToken, async (req, res) => {
   }
 });
 
-// Helper to update github integration to disconnected state
+
 const disconnectGithub = async (uid, extra = {}) => {
   try {
     const user = await prisma.user.findUnique({ where: { uid } });
@@ -269,7 +269,7 @@ const disconnectGithub = async (uid, extra = {}) => {
   }
 };
 
-// GET /user-repos - Fetch all repos accessible to the GitHub App Installation
+
 router.get('/user-repos', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
@@ -367,7 +367,7 @@ router.get('/user-repos', verifyToken, async (req, res) => {
   }
 });
 
-// GET /stats - Fetch GitHub user stats
+
 router.get('/stats', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
@@ -406,7 +406,7 @@ router.get('/stats', verifyToken, async (req, res) => {
   }
 });
 
-// GET /events - Fetch recent GitHub events/activity
+
 router.get('/events', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
@@ -450,7 +450,7 @@ router.get('/events', verifyToken, async (req, res) => {
   }
 });
 
-// GET /contributions - Fetch contribution data
+
 router.get('/contributions', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
@@ -524,7 +524,7 @@ router.get('/contributions', verifyToken, async (req, res) => {
   }
 });
 
-// GET /readme - Fetch README content for a repository
+
 router.get('/readme', verifyToken, async (req, res) => {
   const { owner, repo } = req.query;
   const uid = req.user.uid;

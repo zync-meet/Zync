@@ -7,9 +7,7 @@ const { getInstallationAccessToken } = require('../utils/githubAppAuth');
 
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
 
-/**
- * Middleware to verify GitHub Webhook Signature
- */
+
 const verifySignature = (req, res, next) => {
     const signature = req.headers['x-hub-signature-256'];
     const deliveryId = req.headers['x-github-delivery'];
@@ -72,7 +70,7 @@ router.post('/', verifySignature, async (req, res) => {
                     const taskId = match[1];
                     console.log(`Found completion tag for Task ID: ${taskId}`);
 
-                    // Find task by ID or displayId
+
                     const task = await prisma.projectTask.findFirst({
                         where: {
                             OR: [
@@ -94,14 +92,14 @@ router.post('/', verifySignature, async (req, res) => {
                         if (!task.assignedTo) {
                             console.log(`Task ${taskId} is unassigned. Ignoring commit from ${senderLogin}.`);
                         } else {
-                            // Check GitHub username matches
+
                             const assignedUser = await prisma.user.findUnique({
                                 where: { uid: task.assignedTo }
                             });
                             const storedUsername = assignedUser?.githubIntegration?.username;
 
                             if (storedUsername === senderLogin) {
-                                // AUTHORIZED — update task
+
                                 const updatedTask = await prisma.projectTask.update({
                                     where: { id: task.id },
                                     data: {
@@ -115,7 +113,7 @@ router.post('/', verifySignature, async (req, res) => {
 
                                 console.log(`Task ${taskId} marked as Completed by ${senderLogin}.`);
 
-                                // Post Bot Comment to GitHub
+
                                 if (installToken) {
                                     try {
                                         await axios.post(
@@ -136,7 +134,7 @@ router.post('/', verifySignature, async (req, res) => {
                                     }
                                 }
 
-                                // Emit socket events
+
                                 const io = req.app.get('io');
                                 if (io) {
                                     const projectId = task.step.project.id;
@@ -147,7 +145,7 @@ router.post('/', verifySignature, async (req, res) => {
                                         message: `Task status updated via commit`
                                     });
 
-                                    // Fetch full project for Kanban Board update
+
                                     const fullProject = await prisma.project.findUnique({
                                         where: { id: projectId },
                                         include: {

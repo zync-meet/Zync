@@ -6,7 +6,7 @@ const run = async () => {
     try {
         console.log('Connecting to Database...');
 
-        // Fetch all users
+
         const users = await prisma.user.findMany({
             select: { displayName: true, firstName: true, lastName: true, email: true, createdAt: true }
         });
@@ -17,7 +17,7 @@ const run = async () => {
             return;
         }
 
-        // Append each user as a row
+
         for (const user of users) {
             const name = user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'N/A';
             const email = user.email || 'N/A';
@@ -40,4 +40,3 @@ const run = async () => {
 };
 
 run();
-

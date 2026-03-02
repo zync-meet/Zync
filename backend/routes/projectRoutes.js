@@ -13,7 +13,7 @@ const MODEL_NAME = "gemini-2.5-flash";
 console.log(`[Config] Using Gemini Model: ${MODEL_NAME}`);
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
-// Helper: Decrypt Token
+
 const decryptToken = (ciphertext) => {
   if (!ciphertext) return null;
   try {
@@ -41,7 +41,7 @@ const logDebug = (message) => {
   console.log(`[DEBUG] ${message}`);
 };
 
-// Helper: Fetch Repo Context
+
 const fetchRepoContext = async (accessToken, owner, repo) => {
   logDebug(`Fetching repo context for ${owner}/${repo}`);
   try {
@@ -88,12 +88,12 @@ const fetchRepoContext = async (accessToken, owner, repo) => {
   }
 };
 
-// Helper: Analyze with Gemini
+
 const analyzeWithGemini = async (repoContext, projectName) => {
   logDebug(`Sending context to Gemini for analysis...`);
   const prompt = `
     You are a Senior Software Architect. Analyze the following codebase context for the project "${projectName}".
-    
+
     Codebase Context:
     ${repoContext}
 
@@ -146,7 +146,7 @@ const analyzeWithGemini = async (repoContext, projectName) => {
   }
 };
 
-// Create a new project manually (e.g. from GitHub import)
+
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { name, description, githubRepoName, githubRepoOwner } = req.body;
@@ -156,7 +156,7 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Name is required' });
     }
 
-    // Look up user to get Prisma ID for the ownerId FK
+
     const owner = await prisma.user.findUnique({ where: { uid: ownerUid } });
     if (!owner) return res.status(404).json({ message: 'User not found' });
 
@@ -190,7 +190,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Trigger Architecture Analysis On-Demand
+
 router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -201,7 +201,7 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    // Verify owner (ownerId is a Prisma ID, need to check via user)
+
     const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
     if (!owner || owner.uid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
@@ -261,7 +261,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
 
     const prompt = `
       You are a software architect. Generate a comprehensive project architecture and step-by-step development plan for the following project:
-      
+
       Project Name: ${name}
       Project Description: ${description}
 
@@ -306,7 +306,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
           }
         ]
       }
-      
+
       Ensure the steps are ordered logically for development. Each step should act as a phase and contain multiple granular tasks.
     `;
 
@@ -325,7 +325,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
       return res.status(500).json({ message: 'Failed to generate valid project structure', error: e.message });
     }
 
-    // Create project with nested steps and tasks
+
     const stepsData = (generatedData.steps || []).map((step, idx) => ({
       title: step.title,
       description: step.description || '',
@@ -362,16 +362,16 @@ router.post('/generate', authMiddleware, async (req, res) => {
   }
 });
 
-// Get all projects for a user (owned or part of team)
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const ownerUid = req.user.uid;
 
-    // Find user to get Prisma ID
+
     const user = await prisma.user.findUnique({ where: { uid: ownerUid } });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Find projects where user is owner OR is in team array OR is assigned tasks
+
     const projects = await prisma.project.findMany({
       where: {
         OR: [
@@ -383,7 +383,7 @@ router.get('/', authMiddleware, async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Also find projects where user is assigned to tasks
+
     const assignedProjects = await prisma.project.findMany({
       where: {
         steps: {
@@ -398,7 +398,7 @@ router.get('/', authMiddleware, async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Merge and deduplicate
+
     const projectMap = new Map();
     [...projects, ...assignedProjects].forEach(p => projectMap.set(p.id, p));
     const allProjects = Array.from(projectMap.values());
@@ -409,7 +409,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Add user to project team (Join Project)
+
 router.post('/:id/team', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.body;
@@ -420,7 +420,7 @@ router.post('/:id/team', authMiddleware, async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    // Only owner can add team members — need to check via user table
+
     const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
     if (!owner || owner.uid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
@@ -441,7 +441,7 @@ router.post('/:id/team', authMiddleware, async (req, res) => {
   }
 });
 
-// Get a single project by ID
+
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const project = await prisma.project.findUnique({
@@ -455,13 +455,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
     });
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    // Check if user is owner or in team
+
     const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Lazy initialization of steps if missing
+
     if (!project.steps || project.steps.length === 0) {
       const defaultSteps = [
         { title: 'Planning', description: 'Initial requirements and design', type: 'Design', order: 0, projectId: project.id },
@@ -485,7 +485,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Delete a project
+
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
@@ -496,7 +496,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Cascade delete handles steps and tasks
+
     await prisma.project.delete({ where: { id: req.params.id } });
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
@@ -504,7 +504,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Update Project Details (e.g. Link GitHub Repo)
+
 router.patch('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -539,7 +539,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Create a new task in a specific step
+
 router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) => {
   try {
     const { projectId, stepId } = req.params;
@@ -555,7 +555,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
     });
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    // Check Permissions
+
     const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
@@ -564,7 +564,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
     const step = project.steps.find(s => s.id === stepId);
     if (!step) return res.status(404).json({ message: 'Step not found' });
 
-    // Send email notification if assigned
+
     if (assignedTo) {
       const assigneeUser = await prisma.user.findUnique({ where: { uid: assignedTo } });
       if (assigneeUser && assigneeUser.email) {
@@ -603,7 +603,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       }
     });
 
-    // Return full project
+
     const updatedProject = await prisma.project.findUnique({
       where: { id: projectId },
       include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } }
@@ -616,7 +616,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
   }
 });
 
-// Update a specific task status or assignment
+
 router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req, res) => {
   try {
     const { projectId, stepId, taskId } = req.params;
@@ -628,7 +628,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     });
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    // Check Permissions
+
     const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
@@ -643,7 +643,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     const taskUpdate = {};
     if (status) taskUpdate.status = status;
 
-    // Handle Assignment
+
     if (assignedTo !== undefined) {
       const oldAssignee = task.assignedTo;
       taskUpdate.assignedTo = assignedTo;
@@ -687,7 +687,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
       include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } }
     });
 
-    // Emit generic project update for live board
+
     req.app.get('io').emit('projectUpdate', {
       projectId: updatedProject.id,
       project: updatedProject
@@ -700,7 +700,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
   }
 });
 
-// Delete a task (Only Project Owner)
+
 router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req, res) => {
   try {
     const { projectId, stepId, taskId } = req.params;
@@ -740,7 +740,7 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
   }
 });
 
-// Search for tasks across all projects
+
 router.get('/tasks/search', authMiddleware, async (req, res) => {
   try {
     const { query } = req.query;
@@ -748,11 +748,11 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
 
     if (!query) return res.json([]);
 
-    // Find user to get Prisma ID
+
     const user = await prisma.user.findUnique({ where: { uid: userId } });
     if (!user) return res.json([]);
 
-    // Find accessible projects
+
     const ownedProjects = await prisma.project.findMany({
       where: { ownerId: user.id },
       include: { steps: { include: { tasks: true } } }
@@ -770,7 +770,7 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
       include: { steps: { include: { tasks: true } } }
     });
 
-    // Deduplicate
+
     const projectMap = new Map();
     [...ownedProjects, ...teamProjects, ...assignedProjects].forEach(p => projectMap.set(p.id, p));
     const projects = Array.from(projectMap.values());
@@ -802,7 +802,7 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
   }
 });
 
-// Create a quick task from external source (e.g. Notes)
+
 router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -814,13 +814,13 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
     });
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    // Check Permissions
+
     const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Find a suitable step
+
     let step = project.steps.find(s =>
       s.title.toLowerCase().includes('backlog') ||
       s.title.toLowerCase().includes('planning') ||
@@ -832,7 +832,7 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
     }
 
     if (!step) {
-      // Create a default step
+
       step = await prisma.step.create({
         data: {
           title: 'Backlog',
@@ -857,7 +857,7 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
       }
     });
 
-    // Send email notification if assigned
+
     if (assignedTo) {
       const assigneeUser = await prisma.user.findUnique({ where: { uid: assignedTo } });
       if (assigneeUser && assigneeUser.email) {

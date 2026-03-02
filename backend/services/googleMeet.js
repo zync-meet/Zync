@@ -6,7 +6,7 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000"
 );
 
-// Set credentials globally for the client
+
 if (process.env.GOOGLE_REFRESH_TOKEN) {
     oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
 }
@@ -15,14 +15,14 @@ const create_meeting = async () => {
     try {
         console.log('Creating Google Meet space with Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 10) + '...');
 
-        // Ensure credentials are set (googleapis handles refresh automatically)
+
         if (!process.env.GOOGLE_REFRESH_TOKEN) {
             throw new Error('GOOGLE_REFRESH_TOKEN is missing');
         }
 
         const meet = google.meet({ version: 'v2', auth: oauth2Client });
 
-        // Use spaces.create with OPEN access config
+
         const response = await meet.spaces.create({
             requestBody: {
                 config: {
@@ -42,7 +42,7 @@ const create_meeting = async () => {
         }
 
     } catch (error) {
-        // Fallback or detailed logging
+
         console.error('Error in create_meeting:', error.message);
         if (error.response) {
             console.error('API Response:', error.response.data);
@@ -67,7 +67,7 @@ const send_ZYNC_email = async (to, subject, bodyHtml, bodyText = null) => {
         let messageParts;
 
         if (bodyText) {
-            // Multipart email with both plain text and HTML
+
             const boundary = `boundary_${Date.now().toString(36)}`;
             const textBase64 = Buffer.from(bodyText).toString('base64');
             const htmlBase64 = Buffer.from(bodyHtml).toString('base64');
@@ -93,7 +93,7 @@ const send_ZYNC_email = async (to, subject, bodyHtml, bodyText = null) => {
                 `--${boundary}--`
             ];
         } else {
-            // HTML only
+
             const htmlBase64 = Buffer.from(bodyHtml).toString('base64');
             messageParts = [
                 `To: ${to}`,
@@ -108,7 +108,7 @@ const send_ZYNC_email = async (to, subject, bodyHtml, bodyText = null) => {
 
         const message = messageParts.join('\n');
 
-        // Base64url encoding
+
         const encodedMessage = Buffer.from(message)
             .toString('base64')
             .replace(/\+/g, '-')
@@ -133,5 +133,5 @@ const send_ZYNC_email = async (to, subject, bodyHtml, bodyText = null) => {
 module.exports = {
     create_meeting,
     send_ZYNC_email,
-    createInstantMeet: create_meeting // Alias for backward compatibility
+    createInstantMeet: create_meeting
 };

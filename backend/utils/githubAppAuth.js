@@ -1,27 +1,22 @@
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 
-/**
- * Generate a JWT for the GitHub App
- */
+
 const getAppJwt = () => {
     const appId = process.env.GITHUB_APP_ID;
-    const privateKey = process.env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n'); // Handle env var newlines
+    const privateKey = process.env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n');
 
     const now = Math.floor(Date.now() / 1000);
     const payload = {
-        iat: now - 60, // Issued at time (60s in the past)
-        exp: now + (10 * 60), // Expires in 10 minutes
+        iat: now - 60,
+        exp: now + (10 * 60),
         iss: appId
     };
 
     return jwt.sign(payload, privateKey, { algorithm: 'RS256' });
 };
 
-/**
- * Get Installation Access Token
- * @param {string} installationId 
- */
+
 const getInstallationAccessToken = async (installationId) => {
     const jwtToken = getAppJwt();
 

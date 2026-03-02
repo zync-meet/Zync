@@ -1,14 +1,13 @@
-
 import { describe, it, expect, mock, beforeAll, beforeEach } from "bun:test";
 import express from "express";
 import request from "supertest";
 import path from "path";
 
-// Mock environment variables
+
 process.env.GEMINI_API_KEY_SECONDARY = "mock-key";
 process.env.ENCRYPTION_KEY = "mock-encryption-key";
 
-// Mock dependencies using mock.module
+
 mock.module("@google/generative-ai", () => ({
   GoogleGenerativeAI: class {
     getGenerativeModel() {
@@ -19,7 +18,7 @@ mock.module("@google/generative-ai", () => ({
   }
 }));
 
-// Mock require.cache for CJS dependencies
+
 const authMiddlewarePath = path.resolve(__dirname, "../middleware/authMiddleware.js");
 const authMiddlewareTracker = mock((req, res, next) => {
   req.user = { uid: "authenticated-user" };
@@ -53,7 +52,7 @@ require.cache[regexUtilsPath] = {
   }
 };
 
-// Mock Prisma
+
 const mockPrisma = {
   user: {
     findUnique: mock(() => Promise.resolve({ id: 'user-id', uid: 'authenticated-user' }))
@@ -86,7 +85,7 @@ require.cache[prismaPath] = {
   exports: mockPrisma
 };
 
-// Import the router
+
 const projectRoutes = require("../routes/projectRoutes");
 
 describe("Project Routes Security", () => {
@@ -95,7 +94,7 @@ describe("Project Routes Security", () => {
   beforeAll(() => {
     app = express();
     app.use(express.json());
-    // Mock io
+
     app.get = (key) => {
       if (key === 'io') return { emit: mock() };
       return undefined;
@@ -177,4 +176,3 @@ describe("Project Routes Security", () => {
   });
 
 });
-

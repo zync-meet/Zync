@@ -8,18 +8,14 @@ const cloudinary = require('cloudinary').v2;
 const verifyToken = require('../middleware/authMiddleware');
 const prisma = require('../lib/prisma');
 
-// ---------------------------------------------------------------------------
-// Cloudinary Configuration
-// ---------------------------------------------------------------------------
+
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ---------------------------------------------------------------------------
-// Profile Photo Upload  →  POST /api/upload/profile-photo
-// ---------------------------------------------------------------------------
+
 const profileUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 },
@@ -68,7 +64,7 @@ router.post('/profile-photo', verifyToken, (req, res) => {
                 stream.end(req.file.buffer);
             });
 
-            // Update user's photoURL in Supabase
+
             const updatedUser = await prisma.user.update({
                 where: { uid },
                 data: { photoURL: result.secure_url }
@@ -89,9 +85,7 @@ router.post('/profile-photo', verifyToken, (req, res) => {
     });
 });
 
-// ---------------------------------------------------------------------------
-// Generic File Upload  →  POST /api/upload
-// ---------------------------------------------------------------------------
+
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });

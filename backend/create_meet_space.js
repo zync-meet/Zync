@@ -1,10 +1,11 @@
 require('dotenv').config();
 const { google } = require('googleapis');
 
+
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
-const TARGET_EMAIL = process.env.TARGET_EMAIL || 'your-email@example.com'; 
+const TARGET_EMAIL = process.env.TARGET_EMAIL || 'your-email@example.com';
 
 if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) {
     console.error('Error: Missing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_REFRESH_TOKEN in .env');
@@ -14,12 +15,13 @@ if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) {
 const oauth2Client = new google.auth.OAuth2(
     CLIENT_ID,
     CLIENT_SECRET,
-    'https://developers.google.com/oauthplayground' 
+    'https://developers.google.com/oauthplayground'
 );
 
 oauth2Client.setCredentials({
     refresh_token: REFRESH_TOKEN
 });
+
 
 const meet = google.meet({ version: 'v2', auth: oauth2Client });
 const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
@@ -27,6 +29,7 @@ const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 async function createMeetingSpace() {
     try {
         console.log('Creating Google Meet space...');
+
 
         const response = await meet.spaces.create({
             requestBody: {

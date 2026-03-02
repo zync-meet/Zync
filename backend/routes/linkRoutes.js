@@ -3,7 +3,7 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const verifyToken = require('../middleware/authMiddleware');
 
-// Link a generic repo to a Project
+
 router.post('/link-repo', verifyToken, async (req, res) => {
   const { projectId, githubRepoId } = req.body;
 
@@ -19,7 +19,7 @@ router.post('/link-repo', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    // Add to array if not already present
+
     const currentIds = project.githubRepoIds || [];
     if (!currentIds.includes(githubRepoId)) {
       await prisma.project.update({
@@ -30,7 +30,7 @@ router.post('/link-repo', verifyToken, async (req, res) => {
       });
     }
 
-    // Update all ProjectTasks associated with this project's steps
+
     const steps = await prisma.step.findMany({
       where: { projectId },
       select: { id: true }

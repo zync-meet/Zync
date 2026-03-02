@@ -2,9 +2,9 @@ const { getInspiration } = require('./controllers/inspirationController');
 const { performance } = require('perf_hooks');
 
 const iterations = 100;
-const query = 'ai'; // Use a query likely to be in the cache
+const query = 'ai';
 
-// Suppress console output
+
 const originalLog = console.log;
 const originalWarn = console.warn;
 const originalError = console.error;
@@ -12,7 +12,7 @@ const originalError = console.error;
 function suppressOutput() {
     console.log = () => {};
     console.warn = () => {};
-    // console.error = () => {}; // Keep errors visible
+
 }
 
 function restoreOutput() {

@@ -28,14 +28,14 @@ router.post('/github', verifyGithub, async (req, res) => {
                 let taskId = null;
                 let action = null;
 
-                // 1. Check for Explicit ZYNC Tag [ZYNC-COMPLETE #ID]
+
                 const explicitMatch = message.match(/\[ZYNC-COMPLETE #([a-zA-Z0-9_-]+)\]/i);
                 if (explicitMatch) {
                     taskId = explicitMatch[1];
                     action = 'Complete';
                     console.log(`Found Explicit Tag: ${taskId}`);
                 } else {
-                    // 2. Fallback to AI Analysis
+
                     const analysis = await analyzeCommit(message);
                     if (analysis.found && analysis.id && analysis.action === 'Complete') {
                         taskId = analysis.id.replace('TASK-', '');
@@ -45,7 +45,7 @@ router.post('/github', verifyGithub, async (req, res) => {
                 }
 
                 if (taskId && action === 'Complete') {
-                    // Search for task by ID or displayId
+
                     const task = await prisma.projectTask.findFirst({
                         where: {
                             OR: [
@@ -72,7 +72,7 @@ router.post('/github', verifyGithub, async (req, res) => {
                         console.log(`Marking task ${task.title} as Completed`);
                         console.log(`SUCCESS: Task ${taskId} updated in DB.`);
 
-                        // Emit Socket Event
+
                         if (io) {
                             io.emit('taskUpdated', {
                                 taskId: task.id,

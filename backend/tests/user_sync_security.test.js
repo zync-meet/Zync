@@ -2,7 +2,7 @@ import { describe, it, expect, mock } from "bun:test";
 import request from "supertest";
 import express from "express";
 
-// Mock Prisma
+
 const mockPrisma = {
   user: {
     findUnique: mock((args) => {
@@ -23,7 +23,7 @@ mock.module("../lib/prisma", () => ({
   $disconnect: mockPrisma.$disconnect
 }));
 
-// Mock Firebase Admin
+
 mock.module("firebase-admin", () => {
   return {
     apps: [],
@@ -40,7 +40,7 @@ mock.module("firebase-admin", () => {
   };
 });
 
-// Mock other dependencies
+
 mock.module("../utils/encryption", () => ({}));
 mock.module("../utils/regexUtils", () => ({}));
 mock.module("../services/mailer", () => ({
@@ -69,8 +69,7 @@ describe("User Sync Security", () => {
       .send({ uid: "secure_uid", email: "test@example.com" });
 
     expect(res.status).toBe(200);
-    // Should try to find unique user
+
     expect(mockPrisma.user.findUnique).toHaveBeenCalled();
   });
 });
-

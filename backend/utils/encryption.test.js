@@ -4,8 +4,6 @@ const { encrypt, decrypt } = require("./encryption");
 describe("Encryption Utils", () => {
   const originalText = "Hello, World!";
 
-  // Note: The encryption module uses a fallback key if process.env.MASTER_ENCRYPTION_KEY is not set.
-  // We are testing with that fallback key in this environment.
 
   test("should return null if input is null, undefined, or empty", () => {
     expect(encrypt(null)).toBeNull();
@@ -22,7 +20,7 @@ describe("Encryption Utils", () => {
     expect(encrypted).not.toBeNull();
     expect(typeof encrypted).toBe("string");
     expect(encrypted).not.toEqual(originalText);
-    // Check for format iv:encrypted (hex:hex)
+
     expect(encrypted).toMatch(/^[0-9a-f]+:[0-9a-f]+$/);
   });
 

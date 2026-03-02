@@ -18,7 +18,7 @@ async function run() {
             console.log(`- ${collection.name}: ${count} documents`);
         }
 
-        // Check for specific user if UID is known (from logs: 1L3bA0sqKqSzoZGH3W26Tmn8Ltx2)
+
         const uid = "1L3bA0sqKqSzoZGH3W26Tmn8Ltx2";
         let usersCollection = collections.find(c => c.name === 'users')?.name;
         if (!usersCollection) usersCollection = collections.find(c => c.name === 'User')?.name;

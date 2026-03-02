@@ -8,7 +8,7 @@ async function setAdmin() {
     try {
         console.log('Connecting to DB...');
 
-        // Find user by email (case insensitive)
+
         const user = await prisma.user.findFirst({
             where: {
                 email: { equals: adminEmail, mode: 'insensitive' }

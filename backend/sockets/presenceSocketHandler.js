@@ -1,7 +1,7 @@
 const prisma = require('../lib/prisma');
 
-// In-memory presence cache — presence is ephemeral so we don't persist it in DB
-const onlineUsers = new Map(); // Map<uid, { status, lastSeen }>
+
+const onlineUsers = new Map();
 
 module.exports = (io) => {
     const presenceNamespace = io.of('/presence');
@@ -16,11 +16,11 @@ module.exports = (io) => {
 
         socket.join(userId);
 
-        // Update in-memory presence
+
         const now = new Date();
         onlineUsers.set(userId, { status: 'online', lastSeen: now });
 
-        // Send initial state of ALL online users to this new client
+
         const initialStatus = [];
         for (const [uid, data] of onlineUsers.entries()) {
             if (uid !== userId) {
@@ -29,7 +29,7 @@ module.exports = (io) => {
         }
         socket.emit('initial-status', initialStatus);
 
-        // Broadcast to everyone
+
         socket.broadcast.emit('user-status-changed', {
             userId,
             status: 'online',
@@ -46,7 +46,7 @@ module.exports = (io) => {
                 lastSeen: now
             });
 
-            // Clean up after a delay in case of reconnect
+
             setTimeout(() => {
                 const entry = onlineUsers.get(userId);
                 if (entry && entry.status === 'offline') {
@@ -55,7 +55,7 @@ module.exports = (io) => {
             }, 30000);
         });
 
-        // Handle explicit status updates (e.g. set to 'away')
+
         socket.on('update-status', async (newStatus) => {
             const now = new Date();
             onlineUsers.set(userId, { status: newStatus, lastSeen: now });

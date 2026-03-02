@@ -33,13 +33,13 @@ if (end2 - start2 > 100) {
     console.log('SUCCESS: Regex handled the payload safely and treated it as a literal string.');
 }
 
-// Test another case: literal dots
+
 const dotPayload = 'a.b';
 const escapedDot = escapeRegExp(dotPayload);
 const dotRegex = new RegExp(escapedDot);
 console.log(`Testing "${dotPayload}" escaped as literal:`);
-console.log(`"a.b" matches "a.b"? ${dotRegex.test('a.b')}`); // Should be true
-console.log(`"a.b" matches "axb"? ${dotRegex.test('axb')}`); // Should be false
+console.log(`"a.b" matches "a.b"? ${dotRegex.test('a.b')}`);
+console.log(`"a.b" matches "axb"? ${dotRegex.test('axb')}`);
 if (dotRegex.test('axb')) {
     console.error('FAILED: Dot was not escaped');
     process.exit(1);

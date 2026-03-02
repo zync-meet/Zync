@@ -1,13 +1,10 @@
 require('dotenv').config();
 const { google } = require('googleapis');
 
-// Configuration
+
 const SPREADSHEET_ID = '1dSLg9N40XzLgPxogA-sHyFXhN3GL5MVWcoxxnvVug7E';
 
-/**
- * Authenticate with Google Sheets API using environment variables
- * Required env vars: GOOGLE_SHEETS_CLIENT_EMAIL, GOOGLE_SHEETS_PRIVATE_KEY
- */
+
 const getAuth = () => {
     const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
     const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
@@ -21,7 +18,7 @@ const getAuth = () => {
     const auth = new google.auth.GoogleAuth({
         credentials: {
             client_email: clientEmail,
-            private_key: privateKey.replace(/\\n/g, '\n'), // Handle escaped newlines from .env
+            private_key: privateKey.replace(/\\n/g, '\n'),
         },
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
@@ -29,12 +26,7 @@ const getAuth = () => {
     return auth;
 };
 
-/**
- * Append a row to the Google Sheet
- * @param {string} name - User's name
- * @param {string} email - User's email
- * @param {string} date - Registration date (defaults to now)
- */
+
 const appendRow = async (name, email, date = new Date().toISOString()) => {
     try {
         const auth = getAuth();
@@ -42,7 +34,7 @@ const appendRow = async (name, email, date = new Date().toISOString()) => {
 
         const request = {
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Sheet1!A:C', // Adjust sheet name and range as needed
+            range: 'Sheet1!A:C',
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
             resource: {
@@ -59,7 +51,7 @@ const appendRow = async (name, email, date = new Date().toISOString()) => {
     }
 };
 
-// Example usage if run directly
+
 if (require.main === module) {
     const args = process.argv.slice(2);
     const name = args[0] || 'Test User';

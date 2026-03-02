@@ -7,8 +7,7 @@ const uploadRoutes = require('../routes/uploadRoutes');
 const app = express();
 app.use('/api/upload', uploadRoutes);
 
-// Correctly locate the uploads directory relative to where the server code expects it
-// backend/routes/uploadRoutes.js uses path.join(__dirname, '../uploads') -> backend/uploads
+
 const uploadDir = path.join(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadDir));
 
@@ -16,7 +15,7 @@ async function run() {
     let passed = true;
     console.log('Starting verification...');
 
-    // 1. Extension Sanitization Test
+
     try {
         console.log('\n[Test 1] Extension Sanitization (text/plain upload of .html file)...');
         const buffer = Buffer.from('<html><body><script>alert("XSS")</script></body></html>');
@@ -43,7 +42,7 @@ async function run() {
         passed = false;
     }
 
-    // 2. SVG Rejection Test
+
     try {
         console.log('\n[Test 2] SVG Rejection (image/svg+xml)...');
         const buffer = Buffer.from('<svg><script>alert(1)</script></svg>');
@@ -65,7 +64,7 @@ async function run() {
         passed = false;
     }
 
-    // 3. Valid Image Test
+
     try {
         console.log('\n[Test 3] Valid Image (image/png)...');
         const buffer = Buffer.from('fakeimagecontent');
@@ -92,7 +91,7 @@ async function run() {
         passed = false;
     }
 
-    // 4. Mime Spoofing Test
+
     try {
         console.log('\n[Test 4] Mime Spoofing (upload .html as image/png)...');
         const buffer = Buffer.from('<html>...</html>');

@@ -1,11 +1,7 @@
-/**
- * One-time script to set CORS on Firebase Storage bucket.
- * Run: node set-storage-cors.js
- */
 require('dotenv').config();
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin
+
 if (!admin.apps.length) {
     if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
         let serviceAccount = process.env.GCP_SERVICE_ACCOUNT_KEY;

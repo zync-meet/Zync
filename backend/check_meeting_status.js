@@ -1,13 +1,12 @@
 require('dotenv').config();
 const { google } = require('googleapis');
 
-// Configuration
+
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
 
-// The space created in the previous step (or replace with any valid space name)
-// Format: spaces/SPACE_ID
+
 const SPACE_NAME = 'spaces/TwFr2qongmUB';
 
 if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) {
@@ -24,7 +23,7 @@ async function checkMeetingStatus() {
     try {
         console.log(`Checking conference records for space: ${SPACE_NAME}...`);
 
-        // List conference records filtered by the space
+
         const response = await meet.conferenceRecords.list({
             filter: `space.name="${SPACE_NAME}"`
         });

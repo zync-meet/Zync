@@ -3,9 +3,7 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const verifyToken = require('../middleware/authMiddleware');
 
-// --- Folders ---
 
-// Create a new folder
 router.post('/folders', verifyToken, async (req, res) => {
   try {
     const { name, ownerId, parentId, type, projectId, color } = req.body;
@@ -28,7 +26,7 @@ router.post('/folders', verifyToken, async (req, res) => {
 
     res.status(201).json(folder);
   } catch (error) {
-    // Unique constraint violation (same name in same parent for same owner)
+
     if (error.code === 'P2002') {
       return res.status(409).json({ error: 'A folder with this name already exists in this location' });
     }
@@ -36,7 +34,7 @@ router.post('/folders', verifyToken, async (req, res) => {
   }
 });
 
-// Get all folders for a user
+
 router.get('/folders', verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
@@ -57,7 +55,7 @@ router.get('/folders', verifyToken, async (req, res) => {
   }
 });
 
-// Share a folder
+
 router.post('/folders/:id/share', verifyToken, async (req, res) => {
   try {
     const { collaboratorIds } = req.body;
@@ -70,7 +68,7 @@ router.post('/folders/:id/share', verifyToken, async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized: Only owner can share folder' });
     }
 
-    // Merge existing collaborators with new ones (no duplicates)
+
     const existing = folderToCheck.collaborators || [];
     const merged = [...new Set([...existing, ...collaboratorIds])];
 
@@ -86,9 +84,6 @@ router.post('/folders/:id/share', verifyToken, async (req, res) => {
 });
 
 
-// --- Notes ---
-
-// Create a new note
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { title, content, ownerId, folderId, projectId } = req.body;
@@ -114,7 +109,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// Get all notes for a user (optionally filtered by folder)
+
 router.get('/', verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
@@ -138,7 +133,7 @@ router.get('/', verifyToken, async (req, res) => {
       }
       where = { folderId };
     } else {
-      // Get folder IDs shared with this user
+
       const sharedFolders = await prisma.folder.findMany({
         where: { collaborators: { has: userId } },
         select: { id: true }
@@ -164,7 +159,7 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// Get single note by ID
+
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const note = await prisma.note.findUnique({ where: { id: req.params.id } });
@@ -174,11 +169,11 @@ router.get('/:id', verifyToken, async (req, res) => {
     const isShared = note.sharedWith && note.sharedWith.includes(req.user.uid);
 
     if (!isOwner && !isShared) {
-      // Check folder permissions
+
       if (note.folderId) {
         const folder = await prisma.folder.findUnique({ where: { id: note.folderId } });
         if (folder && (folder.ownerId === req.user.uid || (folder.collaborators && folder.collaborators.includes(req.user.uid)))) {
-          // Access granted via folder
+
         } else {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -193,7 +188,7 @@ router.get('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Update a note
+
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { title, content, folderId } = req.body;
@@ -224,7 +219,7 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Delete a note
+
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const note = await prisma.note.findUnique({ where: { id: req.params.id } });

@@ -3,8 +3,7 @@ const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
 const prisma = require('../lib/prisma');
 
-// POST /api/google/connect
-// Saves the Google OAuth token (accessToken) to the user's profile
+
 router.post('/connect', verifyToken, async (req, res) => {
     const { accessToken, email, refreshToken } = req.body;
     const uid = req.user.uid;
@@ -45,7 +44,7 @@ router.post('/connect', verifyToken, async (req, res) => {
     }
 });
 
-// DELETE /api/google/disconnect
+
 router.delete('/disconnect', verifyToken, async (req, res) => {
     const uid = req.user.uid;
 

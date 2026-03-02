@@ -19,7 +19,7 @@ async function testAuth() {
         const jwt = app.getSignedJsonWebToken();
         console.log("JWT Generated successfully (internal check)");
 
-        // Test API call to get App info (verifies JWT against GitHub)
+
         const { data } = await app.octokit.request("GET /app");
         console.log("✅ Authenticated as App:", data.name);
     } catch (error) {

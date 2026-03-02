@@ -1,7 +1,3 @@
-/**
- * Simple logger utility to manage console output based on environment.
- * In production and test environments, debug logs are suppressed.
- */
 const logger = {
   info: (...args) => {
     if (process.env.NODE_ENV !== 'test') {

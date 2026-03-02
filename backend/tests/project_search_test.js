@@ -1,8 +1,6 @@
-
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 
-// Mock dependencies
-// Correctly mock prisma.project.findMany to return a Promise that resolves to an array of projects
+
 const mockProjectFindMany = mock(() => Promise.resolve([
   {
     id: "p1",
@@ -20,18 +18,18 @@ const mockProjectFindMany = mock(() => Promise.resolve([
   }
 ]));
 
-// Mock Prisma
+
 const prisma = {
   project: {
     findMany: mockProjectFindMany
   }
 };
 
-// Define the handler logic we want to test (this mimics the secure implementation using Prisma)
+
 const secureSearchHandler = async (req, res) => {
   try {
     const { query } = req.query;
-    // Simulate auth middleware populating req.user
+
     const userId = req.user ? req.user.uid : null;
 
     if (!userId) {
@@ -40,7 +38,7 @@ const secureSearchHandler = async (req, res) => {
 
     if (!query) return res.json([]);
 
-    // Find projects accessible to user (owned or collaborator)
+
     const projects = await prisma.project.findMany({
       where: {
         OR: [
@@ -78,7 +76,7 @@ const secureSearchHandler = async (req, res) => {
       });
     });
 
-    // Return top 10 matches
+
     res.json(results.slice(0, 10));
   } catch (error) {
     console.error('Error searching tasks:', error);
@@ -103,12 +101,12 @@ describe("Project Search Logic", () => {
 
     await secureSearchHandler(req, res);
 
-    // Verify prisma.project.findMany was called
+
     expect(mockProjectFindMany).toHaveBeenCalled();
-    // Bun's mock.calls returns array of args per call. First call, first arg.
+
     const callArgs = mockProjectFindMany.mock.calls[0][0];
 
-    // Check for OR condition with user ID
+
     expect(callArgs.where.OR).toBeDefined();
     expect(callArgs.where.OR).toContainEqual({ ownerId: "user123" });
     expect(callArgs.where.OR).toContainEqual({ team: { has: "user123" } });
@@ -117,7 +115,7 @@ describe("Project Search Logic", () => {
   it("should return 401 if no user is authenticated (though middleware should handle this)", async () => {
     const req = {
       query: { query: "bug" },
-      user: null // No user
+      user: null
     };
     const res = {
       json: mock(),

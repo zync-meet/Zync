@@ -5,7 +5,7 @@ const { randomUUID } = require('crypto');
 const prisma = require('../lib/prisma');
 const verifyToken = require('../middleware/authMiddleware');
 
-// Initialize Groq
+
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MODEL_NAME = "llama-3.3-70b-versatile";
 
@@ -18,11 +18,11 @@ router.post('/', verifyToken, async (req, res) => {
   }
 
   try {
-    // 1. Generate Architecture & Tasks with Groq
+
     const prompt = `
-      You are a Senior Software Architect and Project Manager. 
+      You are a Senior Software Architect and Project Manager.
       Create a comprehensive technical Implementation Plan for a software project.
-      
+
       Project Name: "${name}"
       Project Description: "${description}"
 
@@ -41,7 +41,7 @@ router.post('/', verifyToken, async (req, res) => {
              "title": "Phase 1: Foundation",
              "description": "Setting up the environment",
              "status": "Pending",
-             "type": "Backend", 
+             "type": "Backend",
              "tasks": [
                 { "title": "Setup Repository", "description": "Initialize Git", "status": "Pending", "assignedTo": null },
                 { "title": "Configure Database", "description": "Setup connection", "status": "Pending", "assignedTo": null }
@@ -52,7 +52,7 @@ router.post('/', verifyToken, async (req, res) => {
              "title": "Test Board",
              "description": "QA and Testing Phase",
              "status": "Pending",
-             "type": "Other", 
+             "type": "Other",
              "tasks": [
                 { "title": "Unit Tests", "description": "Write core unit tests", "status": "Pending", "assignedTo": null },
                 { "title": "Integration Tests", "description": "Test API endpoints", "status": "Pending", "assignedTo": null }
@@ -63,7 +63,7 @@ router.post('/', verifyToken, async (req, res) => {
             "Suggested Role 1", "Suggested Role 2"
         ]
       }
-      
+
       Make the tasks specific, actionable, and technical. Include a "Test Board" step/phase explicitly.
     `;
 
@@ -83,10 +83,10 @@ router.post('/', verifyToken, async (req, res) => {
       generatedData = JSON.parse(cleanJson);
     }
 
-    // 2. Look up the User record to get the Prisma user ID for the relation
+
     let user = await prisma.user.findUnique({ where: { uid: ownerId } });
     if (!user) {
-      // Create user on-the-fly if not synced yet
+
       user = await prisma.user.create({
         data: {
           uid: ownerId,
@@ -96,7 +96,7 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    // 3. Create Project with Steps and Tasks in a single transaction
+
     const newProject = await prisma.project.create({
       data: {
         name,

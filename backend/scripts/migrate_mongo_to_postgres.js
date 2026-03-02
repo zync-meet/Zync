@@ -11,7 +11,7 @@ if (!MONGO_URI) {
     process.exit(1);
 }
 
-const idMap = new Map(); // ObjectId (String) -> UUID (String)
+const idMap = new Map();
 
 async function migrate() {
     const client = new MongoClient(MONGO_URI);
@@ -19,18 +19,16 @@ async function migrate() {
     try {
         await client.connect();
         console.log('✅ Connected to MongoDB');
-        const db = client.db(); // Uses DB name from names in URI or default
+        const db = client.db();
 
-        // -----------------------------------------------------------------------
-        // 1. Migrate Users
-        // -----------------------------------------------------------------------
+
         console.log('\n--- Migrating Users ---');
         const mongoUsers = await db.collection('users').find().toArray();
 
         for (const user of mongoUsers) {
             const oldId = user._id.toString();
 
-            // Check if user already exists (by firebaseUid or email) to avoid duplicates
+
             let existingUser = await prisma.user.findUnique({
                 where: { uid: user.uid }
             });
@@ -44,7 +42,7 @@ async function migrate() {
                 console.log(`User exists: ${user.email} (${existingUser.id})`);
                 newUserId = existingUser.id;
             } else {
-                // Transform User
+
                 const newUser = await prisma.user.create({
                     data: {
                         uid: user.uid,
@@ -57,16 +55,16 @@ async function migrate() {
                         createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
                         updatedAt: user.updatedAt ? new Date(user.updatedAt) : new Date(),
 
-                        // JSON fields
+
                         githubIntegration: user.integrations?.github || null,
                         googleIntegration: user.integrations?.google || null,
                         chatRequests: user.chatRequests || [],
 
-                        // Simple Arrays
+
                         connections: user.connections || [],
                         closeFriends: user.closeFriends || [],
 
-                        // New fields defaults
+
                         isPhoneVerified: false,
                     }
                 });
@@ -79,9 +77,6 @@ async function migrate() {
         console.log(`mapped ${idMap.size} users.`);
 
 
-        // -----------------------------------------------------------------------
-        // 2. Migrate Teams
-        // -----------------------------------------------------------------------
         console.log('\n--- Migrating Teams ---');
         const mongoTeams = await db.collection('teams').find().toArray();
 
@@ -92,7 +87,7 @@ async function migrate() {
                 continue;
             }
 
-            // Map members
+
             const members = (team.members || []).map(m => idMap.get(m?.toString())).filter(Boolean);
 
             const newTeam = await prisma.team.create({
@@ -106,24 +101,19 @@ async function migrate() {
                 }
             });
             console.log(`Created Team: ${newTeam.name}`);
-            // Map old team ID if referenced by Projects? (Project.team is String in schema?)
-            // Schema says: team String? (Legacy team ID? Or is it UUID now?)
-            // In Schema: model Project { team String? } -> This likely implies Team ID.
-            // We need to map Team IDs too if projects ref them.
+
+
             idMap.set(team._id.toString(), newTeam.id);
         }
 
 
-        // -----------------------------------------------------------------------
-        // 3. Migrate Projects
-        // -----------------------------------------------------------------------
         console.log('\n--- Migrating Projects ---');
         const mongoProjects = await db.collection('projects').find().toArray();
 
         for (const project of mongoProjects) {
-            // Owner
+
             const ownerId = idMap.get(project.ownerId?.toString());
-            // Team (if project.team was an ID)
+
             const teamId = project.team ? idMap.get(project.team.toString()) : null;
 
             if (!ownerId && !teamId) {
@@ -131,23 +121,22 @@ async function migrate() {
                 continue;
             }
 
-            // Collaborators
+
             const collaborators = (project.collaborators || []).map(c => idMap.get(c?.toString())).filter(Boolean);
 
-            // Create Project
+
             const newProject = await prisma.project.create({
                 data: {
                     name: project.name,
                     description: project.description,
                     repoName: project.repoName,
                     isPublic: project.isPublic || false,
-                    repository: project.repository || null, // JSON?
+                    repository: project.repository || null,
 
-                    ownerId: ownerId, // Optional in schema? No, ownerId String?. 
-                    // Wait, Schema: ownerId String? (if team project?).
-                    // Check schema: ownerId String?.
+                    ownerId: ownerId,
 
-                    team: teamId, // String?
+
+                    team: teamId,
                     collaborators: collaborators,
 
                     architecture: project.architecture || null,
@@ -158,7 +147,7 @@ async function migrate() {
             });
             console.log(`Created Project: ${newProject.name} (${newProject.id})`);
 
-            // Migrate Steps & Tasks (Flattening)
+
             if (project.steps && Array.isArray(project.steps)) {
                 for (const step of project.steps) {
                     const newStep = await prisma.step.create({
@@ -183,7 +172,7 @@ async function migrate() {
                                     priority: task.priority || 'medium',
                                     dueDate: task.dueDate ? new Date(task.dueDate) : null,
                                     assignedTo: assignedTo || null,
-                                    assignedBy: ownerId, // Approximate
+                                    assignedBy: ownerId,
                                 }
                             });
                         }
@@ -192,9 +181,6 @@ async function migrate() {
             }
         }
 
-        // -----------------------------------------------------------------------
-        // 4. Migrate Sessions? (Optional, maybe just current ones)
-        // -----------------------------------------------------------------------
 
         console.log('\n--- Migration Complete ---');
 

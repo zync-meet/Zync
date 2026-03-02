@@ -6,7 +6,7 @@ const { createInstantMeet } = require('../services/googleMeet');
 const { sendZyncEmail } = require('../services/mailer');
 const { getMeetingInviteTextVersion, getMeetingEmailHtml } = require('../utils/emailTemplates');
 
-// Get Recent Meetings for User
+
 router.get('/user/:uid', verifyToken, async (req, res) => {
     const { uid } = req.params;
     if (req.user.uid !== uid) {
@@ -18,22 +18,22 @@ router.get('/user/:uid', verifyToken, async (req, res) => {
             where: {
                 OR: [
                     { organizerId: uid },
-                    // For participant check, we query all meetings and filter in-app
-                    // since participants is a JSON column
+
+
                 ]
             },
             orderBy: { startTime: 'desc' },
             take: 20
         });
 
-        // Filter meetings where user is a participant (JSON column)
+
         const filteredMeetings = meetings.filter(m => {
             if (m.organizerId === uid) return true;
             const participants = Array.isArray(m.participants) ? m.participants : [];
             return participants.some(p => p.uid === uid);
         });
 
-        // Update status logic
+
         const now = new Date();
         const updatedMeetings = filteredMeetings.map(m => {
             const startTime = new Date(m.startTime);
@@ -60,7 +60,7 @@ router.get('/user/:uid', verifyToken, async (req, res) => {
     }
 });
 
-// Delete a Meeting
+
 router.delete('/:meetingId', verifyToken, async (req, res) => {
     const { meetingId } = req.params;
     const uid = req.user.uid;
@@ -85,7 +85,7 @@ router.delete('/:meetingId', verifyToken, async (req, res) => {
     }
 });
 
-// Schedule a Meeting
+
 router.post('/schedule', verifyToken, async (req, res) => {
     const { title, description, startTime, endTime, organizerId, participantIds } = req.body;
 
@@ -122,7 +122,7 @@ router.post('/schedule', verifyToken, async (req, res) => {
             }
         });
 
-        // Send Invites (Async)
+
         (async () => {
             await Promise.all(participants.map(async (receiver) => {
                 if (receiver.email) {
@@ -165,7 +165,7 @@ router.post('/schedule', verifyToken, async (req, res) => {
     }
 });
 
-// Create Instant Meeting
+
 router.post('/invite', verifyToken, async (req, res) => {
     const { senderId, receiverIds, projectId } = req.body;
 
@@ -174,10 +174,10 @@ router.post('/invite', verifyToken, async (req, res) => {
     }
 
     try {
-        // 1. Generate Google Meet Link
+
         const meetingUrl = await createInstantMeet();
 
-        // 2. Get project details if available
+
         let projectName = null;
         if (projectId) {
             const project = await prisma.project.update({
@@ -194,7 +194,7 @@ router.post('/invite', verifyToken, async (req, res) => {
             ? await prisma.user.findMany({ where: { uid: { in: receiverIds } } })
             : [];
 
-        // 3. Create Meeting Record
+
         const participantData = receivers.map(u => ({
             uid: u.uid,
             email: u.email,
@@ -216,10 +216,10 @@ router.post('/invite', verifyToken, async (req, res) => {
             }
         });
 
-        // Return immediately
+
         res.status(200).json({ message: 'Meeting created', meetingUrl, meetingId: newMeeting.id });
 
-        // PROCESS NOTIFICATIONS IN BACKGROUND
+
         (async () => {
             try {
                 await Promise.all(receivers.map(async (receiver) => {

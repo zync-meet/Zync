@@ -1,21 +1,12 @@
-/**
- * ZYNC Email Templates
- * Standardized templates for Zync transactional emails
- */
-
-/**
- * ZYNC Meeting Invitation Email Template (HTML)
- * "Glow Card" Design - Dark Mode with Neon Blue/Cyan Accents
- */
 const getMeetingEmailHtml = ({
     inviterName,
     attendeeName,
-    meetingTopic, // Kept for interface consistency
+    meetingTopic,
     date,
     time,
     meetingLink
 }) => {
-    // Zync Brand Colors & Assets
+
     const logoUrl = 'https://zync-meet.vercel.app/zync-dark.webp';
     const accentGradient = 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)';
     const topBarGradient = 'linear-gradient(90deg, #0ea5e9 0%, #38bdf8 50%, #0ea5e9 100%)';
@@ -28,15 +19,15 @@ const getMeetingEmailHtml = ({
     <title>Zync Meeting Invitation</title>
 </head>
 <body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #000000; margin: 0; padding: 0; color: #e5e7eb; -webkit-font-smoothing: antialiased;">
-    
+
     <!-- Outer Wrapper with subtle gradient effect -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(180deg, #000000 0%, #050505 50%, #000000 100%); background-color: #000000;">
         <tr>
             <td align="center" style="padding: 48px 16px 64px;">
-                
+
                 <!-- Main Container Card -->
                 <table role="presentation" width="540" cellpadding="0" cellspacing="0" style="max-width: 540px; width: 100%; background: linear-gradient(145deg, #0b0f19 0%, #05070a 100%); border: 1px solid rgba(14, 165, 233, 0.15); border-radius: 20px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 60px rgba(14, 165, 233, 0.08);">
-                    
+
                     <!-- Glow accent bar at top -->
                     <tr>
                         <td style="height: 3px; background: ${topBarGradient};"></td>
@@ -52,10 +43,10 @@ const getMeetingEmailHtml = ({
                     <!-- Main Content -->
                     <tr>
                         <td style="padding: 0 40px 44px;">
-                            
+
                             <!-- Greeting -->
                             <h1 style="font-size: 26px; font-weight: 700; margin: 0 0 14px; color: #ffffff; text-align: center; letter-spacing: -0.02em;">Hey ${attendeeName},</h1>
-                            
+
                             <!-- Main Message -->
                             <p style="color: #94a3b8; line-height: 1.75; font-size: 15px; margin: 0 0 36px; text-align: center;">
                                 <strong style="color: #ffffff; font-weight: 600;">${inviterName}</strong> wants to build software together with you. <br> You've been invited to join the workspace.
@@ -150,7 +141,7 @@ const getMeetingEmailHtml = ({
                                 Sent via <strong style="color: #0ea5e9;">Zync</strong> • AI-powered project collaboration
                             </p>
                             <p style="font-size: 11px; color: #334155; margin: 0;">
-                                <a href="https://zync-meet.vercel.app/dashboard" style="color: #64748b; text-decoration: none;">Dashboard</a> &nbsp;•&nbsp; 
+                                <a href="https://zync-meet.vercel.app/dashboard" style="color: #64748b; text-decoration: none;">Dashboard</a> &nbsp;•&nbsp;
                                 <a href="https://zync-meet.vercel.app/privacy" style="color: #64748b; text-decoration: none;">Privacy</a>
                             </p>
                         </td>
@@ -165,9 +156,7 @@ const getMeetingEmailHtml = ({
 </html>`;
 };
 
-/**
- * Get plain text version of the email for clients that don't support HTML
- */
+
 const getMeetingInviteTextVersion = ({
     recipientName = 'there',
     senderName = 'A colleague',
@@ -216,10 +205,6 @@ const getMeetingInviteTextVersion = ({
 };
 
 
-/**
- * ZYNC Support Notification Template (For Developers)
- * Inform developers of a new support request
- */
 const getSupportNotificationTemplate = ({
     firstName,
     lastName,
@@ -256,7 +241,7 @@ const getSupportNotificationTemplate = ({
             <td style="padding: 40px;">
                 <img src="${logoUrl}" alt="ZYNC" width="100" style="margin-bottom: 30px;" />
                 <h1 style="font-size: 24px; font-weight: 700; color: #ffffff; margin: 0 0 20px;">New Support Message</h1>
-                
+
                 <table role="presentation" width="100%" style="margin-bottom: 30px; background-color: rgba(30, 41, 59, 0.5); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
                     <tr>
                         <td style="padding: 20px;">

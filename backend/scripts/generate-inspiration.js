@@ -1,12 +1,3 @@
-/**
- * Generate Inspiration Cache
- * 
- * Runs all scrapers against a list of popular design keywords.
- * Aggregates results into a single JSON file for static serving.
- * 
- * Usage: node backend/scripts/generate-inspiration.js
- */
-
 const fs = require('fs');
 const path = require('path');
 const {
@@ -18,9 +9,9 @@ const {
     scrapeAwwwards
 } = require('../services/scraperService');
 
-// Top design categories to cover 90% of use cases
+
 const CATEGORIES = [
-    // Core Types
+
     'web design',
     'landing page',
     'portfolio',
@@ -32,7 +23,7 @@ const CATEGORIES = [
     'startup',
     'agency',
 
-    // Specific Pages/UI
+
     'login page',
     'signup page',
     'pricing page',
@@ -43,7 +34,7 @@ const CATEGORIES = [
     'newsletter',
     'footer',
 
-    // Styles & Trends
+
     'minimal',
     'typography',
     'dark mode',
@@ -52,7 +43,7 @@ const CATEGORIES = [
     'animation',
     'brutalist',
 
-    // Industries
+
     'fintech',
     'crypto',
     'fashion',
@@ -80,7 +71,7 @@ async function generateCache() {
         for (const category of CATEGORIES) {
             console.log(`\n🔍 Scraping Category: "${category}"`);
 
-            // Run all scrapers for this category
+
             const results = await Promise.allSettled([
                 scrapeLapaNinja(browser, category),
                 scrapeGodly(browser, category),
@@ -89,7 +80,7 @@ async function generateCache() {
                 scrapeAwwwards(browser, category)
             ]);
 
-            // Collect successful results
+
             const batchedItems = [];
             results.forEach((res, index) => {
                 const sourceName = ['Lapa', 'Godly', 'SiteInspire', 'Dribbble', 'Awwwards'][index];
@@ -101,22 +92,22 @@ async function generateCache() {
                 }
             });
 
-            // Add to main list with deduplication
+
             let newCount = 0;
             for (const item of batchedItems) {
-                // Create a robust ID if not present (using link)
+
                 const id = item.link || item.image;
                 if (!seenIds.has(id)) {
                     seenIds.add(id);
-                    // Inject the category keywords into the item for client-side search
+
                     item.tags = [category];
-                    // (If item exists from another category, we could append tags, but distinct ID check prevents it.
-                    // Ideally we merge tags, but simpler to just keep first occurrence for now)
+
+
                     allItems.push(item);
                     newCount++;
                 } else {
-                    // Item already exists (e.g. "Airbnb" comes up in 'web design' AND 'corporate')
-                    // Find it and add the tag
+
+
                     const existing = allItems.find(i => (i.link || i.image) === id);
                     if (existing && existing.tags) {
                         if (!existing.tags.includes(category)) existing.tags.push(category);
@@ -125,24 +116,24 @@ async function generateCache() {
             }
             console.log(`   ✨ Added ${newCount} unique items.`);
 
-            // Short pause between categories to be nice to CPUs
+
             await new Promise(r => setTimeout(r, 1000));
         }
 
-        // Shuffle the final list
+
         console.log('\n🔀 Shuffling results...');
         for (let i = allItems.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
         }
 
-        // Ensure directory exists
+
         const dir = path.dirname(OUTPUT_FILE);
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
 
-        // Save to file
+
         fs.writeFileSync(OUTPUT_FILE, JSON.stringify(allItems, null, 2));
         console.log(`\n✅ SUCCESS! Cache saved to ${OUTPUT_FILE}`);
         console.log(`📊 Total Unique Items: ${allItems.length}`);

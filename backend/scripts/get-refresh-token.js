@@ -19,7 +19,7 @@ function getAccessToken(oAuth2Client) {
     const authUrl = oAuth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES,
-        prompt: 'consent' // Forces consent prompt to ensure refresh_token is returned
+        prompt: 'consent'
     });
 
     console.log('\nAuthorize this app by visiting this url:\n');
@@ -43,7 +43,7 @@ function getAccessToken(oAuth2Client) {
     });
 }
 
-// Check for missing env vars
+
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.error('Error: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing in backend/.env');
     process.exit(1);

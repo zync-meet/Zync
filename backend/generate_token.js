@@ -2,7 +2,7 @@ require('dotenv').config();
 const { google } = require('googleapis');
 const readline = require('readline');
 
-// Configuration
+
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
@@ -21,9 +21,9 @@ const SCOPES = [
 ];
 
 const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline', // Critical for refresh token
+    access_type: 'offline',
     scope: SCOPES,
-    prompt: 'consent' // Force new refresh token
+    prompt: 'consent'
 });
 
 console.log('\nPlease authorize this app by visiting this url in your browser:\n');

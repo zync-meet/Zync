@@ -2,10 +2,10 @@ import { describe, it, expect, mock, beforeAll, afterAll } from "bun:test";
 const express = require('express');
 const request = require('supertest');
 
-// Set dummy API key for Groq initialization
+
 process.env.GROQ_API_KEY = "dummy_key";
 
-// Mock firebase-admin
+
 const mockVerifyIdToken = mock(() => Promise.resolve({ uid: 'test-user-id', email: 'test@example.com' }));
 const mockAuth = mock(() => ({
   verifyIdToken: mockVerifyIdToken
@@ -24,7 +24,7 @@ mock.module('firebase-admin', () => ({
   }
 }));
 
-// Mock groq-sdk
+
 const mockGroqCreate = mock(() => Promise.resolve({
   choices: [{ message: { content: JSON.stringify({ architecture: {}, steps: [] }) } }]
 }));
@@ -48,7 +48,7 @@ mock.module('groq-sdk', () => {
   };
 });
 
-// Mock Prisma
+
 const mockUserFindUnique = mock(() => Promise.resolve({ id: 'user-id', uid: 'test-user-id' }));
 const mockProjectCreate = mock(() => Promise.resolve({ id: 'new-project-id', name: 'Test Project' }));
 
@@ -62,7 +62,7 @@ mock.module('../lib/prisma', () => ({
   $disconnect: mock(() => Promise.resolve())
 }));
 
-// Now require the route
+
 const generateProjectRoutes = require('../routes/generateProjectRoutes');
 
 const app = express();
@@ -81,7 +81,7 @@ describe('Generate Project Routes', () => {
 
   it('should return 201 if authenticated', async () => {
     mockVerifyIdToken.mockClear();
-    // mockGroqCreate.mockClear(); // Bun mock doesn't consistently check calls on class methods this way, rely on status
+
 
     const res = await request(app)
       .post('/')
@@ -90,7 +90,6 @@ describe('Generate Project Routes', () => {
 
     expect(res.status).toBe(201);
     expect(mockVerifyIdToken).toHaveBeenCalled();
-    // expect(mockProjectCreate).toHaveBeenCalled(); // Bun test mocks are tricky with require cache, focusing on status code for now
+
   });
 });
-

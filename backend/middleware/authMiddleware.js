@@ -1,11 +1,11 @@
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin if not already initialized
+
 if (!admin.apps.length) {
   try {
-    // Attempt to initialize using GCP_SERVICE_ACCOUNT_KEY env var if present
+
     if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
-      // Handle potential string formatting issues from .env
+
       let serviceAccount = process.env.GCP_SERVICE_ACCOUNT_KEY;
       if (typeof serviceAccount === 'string') {
         try {
@@ -21,7 +21,7 @@ if (!admin.apps.length) {
         credential: admin.credential.cert(serviceAccount)
       });
     } else {
-      // Fallback to default credentials (file path or auto-discovery)
+
       console.log("Initializing Firebase Admin with default credentials");
       admin.initializeApp();
     }
@@ -30,9 +30,7 @@ if (!admin.apps.length) {
   }
 }
 
-/**
- * Middleware to verify Firebase ID Token
- */
+
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 

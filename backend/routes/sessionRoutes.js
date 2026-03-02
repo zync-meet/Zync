@@ -3,10 +3,10 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const verifyToken = require('../middleware/authMiddleware');
 
-// Apply authentication middleware to all routes
+
 router.use(verifyToken);
 
-// Start a new session
+
 router.post('/start', async (req, res) => {
   try {
     const userId = req.user.uid;
@@ -36,7 +36,7 @@ router.post('/start', async (req, res) => {
   }
 });
 
-// Get sessions for multiple users (Batch)
+
 router.post('/batch', async (req, res) => {
   try {
     const { userIds } = req.body;
@@ -54,7 +54,7 @@ router.post('/batch', async (req, res) => {
   }
 });
 
-// Update session (heartbeat) - Support both PUT and POST (for sendBeacon)
+
 const updateSession = async (req, res) => {
   try {
     const session = await prisma.session.findUnique({
@@ -62,7 +62,7 @@ const updateSession = async (req, res) => {
     });
     if (!session) return res.status(404).json({ message: 'Session not found' });
 
-    // Secure: Verify ownership
+
     if (session.userId !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized access to session' });
     }
@@ -76,7 +76,7 @@ const updateSession = async (req, res) => {
       updateData.activeDuration = (session.activeDuration || 0) + req.body.activeIncrement;
     }
 
-    // Compute duration
+
     const startTime = session.startTime;
     updateData.duration = Math.round((updateData.endTime - startTime) / 1000);
 
@@ -95,7 +95,7 @@ const updateSession = async (req, res) => {
 router.put('/:id', updateSession);
 router.post('/:id', updateSession);
 
-// Get user sessions
+
 router.get('/:userId', async (req, res) => {
   try {
     if (req.params.userId !== req.user.uid) {
@@ -113,10 +113,10 @@ router.get('/:userId', async (req, res) => {
   }
 });
 
-// Delete a specific session
+
 router.delete('/:id', async (req, res) => {
   try {
-    // Try to find and delete only if owned by user
+
     const session = await prisma.session.findUnique({
       where: { id: req.params.id }
     });
@@ -137,7 +137,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Delete all sessions for a user
+
 router.delete('/user/:userId', async (req, res) => {
   try {
     if (req.params.userId !== req.user.uid) {

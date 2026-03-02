@@ -4,7 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const fixSteps = async () => {
     try {
-        // Find Project ToolDeck (case insensitive)
+
         const project = await prisma.project.findFirst({
             where: {
                 name: { equals: 'ToolDeck', mode: 'insensitive' }
@@ -31,7 +31,7 @@ const fixSteps = async () => {
 
         let addedCount = 0;
         for (const s of newSteps) {
-            // Check if exists
+
             const exists = project.steps.some(existing => existing.title.toLowerCase() === s.title.toLowerCase());
             if (!exists) {
                 await prisma.step.create({
@@ -64,4 +64,3 @@ const fixSteps = async () => {
 };
 
 fixSteps();
-
