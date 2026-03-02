@@ -1,23 +1,5 @@
-/**
- * =============================================================================
- * Security Test Suite — ZYNC Desktop
- * =============================================================================
- *
- * Tests for the security module to verify CSP, permission handling,
- * navigation blocking, and IPC payload validation.
- *
- * @module electron/tests/security.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// =============================================================================
-// Mock Electron modules
-// =============================================================================
 
 vi.mock('electron', () => ({
     app: {
@@ -41,14 +23,9 @@ vi.mock('electron', () => ({
     },
 }));
 
-// =============================================================================
-// Tests: IPC Payload Validation
-// =============================================================================
 
 describe('IPC Payload Validation', () => {
-    /**
-     * Test that valid primitive payloads pass validation.
-     */
+
     it('should accept string payloads', () => {
         const payload = 'hello world';
         expect(typeof payload === 'string').toBe(true);
@@ -79,9 +56,7 @@ describe('IPC Payload Validation', () => {
         expect(Array.isArray(payload)).toBe(true);
     });
 
-    /**
-     * Test that dangerous payloads are rejected.
-     */
+
     it('should reject function payloads', () => {
         const payload = () => {};
         expect(typeof payload === 'function').toBe(true);
@@ -93,9 +68,6 @@ describe('IPC Payload Validation', () => {
     });
 });
 
-// =============================================================================
-// Tests: URL Validation
-// =============================================================================
 
 describe('URL Validation', () => {
     it('should accept http URLs', () => {
@@ -114,7 +86,7 @@ describe('URL Validation', () => {
             const parsed = new URL(url);
             expect(parsed.protocol).toBe('javascript:');
         } catch {
-            // Some URL parsers throw on javascript: protocol
+
             expect(true).toBe(true);
         }
     });
@@ -134,9 +106,6 @@ describe('URL Validation', () => {
     });
 });
 
-// =============================================================================
-// Tests: CSP Headers
-// =============================================================================
 
 describe('CSP Header Construction', () => {
     it('should include default-src directive', () => {
@@ -155,9 +124,6 @@ describe('CSP Header Construction', () => {
     });
 });
 
-// =============================================================================
-// Tests: Permission Handling
-// =============================================================================
 
 describe('Permission Handlers', () => {
     const TRUSTED_ORIGINS = [
@@ -186,9 +152,6 @@ describe('Permission Handlers', () => {
     });
 });
 
-// =============================================================================
-// Tests: Navigation Blocking
-// =============================================================================
 
 describe('Navigation Security', () => {
     const ALLOWED_ORIGINS = [

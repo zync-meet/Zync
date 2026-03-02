@@ -1,27 +1,10 @@
-/**
- * =============================================================================
- * Settings — Keyboard Shortcuts Tab — ZYNC Desktop Application
- * =============================================================================
- *
- * Renderer script for displaying keyboard shortcuts in the settings window.
- *
- * @module electron/settings/shortcuts
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
-/** Whether the current platform is macOS */
 const isMacPlatform = window.electron.platform === 'darwin';
 
-/** Modifier key label based on platform */
+
 const MOD = isMacPlatform ? '⌘' : 'Ctrl';
 const ALT = isMacPlatform ? '⌥' : 'Alt';
 
-/**
- * Keyboard shortcuts organized by category.
- */
+
 const SHORTCUTS = [
     {
         category: 'General',
@@ -64,9 +47,7 @@ const SHORTCUTS = [
     },
 ];
 
-/**
- * Renders the keyboard shortcuts list into the DOM.
- */
+
 function renderShortcuts() {
     const container = document.getElementById('shortcuts-container');
     if (!container) return;
@@ -74,13 +55,13 @@ function renderShortcuts() {
     container.innerHTML = '';
 
     SHORTCUTS.forEach((group) => {
-        // Category header
+
         const header = document.createElement('h3');
         header.className = 'shortcuts-category';
         header.textContent = group.category;
         container.appendChild(header);
 
-        // Shortcuts list
+
         const list = document.createElement('div');
         list.className = 'shortcuts-list';
 
@@ -105,5 +86,5 @@ function renderShortcuts() {
     });
 }
 
-// Initialize when DOM is ready
+
 document.addEventListener('DOMContentLoaded', renderShortcuts);

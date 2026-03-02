@@ -1,20 +1,6 @@
-/**
- * =============================================================================
- * Auto-Updater Service — ZYNC Desktop Application
- * =============================================================================
- *
- * Manages automatic updates using electron-updater and GitHub Releases.
- *
- * @module electron/services/auto-updater
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { BrowserWindow, dialog, app } from 'electron';
 
-/** Download progress information */
+
 interface UpdateProgress {
     bytesPerSecond: number;
     percent: number;
@@ -22,7 +8,7 @@ interface UpdateProgress {
     total: number;
 }
 
-/** Update metadata */
+
 interface UpdateInfo {
     version: string;
     releaseNotes?: string | null;
@@ -30,14 +16,12 @@ interface UpdateInfo {
     releaseName?: string | null;
 }
 
-/** Check interval: 4 hours */
+
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
-/** Delay before first check: 10 seconds */
+
 const INITIAL_CHECK_DELAY_MS = 10 * 1000;
 
-/**
- * Manages the application's automatic update lifecycle.
- */
+
 export class AutoUpdaterService {
     private mainWindow: BrowserWindow | null;
     private checkInterval: NodeJS.Timeout | null = null;
@@ -50,7 +34,7 @@ export class AutoUpdaterService {
         this.mainWindow = mainWindow;
     }
 
-    /** Start periodic update checking */
+
     public initialize(): void {
         console.info('[AutoUpdater] Initializing');
         this.initialCheckTimeout = setTimeout(() => {
@@ -62,7 +46,7 @@ export class AutoUpdaterService {
         }, UPDATE_CHECK_INTERVAL_MS);
     }
 
-    /** Check for available updates */
+
     public async checkForUpdates(): Promise<void> {
         if (!app.isPackaged) {
             console.info('[AutoUpdater] Skipping check in dev mode');
@@ -72,14 +56,14 @@ export class AutoUpdaterService {
 
         try {
             console.info(`[AutoUpdater] Checking... (current: ${app.getVersion()})`);
-            // autoUpdater.checkForUpdatesAndNotify() in production
+
             console.info('[AutoUpdater] Check completed');
         } catch (error) {
             console.error('[AutoUpdater] Check failed:', error);
         }
     }
 
-    /** Handle update-available event */
+
     private async onUpdateAvailable(info: UpdateInfo): Promise<void> {
         this.pendingUpdate = info;
         if (!this.mainWindow || this.mainWindow.isDestroyed()) {return;}
@@ -97,7 +81,7 @@ export class AutoUpdaterService {
         if (result.response === 0) {this.isDownloading = true;}
     }
 
-    /** Send download progress to renderer */
+
     private onDownloadProgress(progress: UpdateProgress): void {
         if (!this.mainWindow || this.mainWindow.isDestroyed()) {return;}
         this.mainWindow.webContents.send('fromMain', {
@@ -106,7 +90,7 @@ export class AutoUpdaterService {
         });
     }
 
-    /** Handle update-downloaded event */
+
     private async onUpdateDownloaded(info: UpdateInfo): Promise<void> {
         this.isDownloading = false;
         if (!this.mainWindow || this.mainWindow.isDestroyed()) {return;}
@@ -121,7 +105,7 @@ export class AutoUpdaterService {
         });
 
         if (result.response === 0) {
-            // autoUpdater.quitAndInstall()
+
         }
     }
 
@@ -133,7 +117,7 @@ export class AutoUpdaterService {
         this.mainWindow = window;
     }
 
-    /** Clean up timers */
+
     public dispose(): void {
         if (this.initialCheckTimeout) {clearTimeout(this.initialCheckTimeout);}
         if (this.checkInterval) {clearInterval(this.checkInterval);}

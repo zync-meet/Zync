@@ -1,23 +1,3 @@
-/**
- * =============================================================================
- * Application Menu Tests — ZYNC Desktop Application
- * =============================================================================
- *
- * Unit tests for the application menu builder module. These tests verify that:
- *
- * 1. The menu template is correctly built for each platform
- * 2. Menu items have correct labels, roles, and accelerators
- * 3. Click handlers properly send IPC messages to the renderer
- * 4. Platform-specific menus are included/excluded appropriately
- * 5. Submenus are properly nested
- *
- * @module electron/tests/unit/main/menu.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import {
   describe,
   it,
@@ -34,19 +14,11 @@ import {
   type ConsoleSpy,
 } from '../../helpers';
 
-// =============================================================================
-// Mock Setup
-// =============================================================================
 
-/**
- * Store for mock Menu behavior.
- */
 let lastBuiltTemplate: Electron.MenuItemConstructorOptions[] = [];
 let applicationMenu: unknown = null;
 
-/**
- * Mock Electron modules.
- */
+
 vi.mock('electron', () => ({
   app: {
     getVersion: vi.fn().mockReturnValue('1.0.0'),
@@ -73,17 +45,11 @@ vi.mock('electron', () => ({
   BrowserWindow: vi.fn(),
 }));
 
-// Import after mocking
+
 import { buildApplicationMenu } from '../../../main/menu';
 import { app, Menu, shell, dialog } from 'electron';
 
-// =============================================================================
-// Type Definitions
-// =============================================================================
 
-/**
- * Helper type for menu item with fully resolved structure.
- */
 interface MenuItemLike {
   label?: string;
   type?: string;
@@ -96,13 +62,7 @@ interface MenuItemLike {
   id?: string;
 }
 
-// =============================================================================
-// Test Helpers
-// =============================================================================
 
-/**
- * Finds a menu item by label in a flat or nested menu structure.
- */
 function findMenuItem(
   menu: MenuItemLike[],
   path: string[],
@@ -121,7 +81,7 @@ function findMenuItem(
       return found;
     }
 
-    // Navigate into submenu
+
     if (found.submenu) {
       current = Array.isArray(found.submenu)
         ? found.submenu
@@ -134,16 +94,12 @@ function findMenuItem(
   return undefined;
 }
 
-/**
- * Gets all menu items at the top level.
- */
+
 function getTopLevelMenus(template: MenuItemLike[]): string[] {
   return template.map((item) => item.label || '').filter(Boolean);
 }
 
-/**
- * Counts total menu items including nested items.
- */
+
 function countAllMenuItems(items: MenuItemLike[]): number {
   let count = 0;
 
@@ -160,61 +116,45 @@ function countAllMenuItems(items: MenuItemLike[]): number {
   return count;
 }
 
-// =============================================================================
-// Test Suite: Application Menu
-// =============================================================================
 
 describe('Application Menu', () => {
-  /**
-   * Mock main window for testing.
-   */
+
   let mockWindow: MockWindowLike;
 
-  /**
-   * Console spy for capturing log output.
-   */
+
   let consoleSpy: ConsoleSpy;
 
-  /**
-   * Original platform value.
-   */
+
   let originalPlatform: string;
 
-  /**
-   * Set up before each test.
-   */
+
   beforeEach(() => {
-    // Reset all mocks
+
     vi.clearAllMocks();
     lastBuiltTemplate = [];
     applicationMenu = null;
 
-    // Create mock window
+
     mockWindow = createMockWindow();
 
-    // Capture console
+
     consoleSpy = captureConsole();
 
-    // Save original platform
+
     originalPlatform = process.platform;
   });
 
-  /**
-   * Clean up after each test.
-   */
+
   afterEach(() => {
-    // Restore console
+
     consoleSpy.restore();
 
-    // Restore platform
+
     Object.defineProperty(process, 'platform', {
       value: originalPlatform,
     });
   });
 
-  // ===========================================================================
-  // Test Group: Menu Creation
-  // ===========================================================================
 
   describe('Menu Creation', () => {
     it('should return a Menu object', () => {
@@ -248,9 +188,6 @@ describe('Application Menu', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Platform Detection
-  // ===========================================================================
 
   describe('Platform Detection', () => {
     describe('macOS', () => {
@@ -329,7 +266,7 @@ describe('Application Menu', () => {
         buildApplicationMenu(mockWindow as unknown as Electron.BrowserWindow);
 
         const firstMenu = lastBuiltTemplate[0];
-        // On Windows, first menu should be File, not ZYNC
+
         expect(firstMenu.label).not.toBe('ZYNC');
       });
 
@@ -344,7 +281,7 @@ describe('Application Menu', () => {
       it('should not include macOS-specific Services menu on Windows', () => {
         buildApplicationMenu(mockWindow as unknown as Electron.BrowserWindow);
 
-        // Services should not exist at top level or in File menu
+
         const servicesInFile = findMenuItem(lastBuiltTemplate, [
           'File',
           'Services',
@@ -354,9 +291,6 @@ describe('Application Menu', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: File Menu
-  // ===========================================================================
 
   describe('File Menu', () => {
     it('should include File menu', () => {
@@ -393,10 +327,10 @@ describe('Application Menu', () => {
         'New Window',
       ]);
 
-      // Trigger click
+
       newWindowItem?.click?.({}, undefined, {});
 
-      // Should send IPC message
+
       expect(mockWindow.webContents.send).toHaveBeenCalledWith('fromMain', {
         action: 'new-window',
       });
@@ -407,19 +341,16 @@ describe('Application Menu', () => {
 
       const settingsItem = findMenuItem(lastBuiltTemplate, ['File', 'Settings']);
 
-      // Trigger click
+
       settingsItem?.click?.({}, undefined, {});
 
-      // Should send IPC message
+
       expect(mockWindow.webContents.send).toHaveBeenCalledWith('fromMain', {
         action: 'open-settings',
       });
     });
   });
 
-  // ===========================================================================
-  // Test Group: Edit Menu
-  // ===========================================================================
 
   describe('Edit Menu', () => {
     it('should include Edit menu', () => {
@@ -466,7 +397,7 @@ describe('Application Menu', () => {
         ? editMenu.submenu
         : editMenu?.submenu?.items;
 
-      // Find index of Redo and Cut
+
       let redoIndex = -1;
       let cutIndex = -1;
 
@@ -475,15 +406,12 @@ describe('Application Menu', () => {
         if (item.label === 'Cut') {cutIndex = index;}
       });
 
-      // There should be a separator between them
+
       expect(cutIndex).toBeGreaterThan(redoIndex);
       expect(submenu?.[redoIndex + 1]?.type).toBe('separator');
     });
   });
 
-  // ===========================================================================
-  // Test Group: View Menu
-  // ===========================================================================
 
   describe('View Menu', () => {
     it('should include View menu', () => {
@@ -550,9 +478,6 @@ describe('Application Menu', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Window Menu
-  // ===========================================================================
 
   describe('Window Menu', () => {
     it('should include Window menu', () => {
@@ -609,9 +534,6 @@ describe('Application Menu', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Help Menu
-  // ===========================================================================
 
   describe('Help Menu', () => {
     it('should include Help menu', () => {
@@ -634,10 +556,10 @@ describe('Application Menu', () => {
 
       const docsItem = findMenuItem(lastBuiltTemplate, ['Help', 'Documentation']);
 
-      // Trigger click
+
       docsItem?.click?.({}, undefined, {});
 
-      // Should open external URL
+
       expect(shell.openExternal).toHaveBeenCalled();
     });
 
@@ -660,15 +582,12 @@ describe('Application Menu', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Keyboard Shortcuts
-  // ===========================================================================
 
   describe('Keyboard Shortcuts', () => {
     it('should use CmdOrCtrl for cross-platform shortcuts', () => {
       buildApplicationMenu(mockWindow as unknown as Electron.BrowserWindow);
 
-      // Check that CmdOrCtrl is used for common shortcuts
+
       const settingsItem = findMenuItem(lastBuiltTemplate, ['File', 'Settings']);
       const newWindowItem = findMenuItem(lastBuiltTemplate, [
         'File',
@@ -694,9 +613,6 @@ describe('Application Menu', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Click Handlers
-  // ===========================================================================
 
   describe('Click Handlers', () => {
     it('should not throw when clicking with null window', () => {
@@ -707,7 +623,7 @@ describe('Application Menu', () => {
         'New Window',
       ]);
 
-      // Should not throw
+
       expect(() => {
         newWindowItem?.click?.({}, undefined, {});
       }).not.toThrow();
@@ -739,9 +655,6 @@ describe('Application Menu', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Menu Structure
-  // ===========================================================================
 
   describe('Menu Structure', () => {
     it('should have separators to group related items', () => {
@@ -765,7 +678,7 @@ describe('Application Menu', () => {
 
       countSeparators(lastBuiltTemplate);
 
-      // Menu should have multiple separators for organization
+
       expect(separatorCount).toBeGreaterThan(5);
     });
 
@@ -774,9 +687,9 @@ describe('Application Menu', () => {
 
       const totalItems = countAllMenuItems(lastBuiltTemplate);
 
-      // Should have a substantial number of menu items
+
       expect(totalItems).toBeGreaterThan(20);
-      // But not too many
+
       expect(totalItems).toBeLessThan(100);
     });
 

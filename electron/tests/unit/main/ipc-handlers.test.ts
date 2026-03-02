@@ -1,23 +1,3 @@
-/**
- * =============================================================================
- * IPC Handlers Tests — ZYNC Desktop Application
- * =============================================================================
- *
- * Unit tests for the IPC handlers module. These tests verify that:
- *
- * 1. All IPC channels are properly registered
- * 2. Input validation works correctly
- * 3. Handlers respond with expected data
- * 4. Error conditions are handled gracefully
- * 5. Security constraints are enforced
- *
- * @module electron/tests/unit/main/ipc-handlers.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import {
   describe,
   it,
@@ -36,27 +16,17 @@ import {
   type IPCMainTestDouble,
 } from '../../helpers';
 
-// =============================================================================
-// Mock Setup
-// =============================================================================
 
-/**
- * IPC Main test double for capturing handler registrations.
- */
 let ipcTestDouble: IPCMainTestDouble;
 
-/**
- * Mock shell for external URL opening.
- */
+
 const mockShell = {
   openExternal: vi.fn().mockResolvedValue(undefined),
   showItemInFolder: vi.fn(),
   openPath: vi.fn().mockResolvedValue(''),
 };
 
-/**
- * Mock dialog for native dialogs.
- */
+
 const mockDialog = {
   showOpenDialog: vi.fn().mockResolvedValue({ canceled: false, filePaths: [] }),
   showSaveDialog: vi.fn().mockResolvedValue({ canceled: false }),
@@ -64,9 +34,7 @@ const mockDialog = {
   showErrorBox: vi.fn(),
 };
 
-/**
- * Mock clipboard.
- */
+
 const mockClipboard = {
   readText: vi.fn().mockReturnValue(''),
   writeText: vi.fn(),
@@ -75,17 +43,13 @@ const mockClipboard = {
   clear: vi.fn(),
 };
 
-/**
- * Mock nativeTheme.
- */
+
 const mockNativeTheme = {
   themeSource: 'system' as 'system' | 'light' | 'dark',
   shouldUseDarkColors: false,
 };
 
-/**
- * Mock Electron modules.
- */
+
 vi.mock('electron', () => ({
   app: {
     getVersion: vi.fn().mockReturnValue('1.0.0'),
@@ -110,41 +74,30 @@ vi.mock('electron', () => ({
   BrowserWindow: vi.fn(),
 }));
 
-// Import after mocking
+
 import { registerIpcHandlers } from '../../../main/ipc-handlers';
 import { app, ipcMain, shell, dialog, clipboard, nativeTheme } from 'electron';
 
-// =============================================================================
-// Test Suite: IPC Handlers
-// =============================================================================
 
 describe('IPC Handlers', () => {
-  /**
-   * Mock main window for testing.
-   */
+
   let mockWindow: MockWindowLike;
 
-  /**
-   * Mock settings window for testing.
-   */
+
   let mockSettingsWindow: MockWindowLike | null;
 
-  /**
-   * Console spy for capturing log output.
-   */
+
   let consoleSpy: ConsoleSpy;
 
-  /**
-   * Set up before each test.
-   */
+
   beforeEach(() => {
-    // Reset all mocks
+
     vi.clearAllMocks();
 
-    // Create test double
+
     ipcTestDouble = createIPCMainTestDouble();
 
-    // Replace ipcMain methods with test double
+
     (ipcMain.on as Mock).mockImplementation(ipcTestDouble.ipcMain.on);
     (ipcMain.handle as Mock).mockImplementation(ipcTestDouble.ipcMain.handle);
     (ipcMain.handleOnce as Mock).mockImplementation(
@@ -154,14 +107,14 @@ describe('IPC Handlers', () => {
       ipcTestDouble.ipcMain.removeHandler,
     );
 
-    // Create mock windows
+
     mockWindow = createMockWindow();
     mockSettingsWindow = null;
 
-    // Capture console
+
     consoleSpy = captureConsole();
 
-    // Reset mocks
+
     mockShell.openExternal.mockResolvedValue(undefined);
     mockDialog.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: [] });
     mockDialog.showSaveDialog.mockResolvedValue({ canceled: false });
@@ -171,20 +124,15 @@ describe('IPC Handlers', () => {
     mockNativeTheme.shouldUseDarkColors = false;
   });
 
-  /**
-   * Clean up after each test.
-   */
+
   afterEach(() => {
-    // Restore console
+
     consoleSpy.restore();
 
-    // Clear test double
+
     ipcTestDouble.clear();
   });
 
-  // ===========================================================================
-  // Test Group: Registration
-  // ===========================================================================
 
   describe('Handler Registration', () => {
     it('should register download-platform handler', () => {
@@ -205,14 +153,11 @@ describe('IPC Handlers', () => {
         mockSettingsWindow as unknown as Electron.BrowserWindow | null,
       );
 
-      // Check that multiple channels were registered
+
       expect((ipcMain.on as Mock).mock.calls.length).toBeGreaterThan(0);
     });
   });
 
-  // ===========================================================================
-  // Test Group: download-platform Handler
-  // ===========================================================================
 
   describe('download-platform Handler', () => {
     beforeEach(() => {
@@ -277,9 +222,6 @@ describe('IPC Handlers', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Input Validation
-  // ===========================================================================
 
   describe('Input Validation', () => {
     beforeEach(() => {
@@ -331,9 +273,6 @@ describe('IPC Handlers', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Security
-  // ===========================================================================
 
   describe('Security', () => {
     beforeEach(() => {
@@ -344,7 +283,7 @@ describe('IPC Handlers', () => {
     });
 
     it('should not allow arbitrary URL injection', async () => {
-      // Try to inject a malicious URL
+
       ipcTestDouble.emit('download-platform', 'https://malicious.com/evil.exe');
 
       expect(shell.openExternal).not.toHaveBeenCalled();
@@ -359,7 +298,7 @@ describe('IPC Handlers', () => {
 
         const calledUrl = (shell.openExternal as Mock).mock.calls[0]?.[0];
         if (calledUrl) {
-          // Verify it's from the expected domain
+
           expect(calledUrl).toContain('github.com');
           expect(calledUrl).toContain('ChitkulLakshya/Zync');
         }
@@ -367,7 +306,7 @@ describe('IPC Handlers', () => {
     });
 
     it('should not execute code from platform argument', async () => {
-      // Try code injection
+
       const maliciousInputs = [
         '$(rm -rf /)',
         '`rm -rf /`',
@@ -386,9 +325,6 @@ describe('IPC Handlers', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Error Handling
-  // ===========================================================================
 
   describe('Error Handling', () => {
     beforeEach(() => {
@@ -401,7 +337,7 @@ describe('IPC Handlers', () => {
     it('should handle shell.openExternal failure gracefully', async () => {
       mockShell.openExternal.mockRejectedValue(new Error('Network error'));
 
-      // Should not throw
+
       expect(() => {
         ipcTestDouble.emit('download-platform', 'win');
       }).not.toThrow();
@@ -422,9 +358,6 @@ describe('IPC Handlers', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Window References
-  // ===========================================================================
 
   describe('Window References', () => {
     it('should work with null settings window', () => {
@@ -448,9 +381,6 @@ describe('IPC Handlers', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Channel Naming
-  // ===========================================================================
 
   describe('Channel Naming', () => {
     it('should use kebab-case for channel names', () => {
@@ -469,7 +399,7 @@ describe('IPC Handlers', () => {
         registeredChannels.push(call[0] as string);
       });
 
-      // All channels should be kebab-case (lowercase with hyphens)
+
       const kebabCaseRegex = /^[a-z][a-z0-9]*(-[a-z0-9]+)*(:?[a-z0-9-]+)*$/;
 
       for (const channel of registeredChannels) {
@@ -481,9 +411,6 @@ describe('IPC Handlers', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Documentation Compliance
-  // ===========================================================================
 
   describe('Documentation Compliance', () => {
     it('should have documented handlers for all registered channels', () => {
@@ -492,9 +419,6 @@ describe('IPC Handlers', () => {
         null,
       );
 
-      // This test verifies that the handlers module follows its own
-      // documentation standards. Each channel should have a corresponding
-      // handler registered.
 
       const registeredOnChannels: string[] = (ipcMain.on as Mock).mock.calls.map(
         (call: unknown[]) => call[0] as string,
@@ -504,14 +428,11 @@ describe('IPC Handlers', () => {
         (call: unknown[]) => call[0] as string,
       );
 
-      // At minimum, download-platform should be registered
+
       expect(registeredOnChannels).toContain('download-platform');
     });
   });
 
-  // ===========================================================================
-  // Test Group: Valid Platforms Constant
-  // ===========================================================================
 
   describe('Valid Platforms', () => {
     beforeEach(() => {
@@ -548,9 +469,6 @@ describe('IPC Handlers', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Download URLs
-  // ===========================================================================
 
   describe('Download URLs', () => {
     beforeEach(() => {
@@ -593,13 +511,7 @@ describe('IPC Handlers', () => {
   });
 });
 
-// =============================================================================
-// Additional Test Utilities
-// =============================================================================
 
-/**
- * Helper to create mock IPC event.
- */
 function createMockIPCMainEvent() {
   return {
     sender: {

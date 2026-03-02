@@ -1,44 +1,6 @@
-/**
- * =============================================================================
- * Preload Script — ZYNC Desktop Application
- * =============================================================================
- *
- * This script runs before the renderer process is loaded. It has access to
- * both Node.js APIs and the DOM. It uses contextBridge to safely expose
- * specific APIs to the renderer, ensuring security through context isolation.
- *
- * All APIs exposed here must be documented in `electron/preload/types.ts`.
- *
- * Security Model:
- * ─────────────────────────────────────────────────────────────────────────────
- * - Direct access to ipcRenderer is NEVER exposed to the renderer process
- * - All exposed functions perform argument validation before forwarding
- * - Only explicitly whitelisted IPC channels are accessible
- * - No raw Node.js APIs (fs, child_process, etc.) are exposed
- * - The contextBridge ensures renderer cannot prototype-pollute these objects
- *
- * API Surface:
- * ─────────────────────────────────────────────────────────────────────────────
- * window.electron   — Main API (navigation, window mgmt, file ops, settings)
- * window.versions   — Runtime version info (node, chrome, electron, app)
- *
- * @module electron/preload
- * @author ZYNC Team
- * @version 2.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
-// =============================================================================
-// Constants — Whitelisted IPC Channels
-// =============================================================================
 
-/**
- * Channels the renderer is allowed to SEND messages to (fire-and-forget).
- * Any channel not in this list will be silently dropped.
- */
 const VALID_SEND_CHANNELS: ReadonlySet<string> = new Set([
     'download-platform',
     'open-settings',
@@ -53,10 +15,7 @@ const VALID_SEND_CHANNELS: ReadonlySet<string> = new Set([
     'app:relaunch',
 ]);
 
-/**
- * Channels the renderer is allowed to INVOKE (request/response pattern).
- * Returns a Promise with the result from the main process.
- */
+
 const VALID_INVOKE_CHANNELS: ReadonlySet<string> = new Set([
     'get-app-version',
     'get-app-info',
@@ -82,9 +41,7 @@ const VALID_INVOKE_CHANNELS: ReadonlySet<string> = new Set([
     'screenshot:save',
 ]);
 
-/**
- * Channels the renderer is allowed to LISTEN for messages from the main process.
- */
+
 const VALID_RECEIVE_CHANNELS: ReadonlySet<string> = new Set([
     'fromMain',
     'splash:close',
@@ -97,27 +54,12 @@ const VALID_RECEIVE_CHANNELS: ReadonlySet<string> = new Set([
     'theme:changed',
 ]);
 
-// =============================================================================
-// Validation Helpers
-// =============================================================================
 
-/**
- * Validates that an action name is a non-empty string.
- *
- * @param {string} action - The action name to validate
- * @returns {boolean} True if valid
- */
 function isValidAction(action: string): boolean {
     return typeof action === 'string' && action.length > 0 && action.length < 256;
 }
 
-/**
- * Validates that a URL string is safe to open externally.
- * Only allows http:// and https:// protocols.
- *
- * @param {string} url - The URL to validate
- * @returns {boolean} True if safe
- */
+
 function isSafeURL(url: string): boolean {
     if (typeof url !== 'string') return false;
     try {
@@ -128,12 +70,7 @@ function isSafeURL(url: string): boolean {
     }
 }
 
-/**
- * Validates that a value is a plain serializable object (no functions, etc.).
- *
- * @param {unknown} value - The value to validate
- * @returns {boolean} True if the value is safe to send via IPC
- */
+
 function isSerializable(value: unknown): boolean {
     if (value === null || value === undefined) return true;
     const type = typeof value;
@@ -146,32 +83,12 @@ function isSerializable(value: unknown): boolean {
     return false;
 }
 
-// =============================================================================
-// Exposed API — window.electron
-// =============================================================================
 
-/**
- * Safely expose Electron APIs to the renderer process via contextBridge.
- *
- * This object is accessible as `window.electron` in the renderer.
- * Each method either sends a message or invokes a handler in the main process.
- */
 contextBridge.exposeInMainWorld('electron', {
-    // =========================================================================
-    // IPC Primitives (controlled access)
-    // =========================================================================
 
-    /**
-     * Typed wrapper around ipcRenderer for advanced use cases.
-     * All channels are validated against whitelists.
-     */
+
     ipcRenderer: {
-        /**
-         * Send a fire-and-forget message to the main process.
-         *
-         * @param {string} channel - Whitelisted channel name
-         * @param {...unknown[]} args - Arguments to send
-         */
+
         send(channel: string, ...args: unknown[]): void {
             if (VALID_SEND_CHANNELS.has(channel) && isSerializable(args)) {
                 ipcRenderer.send(channel, ...args);
@@ -180,13 +97,7 @@ contextBridge.exposeInMainWorld('electron', {
             }
         },
 
-        /**
-         * Send a request and wait for a response from the main process.
-         *
-         * @param {string} channel - Whitelisted channel name
-         * @param {...unknown[]} args - Arguments to send
-         * @returns {Promise<unknown>} The response from the main process
-         */
+
         invoke(channel: string, ...args: unknown[]): Promise<unknown> {
             if (VALID_INVOKE_CHANNELS.has(channel) && isSerializable(args)) {
                 return ipcRenderer.invoke(channel, ...args);
@@ -195,13 +106,7 @@ contextBridge.exposeInMainWorld('electron', {
             return Promise.reject(new Error(`Channel not allowed: ${channel}`));
         },
 
-        /**
-         * Listen for messages from the main process.
-         *
-         * @param {string} channel - Whitelisted channel name
-         * @param {Function} callback - Handler function
-         * @returns {Function} Cleanup function to remove the listener
-         */
+
         on(channel: string, callback: (...args: unknown[]) => void): () => void {
             if (!VALID_RECEIVE_CHANNELS.has(channel)) {
                 console.warn(`[Preload] Blocked listener on channel: ${channel}`);
@@ -216,12 +121,7 @@ contextBridge.exposeInMainWorld('electron', {
             };
         },
 
-        /**
-         * Listen for a single message from the main process.
-         *
-         * @param {string} channel - Whitelisted channel name
-         * @param {Function} callback - Handler function
-         */
+
         once(channel: string, callback: (...args: unknown[]) => void): void {
             if (!VALID_RECEIVE_CHANNELS.has(channel)) {
                 console.warn(`[Preload] Blocked once listener on channel: ${channel}`);
@@ -232,11 +132,7 @@ contextBridge.exposeInMainWorld('electron', {
             });
         },
 
-        /**
-         * Remove all listeners for a channel.
-         *
-         * @param {string} channel - Channel name
-         */
+
         removeAllListeners(channel: string): void {
             if (VALID_RECEIVE_CHANNELS.has(channel)) {
                 ipcRenderer.removeAllListeners(channel);
@@ -244,34 +140,19 @@ contextBridge.exposeInMainWorld('electron', {
         },
     },
 
-    // =========================================================================
-    // Navigation & Platform
-    // =========================================================================
 
-    /**
-     * Trigger a platform-specific download from the website.
-     *
-     * @param {string} platform - Platform identifier (e.g., 'windows', 'mac', 'linux')
-     */
     downloadPlatform: (platform: string): void => {
         if (isValidAction(platform)) {
             ipcRenderer.send('download-platform', platform);
         }
     },
 
-    /**
-     * Open the settings window.
-     */
+
     openSettings: (): void => {
         ipcRenderer.send('open-settings');
     },
 
-    /**
-     * Open a URL in the system's default browser.
-     * Only http:// and https:// URLs are permitted.
-     *
-     * @param {string} url - The URL to open
-     */
+
     openExternalLink: (url: string): void => {
         if (isSafeURL(url)) {
             ipcRenderer.send('open-external-link', url);
@@ -280,165 +161,75 @@ contextBridge.exposeInMainWorld('electron', {
         }
     },
 
-    /**
-     * Copy text to the system clipboard.
-     *
-     * @param {string} text - Text to copy
-     */
+
     copyToClipboard: (text: string): void => {
         if (typeof text === 'string') {
             ipcRenderer.send('copy-to-clipboard', text);
         }
     },
 
-    // =========================================================================
-    // App & System Info
-    // =========================================================================
 
-    /**
-     * Get the application version string.
-     *
-     * @returns {Promise<string>} Application version (e.g., "1.0.0")
-     */
     getAppVersion: (): Promise<string> => ipcRenderer.invoke('get-app-version'),
 
-    /**
-     * Get detailed application information (version, paths, environment).
-     *
-     * @returns {Promise<Record<string, unknown>>} Application info object
-     */
+
     getAppInfo: (): Promise<Record<string, unknown>> => ipcRenderer.invoke('get-app-info'),
 
-    /**
-     * Get the system's current theme preference.
-     *
-     * @returns {Promise<'dark' | 'light'>} Theme preference
-     */
+
     getSystemTheme: (): Promise<string> => ipcRenderer.invoke('get-system-theme'),
 
-    // =========================================================================
-    // Window Management
-    // =========================================================================
 
-    /**
-     * Minimize the current window.
-     */
     minimizeWindow: (): void => ipcRenderer.send('minimize-window'),
 
-    /**
-     * Toggle maximize/restore for the current window.
-     */
+
     maximizeWindow: (): void => ipcRenderer.send('maximize-window'),
 
-    /**
-     * Close the current window.
-     */
+
     closeWindow: (): void => ipcRenderer.send('close-window'),
 
-    /**
-     * Check if the current window is maximized.
-     *
-     * @returns {Promise<boolean>} True if maximized
-     */
+
     isWindowMaximized: (): Promise<boolean> => ipcRenderer.invoke('is-window-maximized'),
 
-    // =========================================================================
-    // File System Operations
-    // =========================================================================
 
-    /**
-     * Show a native save dialog.
-     *
-     * @param {Electron.SaveDialogOptions} options - Dialog options
-     * @returns {Promise<string | null>} Selected file path, or null if cancelled
-     */
     showSaveDialog: (options: Record<string, unknown>): Promise<string | null> =>
         ipcRenderer.invoke('show-save-dialog', options),
 
-    /**
-     * Show a native open dialog.
-     *
-     * @param {Electron.OpenDialogOptions} options - Dialog options
-     * @returns {Promise<string[]>} Selected file paths
-     */
+
     showOpenDialog: (options: Record<string, unknown>): Promise<string[]> =>
         ipcRenderer.invoke('show-open-dialog', options),
 
-    /**
-     * Write data to a file on disk.
-     *
-     * @param {object} data - Object containing filePath and content
-     * @returns {Promise<{ success: boolean; error?: string }>} Result
-     */
+
     writeFile: (data: Record<string, unknown>): Promise<Record<string, unknown>> =>
         ipcRenderer.invoke('write-file', data),
 
-    // =========================================================================
-    // Settings
-    // =========================================================================
 
-    /**
-     * Get all settings as a single object.
-     *
-     * @returns {Promise<Record<string, unknown>>} All settings
-     */
     getSettings: (): Promise<Record<string, unknown>> =>
         ipcRenderer.invoke('settings:get-all'),
 
-    /**
-     * Get a single setting value by key.
-     *
-     * @param {string} key - Setting key
-     * @returns {Promise<unknown>} Setting value
-     */
+
     getSetting: (key: string): Promise<unknown> => {
         if (!isValidAction(key)) return Promise.reject(new Error('Invalid key'));
         return ipcRenderer.invoke('settings:get', key);
     },
 
-    /**
-     * Set a single setting value.
-     *
-     * @param {string} key - Setting key
-     * @param {unknown} value - New value
-     * @returns {Promise<void>}
-     */
+
     setSetting: (key: string, value: unknown): Promise<void> => {
         if (!isValidAction(key)) return Promise.reject(new Error('Invalid key'));
         if (!isSerializable(value)) return Promise.reject(new Error('Non-serializable value'));
         return ipcRenderer.invoke('settings:set', key, value);
     },
 
-    /**
-     * Reset all settings to defaults.
-     *
-     * @returns {Promise<void>}
-     */
+
     resetSettings: (): Promise<void> => ipcRenderer.invoke('settings:reset'),
 
-    /**
-     * Toggle the "Start on Login" setting.
-     *
-     * @param {boolean} enabled - Whether to enable/disable start on login
-     * @returns {Promise<void>}
-     */
+
     toggleLoginItem: (enabled: boolean): Promise<void> =>
         ipcRenderer.invoke('settings:toggle-login-item', !!enabled),
 
-    /**
-     * Get the current login item (start on boot) status.
-     *
-     * @returns {Promise<boolean>} True if enabled
-     */
+
     getLoginItemStatus: (): Promise<boolean> =>
         ipcRenderer.invoke('settings:get-login-item-status'),
 
-    /**
-     * Listen for settings changes from the main process.
-     *
-     * @param {Function} callback - Handler receiving { key, value, oldValue }
-     * @returns {Function} Cleanup function
-     */
+
     onSettingsChanged: (callback: (data: { key: string; value: unknown; oldValue: unknown }) => void): (() => void) => {
         const subscription = (_event: IpcRendererEvent, data: { key: string; value: unknown; oldValue: unknown }) => {
             callback(data);
@@ -449,53 +240,21 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
 
-    // =========================================================================
-    // Shell
-    // =========================================================================
 
-    /**
-     * Open a URL or file path with the system's default application.
-     * Validated to only allow http/https URLs.
-     *
-     * @param {string} url - URL or path to open
-     * @returns {Promise<void>}
-     */
     shellOpenExternal: (url: string): Promise<void> => {
         if (!isSafeURL(url)) return Promise.reject(new Error('Unsafe URL'));
         return ipcRenderer.invoke('shell:open-external', url);
     },
 
-    // =========================================================================
-    // Dialog
-    // =========================================================================
 
-    /**
-     * Show a native open dialog (useful from settings window).
-     *
-     * @param {object} options - Electron OpenDialogOptions
-     * @returns {Promise<{ canceled: boolean; filePaths: string[] }>}
-     */
     dialogOpen: (options: Record<string, unknown>): Promise<{ canceled: boolean; filePaths: string[] }> =>
         ipcRenderer.invoke('dialog:open', options),
 
-    // =========================================================================
-    // Auto-Updater
-    // =========================================================================
 
-    /**
-     * Check for application updates.
-     *
-     * @returns {Promise<{ updateAvailable: boolean }>}
-     */
     checkForUpdates: (): Promise<{ updateAvailable: boolean }> =>
         ipcRenderer.invoke('updater:check'),
 
-    /**
-     * Listen for updater status messages from the main process.
-     *
-     * @param {Function} callback - Handler function
-     * @returns {Function} Cleanup function
-     */
+
     onUpdaterStatus: (callback: (data: unknown) => void): (() => void) => {
         const subscription = (_event: IpcRendererEvent, data: unknown) => callback(data);
         ipcRenderer.on('updater:status', subscription);
@@ -504,12 +263,7 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
 
-    /**
-     * Listen for download progress during an update.
-     *
-     * @param {Function} callback - Handler receiving progress info
-     * @returns {Function} Cleanup function
-     */
+
     onUpdaterProgress: (callback: (data: unknown) => void): (() => void) => {
         const subscription = (_event: IpcRendererEvent, data: unknown) => callback(data);
         ipcRenderer.on('updater:progress', subscription);
@@ -518,16 +272,7 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
 
-    // =========================================================================
-    // Events from Main Process (generic)
-    // =========================================================================
 
-    /**
-     * Listen for generic messages from the main process.
-     *
-     * @param {Function} callback - Handler function
-     * @returns {Function} Cleanup function to remove the listener
-     */
     onMainMessage: (callback: (data: unknown) => void): (() => void) => {
         const subscription = (_event: IpcRendererEvent, data: unknown) => callback(data);
         ipcRenderer.on('fromMain', subscription);
@@ -537,12 +282,7 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
 
-    /**
-     * Listen for deep link navigation events.
-     *
-     * @param {Function} callback - Handler receiving the parsed deep link path
-     * @returns {Function} Cleanup function
-     */
+
     onDeepLink: (callback: (data: { type: string; path: string; params: Record<string, string> }) => void): (() => void) => {
         const subscription = (_event: IpcRendererEvent, data: { type: string; path: string; params: Record<string, string> }) => {
             callback(data);
@@ -553,12 +293,7 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
 
-    /**
-     * Listen for system theme changes.
-     *
-     * @param {Function} callback - Handler receiving 'dark' or 'light'
-     * @returns {Function} Cleanup function
-     */
+
     onThemeChanged: (callback: (theme: string) => void): (() => void) => {
         const subscription = (_event: IpcRendererEvent, theme: string) => callback(theme);
         ipcRenderer.on('theme:changed', subscription);
@@ -567,41 +302,24 @@ contextBridge.exposeInMainWorld('electron', {
         };
     },
 
-    // =========================================================================
-    // App Control
-    // =========================================================================
 
-    /**
-     * Relaunch the application.
-     */
     relaunch: (): void => {
         ipcRenderer.send('app:relaunch');
     },
 
-    // =========================================================================
-    // Environment Info
-    // =========================================================================
 
-    /** Electron version string */
     electronVersion: process.versions.electron,
-    /** Node.js version string */
+
     nodeVersion: process.versions.node,
-    /** Chromium version string */
+
     chromeVersion: process.versions.chrome,
-    /** Operating system platform */
+
     platform: process.platform,
-    /** CPU architecture */
+
     arch: process.arch,
 });
 
-// =============================================================================
-// Exposed API — window.versions
-// =============================================================================
 
-/**
- * Expose runtime version information for backward compatibility and
- * simple version checks from the renderer.
- */
 contextBridge.exposeInMainWorld('versions', {
     node: process.versions.node,
     chrome: process.versions.chrome,
@@ -611,9 +329,6 @@ contextBridge.exposeInMainWorld('versions', {
     arch: process.arch,
 });
 
-// =============================================================================
-// Diagnostic logging
-// =============================================================================
 
 console.info('[Preload] ZYNC preload script loaded');
 console.info(`[Preload] Electron: ${process.versions.electron}`);

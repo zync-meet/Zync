@@ -1,23 +1,5 @@
-/**
- * =============================================================================
- * IPC Validation Test Suite — ZYNC Desktop
- * =============================================================================
- *
- * Tests for IPC channel validation, payload serialization checks, and
- * the security model of the preload bridge.
- *
- * @module electron/tests/ipc-validation.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { describe, it, expect } from 'vitest';
 
-// =============================================================================
-// IPC Channel Definitions
-// =============================================================================
 
 const VALID_SEND_CHANNELS = [
     'app:close',
@@ -61,9 +43,6 @@ const VALID_RECEIVE_CHANNELS = [
     'power:resume',
 ] as const;
 
-// =============================================================================
-// Validation Functions
-// =============================================================================
 
 function isValidSendChannel(channel: string): boolean {
     return (VALID_SEND_CHANNELS as readonly string[]).includes(channel);
@@ -87,20 +66,17 @@ function isSerializable(value: unknown): boolean {
     }
 
     if (typeof value === 'object' && value !== null) {
-        // Functions are not serializable
+
         if (typeof value === 'function') return false;
         return Object.values(value as Record<string, unknown>).every(isSerializable);
     }
 
-    // Functions, Symbols, etc. are not serializable
+
     if (typeof value === 'function' || typeof value === 'symbol') return false;
 
     return false;
 }
 
-// =============================================================================
-// Tests: Channel Validation
-// =============================================================================
 
 describe('IPC Channel Validation', () => {
     describe('Send Channels', () => {
@@ -139,7 +115,7 @@ describe('IPC Channel Validation', () => {
         });
 
         it('should reject channels from other groups', () => {
-            // Send-only channels should not be valid invoke channels
+
             expect(isValidInvokeChannel('app:close')).toBe(false);
         });
     });
@@ -158,9 +134,6 @@ describe('IPC Channel Validation', () => {
     });
 });
 
-// =============================================================================
-// Tests: Payload Serialization
-// =============================================================================
 
 describe('IPC Payload Serialization Check', () => {
     it('should accept primitive types', () => {
@@ -223,9 +196,6 @@ describe('IPC Payload Serialization Check', () => {
     });
 });
 
-// =============================================================================
-// Tests: Channel Name Convention
-// =============================================================================
 
 describe('Channel Name Convention', () => {
     const allChannels = [
@@ -249,12 +219,12 @@ describe('Channel Name Convention', () => {
     it('should not have duplicate channel names across groups', () => {
         const seen = new Set<string>();
         for (const channel of allChannels) {
-            // Note: same channel name in different groups would be a problem
-            // but we allow it if intentional (like settings:get as both invoke and receive)
+
+
             seen.add(channel);
         }
-        // If duplicates exist across groups, this set would be smaller than total
-        // This test just documents the current state
+
+
         expect(seen.size).toBeGreaterThan(0);
     });
 });

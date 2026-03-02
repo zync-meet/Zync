@@ -1,23 +1,3 @@
-/**
- * =============================================================================
- * System Tray Tests — ZYNC Desktop Application
- * =============================================================================
- *
- * Unit tests for the system tray manager module. These tests verify that:
- *
- * 1. The tray icon is correctly created with proper icon
- * 2. Tooltip is set with app name and version
- * 3. Context menu is built with correct items
- * 4. Click handlers toggle window visibility
- * 5. Platform-specific behavior is handled correctly
- *
- * @module electron/tests/unit/main/tray.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import {
   describe,
   it,
@@ -37,20 +17,12 @@ import {
   type ConsoleSpy,
 } from '../../helpers';
 
-// =============================================================================
-// Mock Setup
-// =============================================================================
 
-/**
- * Stores for tracking mock behavior.
- */
 let createdTrayIcon: unknown = null;
 let lastContextMenuTemplate: Electron.MenuItemConstructorOptions[] = [];
 let mockTrayInstance: MockTrayLike | null = null;
 
-/**
- * Mock nativeImage module.
- */
+
 const mockNativeImage = {
   createFromPath: vi.fn((iconPath: string) => ({
     isEmpty: vi.fn().mockReturnValue(false),
@@ -67,9 +39,7 @@ const mockNativeImage = {
   })),
 };
 
-/**
- * Mock Menu module.
- */
+
 const mockMenu = {
   buildFromTemplate: vi.fn((template: Electron.MenuItemConstructorOptions[]) => {
     lastContextMenuTemplate = template;
@@ -77,18 +47,14 @@ const mockMenu = {
   }),
 };
 
-/**
- * Mock Tray constructor.
- */
+
 const MockTrayConstructor = vi.fn((icon: unknown) => {
   createdTrayIcon = icon;
   mockTrayInstance = createMockTray(icon);
   return mockTrayInstance;
 });
 
-/**
- * Mock Electron modules.
- */
+
 vi.mock('electron', () => ({
   app: {
     getVersion: vi.fn().mockReturnValue('1.0.0'),
@@ -102,17 +68,11 @@ vi.mock('electron', () => ({
   BrowserWindow: vi.fn(),
 }));
 
-// Import after mocking
+
 import { createSystemTray } from '../../../main/tray';
 import { app, Tray, Menu, nativeImage } from 'electron';
 
-// =============================================================================
-// Type Definitions
-// =============================================================================
 
-/**
- * Helper type for context menu items.
- */
 interface ContextMenuItemLike {
   label?: string;
   type?: string;
@@ -120,24 +80,16 @@ interface ContextMenuItemLike {
   click?: (...args: unknown[]) => void;
 }
 
-// =============================================================================
-// Test Helpers
-// =============================================================================
 
-/**
- * Finds a context menu item by label.
- */
 function findContextMenuItem(label: string): ContextMenuItemLike | undefined {
   return lastContextMenuTemplate.find((item) => item.label === label);
 }
 
-/**
- * Gets click handlers attached to the tray instance.
- */
+
 function getTrayClickHandler(): ((...args: unknown[]) => void) | undefined {
   if (!mockTrayInstance) {return undefined;}
 
-  // Find the 'click' event handler
+
   const onCalls = mockTrayInstance.on.mock.calls;
   const clickCall = onCalls.find(
     (call: unknown[]) => call[0] === 'click',
@@ -145,9 +97,7 @@ function getTrayClickHandler(): ((...args: unknown[]) => void) | undefined {
   return clickCall?.[1] as ((...args: unknown[]) => void) | undefined;
 }
 
-/**
- * Gets double-click handlers attached to the tray instance.
- */
+
 function getTrayDoubleClickHandler(): ((...args: unknown[]) => void) | undefined {
   if (!mockTrayInstance) {return undefined;}
 
@@ -158,67 +108,51 @@ function getTrayDoubleClickHandler(): ((...args: unknown[]) => void) | undefined
   return dblClickCall?.[1] as ((...args: unknown[]) => void) | undefined;
 }
 
-// =============================================================================
-// Test Suite: System Tray
-// =============================================================================
 
 describe('System Tray Manager', () => {
-  /**
-   * Mock main window for testing.
-   */
+
   let mockWindow: MockWindowLike;
 
-  /**
-   * Console spy for capturing log output.
-   */
+
   let consoleSpy: ConsoleSpy;
 
-  /**
-   * Original platform value.
-   */
+
   let originalPlatform: string;
 
-  /**
-   * Set up before each test.
-   */
+
   beforeEach(() => {
-    // Reset all mocks
+
     vi.clearAllMocks();
     createdTrayIcon = null;
     lastContextMenuTemplate = [];
     mockTrayInstance = null;
 
-    // Create mock window
+
     mockWindow = createMockWindow({
       isVisible: true,
     });
 
-    // Capture console
+
     consoleSpy = captureConsole();
 
-    // Save original platform
+
     originalPlatform = process.platform;
 
-    // Reset app mock
+
     (app.isPackaged as unknown) = false;
   });
 
-  /**
-   * Clean up after each test.
-   */
+
   afterEach(() => {
-    // Restore console
+
     consoleSpy.restore();
 
-    // Restore platform
+
     Object.defineProperty(process, 'platform', {
       value: originalPlatform,
     });
   });
 
-  // ===========================================================================
-  // Test Group: Tray Creation
-  // ===========================================================================
 
   describe('Tray Creation', () => {
     it('should create a Tray instance', () => {
@@ -240,7 +174,7 @@ describe('System Tray Manager', () => {
     it('should resize icon to 16x16 pixels', () => {
       createSystemTray(mockWindow as unknown as Electron.BrowserWindow);
 
-      // The resize method should be called
+
       const createFromPathCalls = mockNativeImage.createFromPath.mock.results;
       if (createFromPathCalls.length > 0) {
         const icon = createFromPathCalls[0].value;
@@ -255,9 +189,6 @@ describe('System Tray Manager', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Icon Selection
-  // ===========================================================================
 
   describe('Icon Selection', () => {
     describe('macOS', () => {
@@ -321,7 +252,7 @@ describe('System Tray Manager', () => {
 
     describe('Fallback Icon', () => {
       it('should use empty icon as fallback when file not found', () => {
-        // Make createFromPath throw an error
+
         mockNativeImage.createFromPath.mockImplementationOnce(() => {
           throw new Error('File not found');
         });
@@ -343,9 +274,6 @@ describe('System Tray Manager', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Tooltip
-  // ===========================================================================
 
   describe('Tooltip', () => {
     it('should set tooltip with app name', () => {
@@ -371,9 +299,6 @@ describe('System Tray Manager', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Context Menu
-  // ===========================================================================
 
   describe('Context Menu', () => {
     it('should set context menu on tray', () => {
@@ -440,9 +365,6 @@ describe('System Tray Manager', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Context Menu Click Handlers
-  // ===========================================================================
 
   describe('Context Menu Click Handlers', () => {
     describe('Show ZYNC', () => {
@@ -516,9 +438,6 @@ describe('System Tray Manager', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Tray Click Events
-  // ===========================================================================
 
   describe('Tray Click Events', () => {
     describe('Single Click', () => {
@@ -564,11 +483,11 @@ describe('System Tray Manager', () => {
 
         const clickHandler = getTrayClickHandler();
 
-        // First click: hide (window is visible)
+
         clickHandler?.();
         expect(mockWindow.hide).toHaveBeenCalled();
 
-        // Second click: show (window is hidden)
+
         clickHandler?.();
         expect(mockWindow.show).toHaveBeenCalled();
       });
@@ -634,9 +553,6 @@ describe('System Tray Manager', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Packaged App
-  // ===========================================================================
 
   describe('Packaged App', () => {
     beforeEach(() => {
@@ -644,7 +560,7 @@ describe('System Tray Manager', () => {
     });
 
     it('should use resourcesPath for icon in packaged app', () => {
-      // Set process.resourcesPath
+
       const originalResourcesPath = process.resourcesPath;
       Object.defineProperty(process, 'resourcesPath', {
         value: '/path/to/resources',
@@ -656,7 +572,7 @@ describe('System Tray Manager', () => {
       const iconPath = mockNativeImage.createFromPath.mock.calls[0][0] as string;
       expect(iconPath).toContain('resources');
 
-      // Restore
+
       Object.defineProperty(process, 'resourcesPath', {
         value: originalResourcesPath,
         writable: true,
@@ -664,9 +580,6 @@ describe('System Tray Manager', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Return Value
-  // ===========================================================================
 
   describe('Return Value', () => {
     it('should return the created Tray instance', () => {
@@ -682,7 +595,7 @@ describe('System Tray Manager', () => {
         mockWindow as unknown as Electron.BrowserWindow,
       );
 
-      // Verify event handlers are attached
+
       expect(mockTrayInstance?.on).toHaveBeenCalledWith(
         'click',
         expect.any(Function),
@@ -694,13 +607,10 @@ describe('System Tray Manager', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Group: Edge Cases
-  // ===========================================================================
 
   describe('Edge Cases', () => {
     it('should handle null window gracefully', () => {
-      // TypeScript won't allow this, but test runtime behavior
+
       expect(() => {
         createSystemTray(null as unknown as Electron.BrowserWindow);
       }).not.toThrow();
@@ -709,14 +619,14 @@ describe('System Tray Manager', () => {
     it('should handle window becoming destroyed after tray creation', () => {
       createSystemTray(mockWindow as unknown as Electron.BrowserWindow);
 
-      // Window becomes destroyed
+
       mockWindow.isDestroyed = vi.fn().mockReturnValue(true);
 
-      // Tray click should not throw
+
       const clickHandler = getTrayClickHandler();
       expect(() => clickHandler?.()).not.toThrow();
 
-      // Context menu clicks should not throw
+
       const showItem = findContextMenuItem('Show ZYNC');
       expect(() => showItem?.click?.({}, undefined, {})).not.toThrow();
     });
@@ -731,12 +641,12 @@ describe('System Tray Manager', () => {
 
       const clickHandler = getTrayClickHandler();
 
-      // Rapid clicks
+
       for (let i = 0; i < 10; i++) {
         clickHandler?.();
       }
 
-      // Should not throw and should have toggled
+
       expect(mockWindow.show.mock.calls.length + mockWindow.hide.mock.calls.length).toBe(10);
     });
   });

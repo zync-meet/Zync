@@ -1,23 +1,5 @@
-/**
- * =============================================================================
- * Window State Test Suite — ZYNC Desktop
- * =============================================================================
- *
- * Tests for window state persistence, bounds validation, and multi-display
- * support to ensure windows restore correctly across sessions.
- *
- * @module electron/tests/window-state.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { describe, it, expect, vi } from 'vitest';
 
-// =============================================================================
-// Mock Electron
-// =============================================================================
 
 vi.mock('electron', () => ({
     screen: {
@@ -35,9 +17,6 @@ vi.mock('electron', () => ({
     BrowserWindow: vi.fn(),
 }));
 
-// =============================================================================
-// Types
-// =============================================================================
 
 interface WindowState {
     x: number;
@@ -48,9 +27,6 @@ interface WindowState {
     isFullScreen: boolean;
 }
 
-// =============================================================================
-// Helper: Validate State
-// =============================================================================
 
 function isValidWindowState(state: Record<string, unknown>): state is WindowState {
     return (
@@ -72,11 +48,11 @@ function clampBounds(
 ): WindowState {
     const clamped = { ...state };
 
-    // Ensure minimum dimensions
+
     clamped.width = Math.max(clamped.width, 400);
     clamped.height = Math.max(clamped.height, 300);
 
-    // Ensure window is within screen bounds
+
     if (clamped.x < 0) clamped.x = 0;
     if (clamped.y < 0) clamped.y = 0;
     if (clamped.x + clamped.width > screenWidth) {
@@ -89,9 +65,6 @@ function clampBounds(
     return clamped;
 }
 
-// =============================================================================
-// Tests: State Validation
-// =============================================================================
 
 describe('Window State Validation', () => {
     it('should accept valid state objects', () => {
@@ -148,7 +121,7 @@ describe('Window State Validation', () => {
     });
 
     it('should accept state with negative coordinates', () => {
-        // Negative coordinates are valid for multi-display setups
+
         const state = {
             x: -500,
             y: -200,
@@ -161,9 +134,6 @@ describe('Window State Validation', () => {
     });
 });
 
-// =============================================================================
-// Tests: Bounds Clamping
-// =============================================================================
 
 describe('Window Bounds Clamping', () => {
     const screenWidth = 1920;
@@ -275,9 +245,6 @@ describe('Window Bounds Clamping', () => {
     });
 });
 
-// =============================================================================
-// Tests: Default State
-// =============================================================================
 
 describe('Default Window State', () => {
     function getDefaultState(screenWidth: number, screenHeight: number): WindowState {
@@ -320,9 +287,6 @@ describe('Default Window State', () => {
     });
 });
 
-// =============================================================================
-// Tests: Multi-Display Support
-// =============================================================================
 
 describe('Multi-Display Support', () => {
     function isOnAnyDisplay(

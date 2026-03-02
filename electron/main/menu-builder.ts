@@ -1,19 +1,3 @@
-/**
- * =============================================================================
- * Menu Builder — ZYNC Desktop
- * =============================================================================
- *
- * Constructs the application menu bar for ZYNC. Provides a macOS-style menu
- * on all platforms with File, Edit, View, Window, and Help submenus.
- * Supports dynamic menu updates, role-based items, and custom accelerators.
- *
- * @module electron/main/menu-builder
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import {
     app,
     Menu,
@@ -23,37 +7,21 @@ import {
     MenuItemConstructorOptions,
 } from 'electron';
 
-// =============================================================================
-// Constants
-// =============================================================================
 
-/** Application name for menu display */
 const APP_NAME = 'ZYNC';
 
-/** Whether the current platform is macOS */
+
 const IS_MAC = process.platform === 'darwin';
 
-/** Whether the current platform is Linux */
+
 const IS_LINUX = process.platform === 'linux';
 
-// =============================================================================
-// Menu Template Builder
-// =============================================================================
 
-/**
- * Build the complete application menu template.
- *
- * @param mainWindow — Reference to the main BrowserWindow (nullable if not yet created)
- * @returns Array of MenuItemConstructorOptions ready for Menu.buildFromTemplate()
- */
 export function buildMenuTemplate(
     mainWindow: BrowserWindow | null,
 ): MenuItemConstructorOptions[] {
     const template: MenuItemConstructorOptions[] = [];
 
-    // =========================================================================
-    // macOS App Menu
-    // =========================================================================
 
     if (IS_MAC) {
         template.push({
@@ -82,9 +50,6 @@ export function buildMenuTemplate(
         });
     }
 
-    // =========================================================================
-    // File Menu
-    // =========================================================================
 
     template.push({
         label: 'File',
@@ -145,9 +110,6 @@ export function buildMenuTemplate(
         ],
     });
 
-    // =========================================================================
-    // Edit Menu
-    // =========================================================================
 
     template.push({
         label: 'Edit',
@@ -180,9 +142,6 @@ export function buildMenuTemplate(
         ],
     });
 
-    // =========================================================================
-    // View Menu
-    // =========================================================================
 
     template.push({
         label: 'View',
@@ -209,9 +168,6 @@ export function buildMenuTemplate(
         ],
     });
 
-    // =========================================================================
-    // Window Menu
-    // =========================================================================
 
     template.push({
         label: 'Window',
@@ -229,9 +185,6 @@ export function buildMenuTemplate(
         ],
     });
 
-    // =========================================================================
-    // Help Menu
-    // =========================================================================
 
     template.push({
         label: 'Help',
@@ -278,29 +231,14 @@ export function buildMenuTemplate(
     return template;
 }
 
-// =============================================================================
-// Menu Application
-// =============================================================================
 
-/**
- * Build and apply the application menu.
- *
- * @param mainWindow — Reference to the main BrowserWindow
- */
 export function applyApplicationMenu(mainWindow: BrowserWindow | null): void {
     const template = buildMenuTemplate(mainWindow);
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
 }
 
-/**
- * Create a context menu for right-click events.
- * Returns a Menu instance that can be shown via `menu.popup()`.
- *
- * @param window — The window in which to show the context menu
- * @param options — Optional context menu items to append
- * @returns Menu instance
- */
+
 export function createContextMenu(
     window: BrowserWindow,
     options: MenuItemConstructorOptions[] = [],
@@ -320,10 +258,7 @@ export function createContextMenu(
     return Menu.buildFromTemplate(contextTemplate);
 }
 
-/**
- * Disable the application menu entirely.
- * Useful during splash screen or setup wizard phases.
- */
+
 export function disableMenu(): void {
     Menu.setApplicationMenu(null);
 }

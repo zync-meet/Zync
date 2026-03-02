@@ -1,23 +1,5 @@
-/**
- * =============================================================================
- * Notification Test Suite — ZYNC Desktop
- * =============================================================================
- *
- * Tests for the notification utility — queue management, Do Not Disturb mode,
- * badge counting, and notification creation.
- *
- * @module electron/tests/notification.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { describe, it, expect, vi } from 'vitest';
 
-// =============================================================================
-// Mock Electron
-// =============================================================================
 
 vi.mock('electron', () => ({
     Notification: {
@@ -29,9 +11,6 @@ vi.mock('electron', () => ({
     },
 }));
 
-// =============================================================================
-// Types
-// =============================================================================
 
 interface NotificationItem {
     id: string;
@@ -42,9 +21,6 @@ interface NotificationItem {
     read: boolean;
 }
 
-// =============================================================================
-// Notification Queue Implementation (for testing)
-// =============================================================================
 
 class NotificationQueue {
     private queue: NotificationItem[] = [];
@@ -65,7 +41,7 @@ class NotificationQueue {
 
         this.queue.push(notification);
 
-        // Trim old notifications if exceeding max size
+
         if (this.queue.length > this.maxSize) {
             this.queue = this.queue.slice(-this.maxSize);
         }
@@ -136,9 +112,6 @@ class NotificationQueue {
     }
 }
 
-// =============================================================================
-// Tests: Notification Queue
-// =============================================================================
 
 describe('Notification Queue', () => {
     it('should add notifications and assign IDs', () => {
@@ -205,16 +178,13 @@ describe('Notification Queue', () => {
         queue.add({ title: 'N4', body: '', priority: 'normal' });
         expect(queue.size).toBe(3);
 
-        // Should keep the most recent 3
+
         const all = queue.getAll();
         expect(all[0].title).toBe('N2');
         expect(all[2].title).toBe('N4');
     });
 });
 
-// =============================================================================
-// Tests: Do Not Disturb
-// =============================================================================
 
 describe('Do Not Disturb Mode', () => {
     it('should default to DND off', () => {
@@ -246,9 +216,6 @@ describe('Do Not Disturb Mode', () => {
     });
 });
 
-// =============================================================================
-// Tests: Priority Sorting
-// =============================================================================
 
 describe('Notification Priority', () => {
     it('should categorize priority levels correctly', () => {

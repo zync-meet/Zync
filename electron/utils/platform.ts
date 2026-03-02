@@ -1,57 +1,31 @@
-/**
- * =============================================================================
- * Platform Detection Utilities — ZYNC Desktop
- * =============================================================================
- *
- * Provides comprehensive platform detection and OS-specific feature checks.
- * Use these utilities to conditionally enable features based on the user's
- * operating system, desktop environment, or system capabilities.
- *
- * @module electron/utils/platform
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { app } from 'electron';
 import * as os from 'os';
 
-// =============================================================================
-// Platform Constants
-// =============================================================================
 
-/** Whether the current platform is macOS */
 export const isMacOS: boolean = process.platform === 'darwin';
 
-/** Whether the current platform is Windows */
+
 export const isWindows: boolean = process.platform === 'win32';
 
-/** Whether the current platform is Linux */
+
 export const isLinux: boolean = process.platform === 'linux';
 
-/** Whether the current platform is FreeBSD */
+
 export const isFreeBSD: boolean = process.platform === 'freebsd';
 
-/** Whether running on ARM architecture */
+
 export const isARM: boolean = process.arch === 'arm64' || process.arch === 'arm';
 
-/** Whether running on x64 architecture */
+
 export const isX64: boolean = process.arch === 'x64';
 
-/** Whether the app is packaged for production */
+
 export const isProduction: boolean = app.isPackaged;
 
-/** Whether the app is running in development mode */
+
 export const isDevelopment: boolean = !app.isPackaged;
 
-// =============================================================================
-// Desktop Environment Detection (Linux)
-// =============================================================================
 
-/**
- * Supported Linux desktop environments.
- */
 export type LinuxDesktopEnvironment =
     | 'gnome'
     | 'kde'
@@ -66,14 +40,7 @@ export type LinuxDesktopEnvironment =
     | 'unity'
     | 'unknown';
 
-/**
- * Detect the current Linux desktop environment.
- *
- * Uses the XDG_CURRENT_DESKTOP and DESKTOP_SESSION environment variables
- * to determine which desktop environment is running.
- *
- * @returns {LinuxDesktopEnvironment} The detected desktop environment
- */
+
 export function detectLinuxDesktop(): LinuxDesktopEnvironment {
     if (!isLinux) return 'unknown';
 
@@ -96,20 +63,10 @@ export function detectLinuxDesktop(): LinuxDesktopEnvironment {
     return 'unknown';
 }
 
-// =============================================================================
-// Display Server Detection (Linux)
-// =============================================================================
 
-/**
- * Display server types used on Linux.
- */
 export type DisplayServer = 'x11' | 'wayland' | 'unknown';
 
-/**
- * Detect the display server protocol on Linux.
- *
- * @returns {DisplayServer} The detected display server
- */
+
 export function detectDisplayServer(): DisplayServer {
     if (!isLinux) return 'unknown';
 
@@ -122,59 +79,47 @@ export function detectDisplayServer(): DisplayServer {
     return 'unknown';
 }
 
-// =============================================================================
-// System Information
-// =============================================================================
 
-/**
- * Comprehensive system information object.
- */
 export interface SystemInfo {
-    /** Operating system platform */
+
     platform: NodeJS.Platform;
-    /** OS release version */
+
     osRelease: string;
-    /** OS type (Linux, Darwin, Windows_NT) */
+
     osType: string;
-    /** CPU architecture */
+
     arch: string;
-    /** Number of CPU cores */
+
     cpuCores: number;
-    /** Total system memory in bytes */
+
     totalMemory: number;
-    /** Available system memory in bytes */
+
     freeMemory: number;
-    /** Memory usage percentage */
+
     memoryUsagePercent: number;
-    /** System uptime in seconds */
+
     uptime: number;
-    /** Current user's home directory */
+
     homeDir: string;
-    /** System hostname */
+
     hostname: string;
-    /** Electron version */
+
     electronVersion: string;
-    /** Node.js version */
+
     nodeVersion: string;
-    /** Chromium version */
+
     chromeVersion: string;
-    /** V8 engine version */
+
     v8Version: string;
-    /** Application version */
+
     appVersion: string;
-    /** Linux desktop environment (if applicable) */
+
     linuxDesktop?: LinuxDesktopEnvironment;
-    /** Display server (if Linux) */
+
     displayServer?: DisplayServer;
 }
 
-/**
- * Collect comprehensive system information.
- *
- * This is useful for crash reports, about dialogs, and debugging.
- *
- * @returns {SystemInfo} System information object
- */
+
 export function getSystemInfo(): SystemInfo {
     const totalMemory = os.totalmem();
     const freeMemory = os.freemem();
@@ -206,18 +151,14 @@ export function getSystemInfo(): SystemInfo {
     return info;
 }
 
-/**
- * Get a human-readable OS name string.
- *
- * @returns {string} Formatted OS name (e.g., "macOS 14.2", "Windows 11", "Ubuntu Linux")
- */
+
 export function getOSDisplayName(): string {
     if (isMacOS) {
         return `macOS ${os.release()}`;
     }
     if (isWindows) {
         const release = os.release();
-        // Windows 11 starts at build 22000
+
         const buildMatch = release.match(/(\d+)$/);
         const buildNumber = buildMatch ? parseInt(buildMatch[1], 10) : 0;
         const winVersion = buildNumber >= 22000 ? '11' : '10';
@@ -231,12 +172,7 @@ export function getOSDisplayName(): string {
     return `${os.type()} ${os.release()}`;
 }
 
-/**
- * Format bytes into a human-readable string.
- *
- * @param {number} bytes - Number of bytes
- * @returns {string} Formatted string (e.g., "2.5 GB")
- */
+
 export function formatMemory(bytes: number): string {
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
     let unitIndex = 0;
@@ -250,44 +186,27 @@ export function formatMemory(bytes: number): string {
     return `${value.toFixed(1)} ${units[unitIndex]}`;
 }
 
-// =============================================================================
-// Feature Support Checks
-// =============================================================================
 
-/**
- * Check if the system tray is supported on the current platform.
- * Some Linux desktop environments have limited tray support.
- *
- * @returns {boolean} True if tray is supported
- */
 export function isTraySupported(): boolean {
     if (isMacOS || isWindows) return true;
     if (isLinux) {
         const desktop = detectLinuxDesktop();
-        // Most modern DEs support the StatusNotifierItem protocol
+
         return desktop !== 'unknown';
     }
     return false;
 }
 
-/**
- * Check if native notifications are supported.
- *
- * @returns {boolean} True if notifications are supported
- */
+
 export function isNotificationsSupported(): boolean {
-    // Electron supports notifications on all major platforms
+
     return isMacOS || isWindows || isLinux;
 }
 
-/**
- * Check if the platform supports the global shortcut API.
- *
- * @returns {boolean} True if global shortcuts are supported
- */
+
 export function isGlobalShortcutsSupported(): boolean {
     if (isLinux) {
-        // Wayland doesn't support global shortcuts via X11 protocol
+
         return detectDisplayServer() !== 'wayland';
     }
     return true;

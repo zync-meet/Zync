@@ -1,23 +1,5 @@
-/**
- * =============================================================================
- * Deep Link Test Suite — ZYNC Desktop
- * =============================================================================
- *
- * Tests for the deep link handler to verify URL parsing, route classification,
- * rate limiting, and protocol registration.
- *
- * @module electron/tests/deep-link.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { describe, it, expect, vi } from 'vitest';
 
-// =============================================================================
-// Mock Electron
-// =============================================================================
 
 vi.mock('electron', () => ({
     app: {
@@ -32,16 +14,11 @@ vi.mock('electron', () => ({
     },
 }));
 
-// =============================================================================
-// Tests: Deep Link URL Parsing
-// =============================================================================
 
 describe('Deep Link URL Parsing', () => {
     const PROTOCOL = 'zync';
 
-    /**
-     * Parse a deep link URL into components.
-     */
+
     function parseDeepLink(url: string): { type: string; path: string; params: Record<string, string> } | null {
         try {
             if (!url.startsWith(`${PROTOCOL}://`)) return null;
@@ -103,14 +80,11 @@ describe('Deep Link URL Parsing', () => {
 
     it('should reject malformed URLs', () => {
         const result = parseDeepLink('zync://');
-        // Should still return something valid (root path)
+
         expect(result).not.toBeNull();
     });
 });
 
-// =============================================================================
-// Tests: Route Classification
-// =============================================================================
 
 describe('Deep Link Route Classification', () => {
     type DeepLinkType = 'project' | 'note' | 'invite' | 'meeting' | 'settings' | 'unknown';
@@ -161,9 +135,6 @@ describe('Deep Link Route Classification', () => {
     });
 });
 
-// =============================================================================
-// Tests: Rate Limiting
-// =============================================================================
 
 describe('Deep Link Rate Limiting', () => {
     it('should allow requests within rate limit', () => {
@@ -181,7 +152,7 @@ describe('Deep Link Rate Limiting', () => {
     it('should block requests exceeding rate limit', () => {
         const maxRequests = 5;
 
-        // Simulate 6 rapid calls
+
         const callCount = 6;
         const allowed = Math.min(callCount, maxRequests);
 
@@ -194,14 +165,11 @@ describe('Deep Link Rate Limiting', () => {
         const now = Date.now();
         const oldCall = now - windowMs - 1;
 
-        // Old call should be expired
+
         expect(now - oldCall > windowMs).toBe(true);
     });
 });
 
-// =============================================================================
-// Tests: Protocol Registration
-// =============================================================================
 
 describe('Protocol Registration', () => {
     it('should use "zync" as the protocol name', () => {

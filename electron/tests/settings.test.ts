@@ -1,23 +1,5 @@
-/**
- * =============================================================================
- * Settings Store Test Suite — ZYNC Desktop
- * =============================================================================
- *
- * Tests for the settings store to verify get/set operations, validation,
- * defaults, and persistence behavior.
- *
- * @module electron/tests/settings.test
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// =============================================================================
-// Mock Dependencies
-// =============================================================================
 
 vi.mock('electron', () => ({
     app: {
@@ -51,9 +33,6 @@ vi.mock('electron-store', () => {
     };
 });
 
-// =============================================================================
-// Default Settings Tests
-// =============================================================================
 
 describe('Default Settings', () => {
     const DEFAULT_SETTINGS = {
@@ -123,9 +102,6 @@ describe('Default Settings', () => {
     });
 });
 
-// =============================================================================
-// Settings Validation Tests
-// =============================================================================
 
 describe('Settings Validation', () => {
     it('should validate theme values', () => {
@@ -179,9 +155,6 @@ describe('Settings Validation', () => {
     });
 });
 
-// =============================================================================
-// Settings Change Events Tests
-// =============================================================================
 
 describe('Settings Change Events', () => {
     it('should create a valid change event', () => {
@@ -213,9 +186,6 @@ describe('Settings Change Events', () => {
     });
 });
 
-// =============================================================================
-// Settings Import/Export Tests
-// =============================================================================
 
 describe('Settings Import/Export', () => {
     it('should serialize settings to JSON', () => {

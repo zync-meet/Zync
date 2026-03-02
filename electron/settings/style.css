@@ -1,23 +1,5 @@
-/**
- * =============================================================================
- * ZYNC Desktop — Settings Window Styles
- * =============================================================================
- *
- * Two-column layout: fixed sidebar navigation + scrollable content area.
- * Supports light and dark themes via CSS custom properties.
- * Follows ZYNC design language with Indigo (#6366F1) accent color.
- *
- * @author ZYNC Team
- * @version 1.0.0
- * =============================================================================
- */
-
-/* =============================================================================
-   CSS Custom Properties (Theme Tokens)
-   ============================================================================= */
-
 :root {
-    /* Colors */
+
     --color-bg: #f8f9fa;
     --color-surface: #ffffff;
     --color-surface-hover: #f3f4f6;
@@ -31,19 +13,19 @@
     --color-danger: #ef4444;
     --color-danger-hover: #dc2626;
 
-    /* Sidebar */
+
     --sidebar-width: 220px;
     --sidebar-bg: #ffffff;
     --sidebar-border: #e5e7eb;
 
-    /* Spacing */
+
     --spacing-xs: 4px;
     --spacing-sm: 8px;
     --spacing-md: 16px;
     --spacing-lg: 24px;
     --spacing-xl: 32px;
 
-    /* Typography */
+
     --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-size-xs: 11px;
     --font-size-sm: 13px;
@@ -52,7 +34,7 @@
     --font-size-xl: 20px;
     --font-size-2xl: 24px;
 
-    /* Misc */
+
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -62,7 +44,7 @@
     --transition-normal: 200ms ease;
 }
 
-/* Dark Theme */
+
 @media (prefers-color-scheme: dark) {
     :root {
         --color-bg: #0f1117;
@@ -78,9 +60,6 @@
     }
 }
 
-/* =============================================================================
-   Reset & Base
-   ============================================================================= */
 
 *, *::before, *::after {
     box-sizing: border-box;
@@ -104,9 +83,6 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* =============================================================================
-   Sidebar Navigation
-   ============================================================================= */
 
 #sidebar {
     width: var(--sidebar-width);
@@ -194,9 +170,6 @@ body {
     color: var(--color-text-tertiary);
 }
 
-/* =============================================================================
-   Main Content
-   ============================================================================= */
 
 #content {
     flex: 1;
@@ -205,9 +178,6 @@ body {
     scroll-behavior: smooth;
 }
 
-/* =============================================================================
-   Tab Panels
-   ============================================================================= */
 
 .tab-panel {
     display: none;
@@ -236,9 +206,6 @@ body {
     margin-bottom: var(--spacing-xl);
 }
 
-/* =============================================================================
-   Settings Groups & Rows
-   ============================================================================= */
 
 .settings-group {
     background: var(--color-surface);
@@ -300,9 +267,6 @@ body {
     line-height: 1.4;
 }
 
-/* =============================================================================
-   Toggle Switch
-   ============================================================================= */
 
 .toggle-switch {
     position: relative;
@@ -357,9 +321,6 @@ body {
     outline-offset: 2px;
 }
 
-/* =============================================================================
-   Select Dropdown
-   ============================================================================= */
 
 .setting-select {
     padding: var(--spacing-sm) var(--spacing-md);
@@ -384,9 +345,6 @@ body {
     border-color: var(--color-accent);
 }
 
-/* =============================================================================
-   Color Picker
-   ============================================================================= */
 
 .color-picker {
     width: 44px;
@@ -407,9 +365,6 @@ body {
     border-radius: 4px;
 }
 
-/* =============================================================================
-   Range Slider
-   ============================================================================= */
 
 .range-control {
     display: flex;
@@ -449,9 +404,6 @@ body {
     text-align: right;
 }
 
-/* =============================================================================
-   Theme Selector
-   ============================================================================= */
 
 .theme-selector {
     display: flex;
@@ -503,9 +455,6 @@ body {
     background: linear-gradient(135deg, #ffffff 50%, #1a1b23 50%);
 }
 
-/* =============================================================================
-   Buttons
-   ============================================================================= */
 
 .btn-primary {
     padding: var(--spacing-sm) var(--spacing-md);
@@ -563,9 +512,6 @@ body {
     color: white;
 }
 
-/* =============================================================================
-   Download Buttons (Platform Downloads)
-   ============================================================================= */
 
 .download-buttons {
     display: flex;
@@ -604,9 +550,6 @@ body {
     flex-shrink: 0;
 }
 
-/* =============================================================================
-   Shortcuts
-   ============================================================================= */
 
 .shortcut-list {
     display: flex;
@@ -641,9 +584,6 @@ body {
     white-space: nowrap;
 }
 
-/* =============================================================================
-   About Page
-   ============================================================================= */
 
 .about-hero {
     text-align: center;
@@ -748,9 +688,6 @@ body {
     margin-top: var(--spacing-xs);
 }
 
-/* =============================================================================
-   Update Status
-   ============================================================================= */
 
 .update-status {
     display: flex;
@@ -777,9 +714,6 @@ body {
     to { transform: rotate(360deg); }
 }
 
-/* =============================================================================
-   Scrollbar
-   ============================================================================= */
 
 #content::-webkit-scrollbar {
     width: 6px;
@@ -798,9 +732,6 @@ body {
     background: var(--color-text-tertiary);
 }
 
-/* =============================================================================
-   Focus styles
-   ============================================================================= */
 
 *:focus-visible {
     outline: 2px solid var(--color-accent);

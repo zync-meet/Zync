@@ -1,40 +1,8 @@
-/**
- * =============================================================================
- * Main Process — ZYNC Desktop Application
- * =============================================================================
- *
- * This is the entry point for the Electron main process. It manages the
- * application lifecycle, creates the primary and secondary windows, and
- * initializes all system-level modules (menu, tray, IPC, deep linking,
- * crash reporting, settings, splash screen, and security hardening).
- *
- * Startup Sequence:
- * 1. Request single instance lock (quit if already running)
- * 2. Initialize deep link handler (before app.whenReady())
- * 3. Disable hardware acceleration if user opted out
- * 4. Wait for app.whenReady()
- * 5. Initialize crash reporter
- * 6. Apply global security policies
- * 7. Initialize settings store
- * 8. Create splash screen
- * 9. Create main window (hidden)
- * 10. Initialize menu, IPC, tray, auto-updater
- * 11. Show main window & close splash
- * 12. Process pending deep links
- * 13. Clean up temporary files
- *
- * @module electron/main
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import modular components
+
 import { buildApplicationMenu } from './main/menu.js';
 import { registerIpcHandlers } from './main/ipc-handlers.js';
 import { createSystemTray } from './main/tray.js';
@@ -60,49 +28,41 @@ import {
 import { initSettingsStore, getSetting } from './settings/store.js';
 import { cleanupTempFiles } from './utils/fs-helpers.js';
 
-// Resolve __dirname for ESM
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// =============================================================================
-// Global References (prevent garbage collection)
-// =============================================================================
 
-/** The main application window */
 let mainWindow: BrowserWindow | null = null;
 
-/** The settings window */
+
 let settingsWindow: BrowserWindow | null = null;
 
-/** The splash screen window */
+
 let splashWindow: BrowserWindow | null = null;
 
-/** The system tray instance */
+
 let tray: ReturnType<typeof createSystemTray> | null = null;
 
-/** The auto-updater service */
+
 let autoUpdater: AutoUpdaterService | null = null;
 
-/** Whether the app is running in development mode */
+
 const isDev = !app.isPackaged;
 
-/** Logger instance */
+
 const log = logger;
 
-// =============================================================================
-// Pre-Ready Setup
-// =============================================================================
 
-// Initialize deep links BEFORE app.whenReady() to catch launch URLs
 initializeDeepLinks();
 
-// Request single instance lock
+
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     log.info('Another instance is running. Quitting.');
     app.quit();
 } else {
-    // Handle second instance (focus window + process deep links)
+
     app.on('second-instance', (_event, argv) => {
         log.info('Second instance detected');
         if (mainWindow) {
@@ -113,16 +73,7 @@ if (!gotTheLock) {
     });
 }
 
-// =============================================================================
-// Splash Screen
-// =============================================================================
 
-/**
- * Creates the splash screen window.
- *
- * Displayed during startup while the main window loads. It's a small,
- * frameless, always-on-top window centered on the primary display.
- */
 function createSplashScreen(): void {
     splashWindow = new BrowserWindow({
         width: 400,
@@ -158,16 +109,14 @@ function createSplashScreen(): void {
     log.info('Splash screen created');
 }
 
-/**
- * Closes the splash screen with a fade-out animation.
- */
+
 function closeSplashScreen(): void {
     if (!splashWindow || splashWindow.isDestroyed()) return;
 
-    // Send close signal to the splash renderer for fade animation
+
     splashWindow.webContents.send('splash:close');
 
-    // Wait for fade-out animation, then destroy
+
     setTimeout(() => {
         if (splashWindow && !splashWindow.isDestroyed()) {
             splashWindow.close();
@@ -178,27 +127,14 @@ function closeSplashScreen(): void {
     log.info('Splash screen closing');
 }
 
-/**
- * Sends a status update to the splash screen.
- *
- * @param {string} message - Status message to display
- */
+
 function updateSplashStatus(message: string): void {
     if (splashWindow && !splashWindow.isDestroyed()) {
         splashWindow.webContents.send('splash:status', message);
     }
 }
 
-// =============================================================================
-// Main Window
-// =============================================================================
 
-/**
- * Creates the main application window.
- *
- * Loads the window state from disk, creates a BrowserWindow with proper
- * security settings, attaches CSP headers, and initializes crash handling.
- */
 function createMainWindow(): void {
     updateSplashStatus('Creating main window…');
     const state = loadWindowState();
@@ -224,31 +160,31 @@ function createMainWindow(): void {
         },
     });
 
-    // Attach window state persistence
+
     trackWindowState(mainWindow);
 
-    // Apply security hardening (navigation/popup blocking)
+
     hardenWindow(mainWindow);
 
-    // Setup permission handler for this window's session
-    setupPermissionHandlers();
 
-    // Attach renderer crash handler for auto-recovery
+    setupPermissionHandlers(mainWindow.webContents.session);
+
+
     attachRendererCrashHandler(mainWindow, 'main-window');
 
-    // Restore maximized state
+
     if (state.isMaximized) {
         mainWindow.maximize();
     }
 
-    // Load the application URL
+
     updateSplashStatus('Loading application…');
     const url = isDev ? DEV_SERVER_URL : (process.env.APP_URL || WEB_APP_URL);
     mainWindow.loadURL(url).catch((err) => {
         log.error('Failed to load application URL:', err);
     });
 
-    // Set Content Security Policy headers for our own origins
+
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
         const isAppOrigin = details.url.startsWith(DEV_SERVER_URL) ||
             details.url.startsWith(WEB_APP_URL) ||
@@ -266,12 +202,12 @@ function createMainWindow(): void {
         }
     });
 
-    // Open DevTools in development mode
+
     if (isDev) {
         mainWindow.webContents.openDevTools();
     }
 
-    // Show main window when ready, close splash
+
     mainWindow.once('ready-to-show', () => {
         mainWindow?.show();
         closeSplashScreen();
@@ -283,7 +219,7 @@ function createMainWindow(): void {
         log.info('Main window closed');
     });
 
-    // Handle close-to-tray behavior
+
     mainWindow.on('close', (event) => {
         try {
             const closeToTray = getSetting('closeToTray');
@@ -293,21 +229,12 @@ function createMainWindow(): void {
                 log.info('Main window hidden to tray');
             }
         } catch {
-            // If settings haven't loaded yet, allow normal close
+
         }
     });
 }
 
-// =============================================================================
-// Settings Window
-// =============================================================================
 
-/**
- * Creates the settings window.
- *
- * Reuses the existing window if it's already open. The settings window
- * communicates with the main process via IPC for reading/writing settings.
- */
 function createSettingsWindow(): void {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
         settingsWindow.focus();
@@ -332,10 +259,10 @@ function createSettingsWindow(): void {
         },
     });
 
-    // Apply security hardening
+
     hardenWindow(settingsWindow);
 
-    // Attach renderer crash handler
+
     attachRendererCrashHandler(settingsWindow, 'settings-window');
 
     const settingsPath = path.join(__dirname, 'settings', 'index.html');
@@ -354,16 +281,9 @@ function createSettingsWindow(): void {
     });
 }
 
-// =============================================================================
-// IPC Handlers (additional main-level handlers)
-// =============================================================================
 
-/**
- * Registers additional IPC handlers that need access to window references
- * (settings window creation, shell operations, dialog forwarding).
- */
 function registerMainIpcHandlers(): void {
-    // Open settings window
+
     ipcMain.on('fromMain', (_event, { action }) => {
         if (action === 'create-settings-window') {
             createSettingsWindow();
@@ -374,14 +294,14 @@ function registerMainIpcHandlers(): void {
         createSettingsWindow();
     });
 
-    // Open external links safely
+
     ipcMain.handle('shell:open-external', async (_event, url: string) => {
         if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
             await shell.openExternal(url);
         }
     });
 
-    // Open dialog forwarding
+
     ipcMain.handle('dialog:open', async (_event, options: Electron.OpenDialogOptions) => {
         const { dialog } = await import('electron');
         if (settingsWindow && !settingsWindow.isDestroyed()) {
@@ -393,7 +313,7 @@ function registerMainIpcHandlers(): void {
         return dialog.showOpenDialog(options);
     });
 
-    // Updater check
+
     ipcMain.handle('updater:check', async () => {
         if (autoUpdater) {
             try {
@@ -409,9 +329,6 @@ function registerMainIpcHandlers(): void {
     log.info('Main-level IPC handlers registered');
 }
 
-// =============================================================================
-// Application Initialization
-// =============================================================================
 
 app.whenReady().then(async () => {
     log.info('===== ZYNC Desktop Application Starting =====');
@@ -420,42 +337,31 @@ app.whenReady().then(async () => {
     log.info(`Platform: ${process.platform} (${process.arch})`);
     log.info(`Dev mode: ${isDev}`);
 
-    // =========================================================================
-    // Step 1: Initialize crash reporter
-    // =========================================================================
+
     initCrashReporter({
         uploadToServer: false,
         showCrashDialog: isDev,
         autoRecoverRenderer: true,
     });
 
-    // =========================================================================
-    // Step 2: Apply global security policies
-    // =========================================================================
+
     applyGlobalSecurity();
 
-    // =========================================================================
-    // Step 3: Initialize settings store
-    // =========================================================================
+
     initSettingsStore();
 
-    // =========================================================================
-    // Step 4: Create splash screen
-    // =========================================================================
+
     createSplashScreen();
 
-    // Small delay so splash screen renders
+
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // =========================================================================
-    // Step 5: Create main window
-    // =========================================================================
+
     createMainWindow();
 
     if (mainWindow) {
-        // =====================================================================
-        // Step 6: Initialize modular subsystems
-        // =====================================================================
+
+
         updateSplashStatus('Setting up menus…');
         buildApplicationMenu(mainWindow);
 
@@ -470,15 +376,11 @@ app.whenReady().then(async () => {
         autoUpdater = new AutoUpdaterService(mainWindow);
         autoUpdater.initialize();
 
-        // =====================================================================
-        // Step 7: Process pending deep links
-        // =====================================================================
+
         processPendingDeepLink(mainWindow);
     }
 
-    // =========================================================================
-    // Step 8: Cleanup old temporary files (async, non-blocking)
-    // =========================================================================
+
     cleanupTempFiles(86400000).catch((err) => {
         log.error('Failed to cleanup temp files:', err);
     });
@@ -486,18 +388,14 @@ app.whenReady().then(async () => {
     log.info('===== ZYNC Desktop Application Initialized =====');
 });
 
-// =============================================================================
-// Application Lifecycle Events
-// =============================================================================
 
-// Quit when all windows are closed (except macOS)
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
-// Re-create window when dock icon is clicked (macOS)
+
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createMainWindow();
@@ -506,22 +404,22 @@ app.on('activate', () => {
     }
 });
 
-// Cleanup on quit
+
 app.on('before-quit', () => {
     log.info('Application quitting...');
 
-    // Dispose auto-updater
+
     if (autoUpdater) {
         autoUpdater.dispose();
         autoUpdater = null;
     }
 
-    // Destroy tray icon
+
     if (tray) {
         try {
             tray.destroy();
         } catch {
-            // Ignore tray destruction errors
+
         }
         tray = null;
     }

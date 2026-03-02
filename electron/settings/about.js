@@ -1,30 +1,9 @@
-/**
- * =============================================================================
- * Settings — About Tab — ZYNC Desktop Application
- * =============================================================================
- *
- * Renderer script for the About tab in the settings window.
- * Displays application version, runtime versions, and system info.
- *
- * @module electron/settings/about
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-
-/**
- * Initializes the About tab with application information.
- *
- * Retrieves version data from the main process via the preload API
- * and populates the DOM elements with the information.
- */
 async function initAboutTab() {
     try {
-        // Get app info from main process
+
         const info = await window.electron.getAppInfo();
 
-        // Populate version information
+
         setTextContent('app-version', `v${info.version}`);
         setTextContent('electron-version', info.electronVersion);
         setTextContent('chrome-version', info.chromeVersion);
@@ -39,12 +18,7 @@ async function initAboutTab() {
     }
 }
 
-/**
- * Sets the text content of a DOM element by its ID.
- *
- * @param {string} id - Element ID
- * @param {string} text - Text to set
- */
+
 function setTextContent(id, text) {
     const element = document.getElementById(id);
     if (element) {
@@ -52,9 +26,7 @@ function setTextContent(id, text) {
     }
 }
 
-/**
- * Copies version info to clipboard for bug reports.
- */
+
 function copyVersionInfo() {
     const elements = [
         'app-version',
@@ -74,7 +46,7 @@ function copyVersionInfo() {
 
     window.electron.copyToClipboard(info);
 
-    // Show feedback
+
     const btn = document.getElementById('copy-version-btn');
     if (btn) {
         const original = btn.textContent;
@@ -85,5 +57,5 @@ function copyVersionInfo() {
     }
 }
 
-// Initialize when the DOM is ready
+
 document.addEventListener('DOMContentLoaded', initAboutTab);
