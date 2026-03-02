@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { API_BASE_URL } from '@/lib/utils';
 import { auth } from '@/lib/firebase';
 
-const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
-const HEARTBEAT_INTERVAL = 60 * 1000; // 1 minute
+const IDLE_TIMEOUT = 5 * 60 * 1000;
+const HEARTBEAT_INTERVAL = 60 * 1000;
 
 export const useActivityTracker = () => {
   const lastActionRef = useRef<number>(Date.now());
@@ -11,7 +11,7 @@ export const useActivityTracker = () => {
   const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Start session when user logs in
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
@@ -46,23 +46,21 @@ export const useActivityTracker = () => {
 
     const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
     events.forEach(event => window.addEventListener(event, handleUserActivity));
-    
-    // Heartbeat to sync with backend
+
+
     const interval = setInterval(() => {
         if (!sessionIdRef.current) {return;}
-        
+
         const now = Date.now();
         const timeSinceLastAction = now - lastActionRef.current;
-        
-        // If user has been active recently (less than IDLE_TIMEOUT)
-        // We consider them active for this interval (HEARTBEAT_INTERVAL)
-        
+
+
         let increment = 0;
         if (timeSinceLastAction < IDLE_TIMEOUT) {
-            increment = HEARTBEAT_INTERVAL / 1000; // Seconds
+            increment = HEARTBEAT_INTERVAL / 1000;
         }
 
-        // Send heartbeat
+
         if (auth.currentUser) {
           auth.currentUser.getIdToken().then(token => {
             fetch(`${API_BASE_URL}/api/sessions/${sessionIdRef.current}`, {

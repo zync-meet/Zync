@@ -68,7 +68,7 @@ const Login = () => {
     }
   };
 
-  // Helper to handle account linking
+
   const handleAccountLinking = async (error: any) => {
     if (error.code === 'auth/account-exists-with-different-credential') {
       const pendingCred = GithubAuthProvider.credentialFromError(error) || GoogleAuthProvider.credentialFromError(error);

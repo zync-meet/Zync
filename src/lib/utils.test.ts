@@ -1,10 +1,9 @@
 import { mock, describe, expect, test } from "bun:test";
 
-// Mocking dependencies that are not fully available in the environment.
-// We keep the mocks focused and simple.
+
 mock.module("clsx", () => ({
   clsx: (...inputs: any[]) => {
-    // Basic mock that handles strings and objects for the purpose of these tests
+
     return inputs
       .flat()
       .map(input => {
@@ -26,7 +25,7 @@ mock.module("tailwind-merge", () => ({
   twMerge: (input: string) => input,
 }));
 
-// Import the functions after mocking
+
 const { cn, getFullUrl, getUserName, getUserInitials } = await import("./utils");
 
 describe("utils.ts", () => {
@@ -60,8 +59,8 @@ describe("utils.ts", () => {
     });
 
     test("should handle relative paths", () => {
-      // Since API_BASE_URL is empty in the test environment,
-      // relative paths should just ensure they have a leading slash if missing.
+
+
       expect(getFullUrl("/uploads/image.png")).toBe("/uploads/image.png");
       expect(getFullUrl("uploads/image.png")).toBe("/uploads/image.png");
     });

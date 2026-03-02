@@ -23,7 +23,7 @@ export class SocketIOProvider extends Observable<string> {
     const socketUrl = import.meta.env.DEV ? "http://localhost:5000" : API_BASE_URL;
 
     this.socket = io(`${socketUrl}/notes`, {
-      transports: ['websocket'], // Force websocket
+      transports: ['websocket'],
     });
 
     this.socket.on('connect', () => {
@@ -37,7 +37,7 @@ export class SocketIOProvider extends Observable<string> {
       this.emit('status', [{ status: 'disconnected' }]);
     });
 
-    // --- Document Sync ---
+
     this.socket.on('note-update', (update: any) => {
       const uint8 = new Uint8Array(update);
       Y.applyUpdate(this.doc, uint8, this);
@@ -49,7 +49,7 @@ export class SocketIOProvider extends Observable<string> {
       }
     });
 
-    // --- Awareness Sync ---
+
     this.socket.on('awareness-update', (update: any) => {
       const uint8 = new Uint8Array(update);
       applyAwarenessUpdate(this.awareness, uint8, this);

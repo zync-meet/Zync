@@ -1,4 +1,3 @@
-
 import { db } from '../lib/firebase';
 import {
     collection,
@@ -16,7 +15,7 @@ import {
 
 export interface Folder {
     id: string;
-    _id?: string; // For backward compatibility
+    _id?: string;
     name: string;
     ownerId: string;
     parentId: string | null;
@@ -27,7 +26,7 @@ export interface Folder {
 
 export interface Note {
     id: string;
-    _id?: string; // For backward compatibility
+    _id?: string;
     title: string;
     content: any;
     ownerId: string;
@@ -38,11 +37,10 @@ export interface Note {
     permissions?: Record<string, 'viewer' | 'editor' | 'owner'>;
 }
 
-// Collections
+
 const FOLDERS_COLLECTION = 'folders';
 const NOTES_COLLECTION = 'notes';
 
-// Real-time Subscriptions
 
 export const subscribeToFolders = (userId: string, callback: (folders: Folder[]) => void) => {
     const q = query(
@@ -69,17 +67,8 @@ export const subscribeToNotes = (userId: string, sharedFolderIds: string[], call
     ];
 
     if (sharedFolderIds.length > 0) {
-        // Firestore OR queries for "owned by me" OR "in shared folders"
-        // Note: This requires an index, and "in" supports max 10/30 items.
-        // For simplicity/robustness, we might need two listeners if the complexity is high,
-        // but 'or' query with 'in' should work for small numbers.
-        // Let's rely on multiple where-clauses combined with 'or'.
-        // Actually, we can just do: OR(owner == me, folderId IN sharedFolderIds)
 
-        // However, 'in' limited to 10. If lots of shared folders, this breaks.
-        // SAFE APPROACH: Just query "owner == me" (existing) AND "folderId in sharedFolderIds" (new Listener? or OR?)
 
-        // Let's try the OR query.
         const q = query(
             collection(db, NOTES_COLLECTION),
             or(
@@ -116,7 +105,6 @@ export const subscribeToNotes = (userId: string, sharedFolderIds: string[], call
     }
 };
 
-// CRUD Operations
 
 export const createFolder = async (data: Partial<Omit<Folder, 'id' | '_id'>>) => {
     return await addDoc(collection(db, FOLDERS_COLLECTION), {
@@ -137,7 +125,7 @@ export const createNote = async (data: Partial<Omit<Note, 'id' | '_id' | 'create
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
     };
-    // Firestore doesn't accept undefined
+
     if (safeData.folderId === undefined) {safeData.folderId = null;}
 
     return await addDoc(collection(db, NOTES_COLLECTION), safeData);

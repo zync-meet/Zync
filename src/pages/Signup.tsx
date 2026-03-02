@@ -41,7 +41,7 @@ const Signup = () => {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       const token = await result.user.getIdToken();
 
-      // Collect phone number as unverified metadata
+
       await fetch(`${API_BASE_URL}/api/users/sync`, {
         method: "POST",
         headers: {
@@ -53,7 +53,7 @@ const Signup = () => {
           email: result.user.email,
           displayName: result.user.displayName || email.split("@")[0],
           photoURL: result.user.photoURL,
-          phoneNumber: phoneNumber || undefined // Pass phone number if entered
+          phoneNumber: phoneNumber || undefined
         })
       });
 
@@ -73,7 +73,7 @@ const Signup = () => {
     }
   };
 
-  // Helper to handle account linking
+
   const handleAccountLinking = async (error: any) => {
     if (error.code === 'auth/account-exists-with-different-credential') {
       const pendingCred = GithubAuthProvider.credentialFromError(error) || GoogleAuthProvider.credentialFromError(error);

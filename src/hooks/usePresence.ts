@@ -21,7 +21,7 @@ export const usePresence = (userId: string | undefined) => {
         });
 
         socket.on('connect', () => {
-            // console.log('Connected to presence server');
+
         });
 
         socket.on('initial-status', (users: any[]) => {
@@ -36,7 +36,7 @@ export const usePresence = (userId: string | undefined) => {
         });
 
         socket.on('user-status-changed', ({ userId: changedUserId, status, lastSeen }: { userId: string, status: 'online' | 'offline' | 'away', lastSeen: Date }) => {
-            // console.log('Status update:', changedUserId, status);
+
             setStatuses(prev => ({
                 ...prev,
                 [changedUserId]: { status, lastSeen }

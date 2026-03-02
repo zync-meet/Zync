@@ -6,7 +6,7 @@ describe("use-toast reducer", () => {
   const initialState: State = { toasts: [] };
 
   test("ADD_TOAST should add a toast to empty state", () => {
-    // Cast to ToasterToast because we don't want to mock all React props
+
     const toast: ToasterToast = { id: "1", title: "Test Toast", open: true } as unknown as ToasterToast;
     const action: Action = { type: "ADD_TOAST", toast };
     const newState = reducer(initialState, action);
@@ -23,8 +23,8 @@ describe("use-toast reducer", () => {
     const newState = reducer(state, action);
 
     expect(newState.toasts).toHaveLength(TOAST_LIMIT);
-    // Since TOAST_LIMIT is 1, it should replace the existing one
-    // If TOAST_LIMIT > 1, this test logic needs adjustment, but for now we test current behavior
+
+
     expect(newState.toasts[0]).toEqual(newToast);
     expect(newState.toasts[0].id).toBe("2");
   });
@@ -45,7 +45,7 @@ describe("use-toast reducer", () => {
   test("UPDATE_TOAST should ignore if toast id not found", () => {
     const existingToast: ToasterToast = { id: "1", title: "Original", open: true } as unknown as ToasterToast;
     const state: State = { toasts: [existingToast] };
-    const update: Partial<ToasterToast> = { id: "2", title: "Updated" }; // ID mismatch
+    const update: Partial<ToasterToast> = { id: "2", title: "Updated" };
     const action: Action = { type: "UPDATE_TOAST", toast: update };
     const newState = reducer(state, action);
 
@@ -89,7 +89,7 @@ describe("use-toast reducer", () => {
     const t1: ToasterToast = { id: "1", open: true } as unknown as ToasterToast;
     const t2: ToasterToast = { id: "2", open: true } as unknown as ToasterToast;
     const state: State = { toasts: [t1, t2] };
-    const action: Action = { type: "REMOVE_TOAST" }; // toastId undefined
+    const action: Action = { type: "REMOVE_TOAST" };
     const newState = reducer(state, action);
 
     expect(newState.toasts).toHaveLength(0);

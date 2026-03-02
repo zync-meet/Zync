@@ -23,12 +23,12 @@ import { GlobalLoading } from "@/components/GlobalLoading";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  useActivityTracker(); // Apply activity tracking globally
-  useChatNotifications(); // Apply chat notifications globally
-  useUserSync(); // Sync user data (names) globally
+  useActivityTracker();
+  useChatNotifications();
+  useUserSync();
   const location = useLocation();
 
-  // Group all dashboard routes under a single key to prevent re-mounting the layout (sidebar)
+
   const getPageKey = (pathname: string) => {
     if (pathname.startsWith('/dashboard')) {
       return 'dashboard-layout';

@@ -14,20 +14,20 @@ const PrivacyPolicy = () => {
               Transparency about how we handle your data.
             </p>
           </div>
-          
+
           <Separator className="my-8" />
-          
+
           <div className="prose prose-gray dark:prose-invert max-w-none space-y-6 leading-relaxed">
             <p className="text-lg leading-7">
               We only use user data for internal project collaboration.
             </p>
-            
+
             <p className="leading-7">
               User data such as name, email, and activity logs are used solely to
               provide authentication, workspace management, and collaboration features.
               We do not sell, share, or distribute user data to third parties.
             </p>
-            
+
             <p className="font-medium">
               This application is intended for internal or personal organizational use only.
             </p>

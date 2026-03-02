@@ -1,10 +1,9 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// Your web app's Firebase configuration
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -18,7 +17,7 @@ if (!firebaseConfig.apiKey) {
   console.error("CRITICAL: Firebase Configuration Missing. Please ensure .env file exists and contains VITE_FIREBASE_API_KEY.");
 }
 
-// Initialize Firebase
+
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);

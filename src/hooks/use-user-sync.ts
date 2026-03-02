@@ -7,7 +7,7 @@ export const useUserSync = () => {
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
-                // Extract names
+
                 const displayName = user.displayName || "";
                 const parts = displayName.trim().split(" ");
                 const firstName = parts[0] || "";
@@ -16,8 +16,7 @@ export const useUserSync = () => {
                 try {
                     const token = await user.getIdToken();
                     const controller = new AbortController();
-                    // Auto-abort if component unmounts quickly is handled by cleanup
-                    // checking signal in fetch
+
 
                     await fetch(`${API_BASE_URL}/api/users/sync`, {
                         method: "POST",

@@ -15,7 +15,7 @@ export const useTeamProtection = () => {
                 return;
             }
 
-            // Skip check if already on onboarding page or public pages
+
             const publicPaths = ['/login', '/signup', '/', '/dashboard/people'];
             if (publicPaths.includes(location.pathname)) {
                 setLoading(false);

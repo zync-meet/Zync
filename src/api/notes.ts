@@ -1,8 +1,3 @@
-// src/api/notes.ts
-/**
- * @deprecated This API service is being replaced by src/services/notesService.ts which uses Firebase Firestore directly.
- * Please do not use this for new features.
- */
 import { API_BASE_URL } from '../lib/utils';
 import { auth } from '../lib/firebase';
 

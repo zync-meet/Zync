@@ -21,17 +21,17 @@ interface UseInspirationReturn {
 const ITEMS_PER_PAGE = 15;
 
 export const useInspiration = (): UseInspirationReturn => {
-    // All items fetched from backend (stored in memory)
+
     const [allItems, setAllItems] = useState<DesignItem[]>([]);
-    // How many items to currently display (for "fake" infinite scroll)
+
     const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
     const [loading, setLoading] = useState(false);
 
-    // Ref to track processed IDs for deduplication
+
     const processedIds = useRef<Set<string>>(new Set());
 
     const loadMore = useCallback(() => {
-        // Just reveal more items from memory
+
         setDisplayCount(prev => Math.min(prev + ITEMS_PER_PAGE, allItems.length));
     }, [allItems.length]);
 
@@ -46,7 +46,7 @@ export const useInspiration = (): UseInspirationReturn => {
         reset();
 
         try {
-            // Single API call to unified endpoint
+
             const response = await fetch(
                 `${API_BASE_URL}/api/inspiration?q=${encodeURIComponent(query)}`
             );
@@ -54,7 +54,7 @@ export const useInspiration = (): UseInspirationReturn => {
             const data = await response.json();
 
             if (data.ok && Array.isArray(data.items)) {
-                // Deduplicate
+
                 const uniqueItems = data.items.filter((item: DesignItem) => {
                     if (processedIds.current.has(item.id)) {return false;}
                     processedIds.current.add(item.id);
@@ -71,10 +71,10 @@ export const useInspiration = (): UseInspirationReturn => {
     }, [reset]);
 
     return {
-        // Only return items up to displayCount (fake infinite scroll)
+
         items: allItems.slice(0, displayCount),
         loading,
-        // There's more if we haven't revealed all items yet
+
         hasMore: displayCount < allItems.length,
         loadMore,
         search,

@@ -89,7 +89,7 @@ interface Step {
   tasks: Task[];
 }
 
-// Mock users for assignment - In real app, fetch from API
+
 const MOCK_USERS = [
   { uid: "admin1", name: "Admin User", email: "admin@ZYNC.com" },
   { uid: "dev1", name: "Frontend Dev", email: "frontend@ZYNC.com" },
@@ -106,13 +106,13 @@ const ProjectDetails = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [readmeContent, setReadmeContent] = useState<string | null>(null);
 
-  // Assignment State
+
   const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<{ stepId: string, task: Task } | null>(null);
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isSubmittingAssignment, setIsSubmittingAssignment] = useState(false);
 
-  // Task Creation State
+
   const [isCreateTaskDialogOpen, setIsCreateTaskDialogOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
@@ -120,10 +120,10 @@ const ProjectDetails = () => {
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
 
-  // New state for analysis
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Handle Architecture Analysis
+
   const handleAnalyzeArchitecture = async () => {
     if (!project) {return;}
     setIsAnalyzing(true);
@@ -147,7 +147,7 @@ const ProjectDetails = () => {
     }
   };
 
-  // Share State
+
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [selectedShareUser, setSelectedShareUser] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -178,7 +178,7 @@ const ProjectDetails = () => {
       setIsShareDialogOpen(false);
       toast.success(`Invite sent to ${receiver.displayName}`);
 
-      // Redirect to Chat
+
       const event = new CustomEvent('ZYNC-open-chat', { detail: receiver });
       window.dispatchEvent(event);
 
@@ -217,9 +217,8 @@ const ProjectDetails = () => {
 
   const fetchProject = async () => {
     try {
-      // Project might be public or require auth, assuming public for now or headerless ok? 
-      // If projects are protected too, we need token here too.
-      // Assuming public for read now as per previous code, but good to add token if user exists
+
+
       const options: any = {};
       if (currentUser) {
         const token = await currentUser.getIdToken();
@@ -230,7 +229,7 @@ const ProjectDetails = () => {
       const data = await response.json();
       setProject(data);
 
-      // Fetch README if it's a GitHub project
+
       if (data.githubRepoName && data.githubRepoOwner && currentUser) {
         const token = await currentUser.getIdToken();
         try {
@@ -260,7 +259,7 @@ const ProjectDetails = () => {
   }, [id, currentUser]);
 
   useEffect(() => {
-    // Connect to Socket.io
+
     const socket = io(API_BASE_URL);
 
     socket.on('connect', () => {
@@ -291,9 +290,9 @@ const ProjectDetails = () => {
       });
     });
 
-    // Listen for full project updates (e.g. from task moves/edits elsewhere)
+
     socket.on('projectUpdate', (data: any) => {
-      // Use 'id' from closure which is stable, avoid 'project' dependency
+
       if (data.projectId && (data.projectId === id)) {
         console.log("Received live project update");
         setProject(data.project);
@@ -312,19 +311,19 @@ const ProjectDetails = () => {
       return;
     }
 
-    // Find indices first
+
     const stepIndex = project.steps.findIndex(s => s._id === stepId || s.id === stepId);
     if (stepIndex === -1) {return;}
 
     const taskIndex = project.steps[stepIndex].tasks.findIndex(t => t._id === taskId || t.id === taskId);
     if (taskIndex === -1) {return;}
 
-    // Create deep copy for immutability to trigger re-renders
+
     const newSteps = [...project.steps];
     const newStep = { ...newSteps[stepIndex] };
     const newTasks = [...newStep.tasks];
 
-    // Optimistic Update
+
     const updatedTask = { ...newTasks[taskIndex], ...updates };
     newTasks[taskIndex] = updatedTask;
     newStep.tasks = newTasks;
@@ -349,17 +348,16 @@ const ProjectDetails = () => {
       });
     } catch (error) {
       console.error("Failed to update task", error);
-      fetchProject(); // Revert on failure by refetching
+      fetchProject();
       toast.error("Failed to update task");
     }
   };
 
 
-
   const handleDeleteTask = async (stepId: string, taskId: string) => {
     if (!project) {return;}
 
-    // Optimistic UI Update
+
     const newSteps = project.steps.map(step => {
       if (step._id === stepId || step.id === stepId) {
         return {
@@ -375,10 +373,9 @@ const ProjectDetails = () => {
     try {
       const step = project.steps.find(s => s._id === stepId || s.id === stepId);
       if (!step) {return;}
-      // Need real IDs for API
+
       const realStepId = step._id;
-      // We can use the passed taskId if we assume it's the real one, but safer to have the real one
-      // The passed taskId should be the real _id from the UI interaction
+
 
       const token = await auth.currentUser?.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}/steps/${realStepId}/tasks/${taskId}`, {
@@ -393,7 +390,7 @@ const ProjectDetails = () => {
     } catch (error) {
       console.error("Delete failed", error);
       toast.error("Failed to delete task");
-      fetchProject(); // Revert
+      fetchProject();
     }
   };
 
@@ -436,7 +433,7 @@ const ProjectDetails = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add auth header if needed, assuming generic public/internal for now based on existing fetchProject
+
         },
         body: JSON.stringify({
           title: newTaskTitle,
@@ -456,7 +453,7 @@ const ProjectDetails = () => {
       toast.success("Task created successfully");
       setIsCreateTaskDialogOpen(false);
 
-      // Reset form
+
       setNewTaskTitle("");
       setNewTaskDescription("");
       setSelectedStepId("");
@@ -468,7 +465,6 @@ const ProjectDetails = () => {
       setIsCreatingTask(false);
     }
   };
-
 
 
   if (loading) {
@@ -503,7 +499,7 @@ const ProjectDetails = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
+      {}
       <header className="border-b bg-card px-6 py-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
@@ -545,7 +541,7 @@ const ProjectDetails = () => {
           </TabsList>
 
           <TabsContent value="architecture" className="flex-1 space-y-6">
-            {/* README Section */}
+            {}
             {readmeContent && (
               <Card>
                 <CardHeader>
@@ -563,7 +559,7 @@ const ProjectDetails = () => {
               </Card>
             )}
 
-            {/* Architecture Generation Button */}
+            {}
             {isGitHubProject && !project.architecture?.highLevel && (
               <Card>
                 <CardHeader>
@@ -592,10 +588,10 @@ const ProjectDetails = () => {
               </Card>
             )}
 
-            {/* Architecture Cards (Only show if generated) */}
+            {}
             {(project.architecture?.highLevel || (!isGitHubProject)) && (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* High Level */}
+                {}
                 <Card className="col-span-full">
                   <CardHeader>
                     <CardTitle>High-Level Architecture</CardTitle>
@@ -611,7 +607,7 @@ const ProjectDetails = () => {
                   </CardContent>
                 </Card>
 
-                {/* Frontend */}
+                {}
                 <Card>
                   <CardHeader className="flex flex-row items-center gap-2">
                     <Layout className="h-5 w-5 text-blue-500" />
@@ -643,7 +639,7 @@ const ProjectDetails = () => {
                   </CardContent>
                 </Card>
 
-                {/* Backend */}
+                {}
                 <Card>
                   <CardHeader className="flex flex-row items-center gap-2">
                     <Server className="h-5 w-5 text-green-500" />
@@ -675,7 +671,7 @@ const ProjectDetails = () => {
                   </CardContent>
                 </Card>
 
-                {/* Database */}
+                {}
                 <Card>
                   <CardHeader className="flex flex-row items-center gap-2">
                     <Database className="h-5 w-5 text-orange-500" />
@@ -772,7 +768,7 @@ const ProjectDetails = () => {
                                 )}
 
                                 <div className="flex items-center gap-4 mt-2">
-                                  {/* Assignment using Dialog */}
+                                  {}
                                   {isOwner ? (
                                     <Button
                                       variant="ghost"
@@ -820,7 +816,7 @@ const ProjectDetails = () => {
                                     </div>
                                   )}
 
-                                  {/* Status Dropdown */}
+                                  {}
                                   <Select
                                     value={task.status}
                                     onValueChange={(val) => handleTaskUpdate(step._id, task._id, { status: val })}
