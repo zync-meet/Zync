@@ -15,7 +15,7 @@ interface TeamOnboardingProps {
     onSuccess: () => void;
 }
 
-// User Mockup shows: Name, Team Type (Select), Invite Team Member (Input + List)
+
 const TEAM_TYPES = [
     { value: "Product", label: "Product", color: "bg-blue-500" },
     { value: "Engineering", label: "Engineering", color: "bg-purple-500" },
@@ -200,7 +200,7 @@ const TeamOnboarding = ({ onSuccess }: TeamOnboardingProps) => {
                                         <div className="space-y-2 pt-2">
                                             <p className="text-sm text-muted-foreground">Only people in this list can access</p>
                                             <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                                                {/* Current User */}
+                                                {}
                                                 <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
                                                     <div className="flex items-center gap-3">
                                                         <Avatar className="h-8 w-8">
@@ -211,7 +211,7 @@ const TeamOnboarding = ({ onSuccess }: TeamOnboardingProps) => {
                                                     </div>
                                                 </div>
 
-                                                {/* Pending Invites */}
+                                                {}
                                                 {invites.map((invite, idx) => (
                                                     <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors group">
                                                         <div className="flex items-center gap-3">

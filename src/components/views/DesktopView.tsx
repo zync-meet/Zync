@@ -102,7 +102,6 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   });
 
 
-
   const sidebarRef = useRef<ImperativePanelHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLocked, setIsLocked] = useState(true);
@@ -140,7 +139,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation(); // Get current URL location
+  const location = useLocation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const tokenRef = useRef<string | null>(null);
 
@@ -152,7 +151,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
 
-  // Handle custom chat open event
+
   useEffect(() => {
     const handleOpenChat = (e: Event) => {
       const customEvent = e as CustomEvent;
@@ -167,7 +166,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     return () => window.removeEventListener("ZYNC-open-chat", handleOpenChat);
   }, [navigate]);
 
-  // Map URL paths to section names
+
   const pathToSection: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/dashboard/home': 'Dashboard',
@@ -186,7 +185,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     '/dashboard/new-project': 'New Project',
   };
 
-  // Map section names to URL paths
+
   const sectionToPath: Record<string, string> = {
     'Dashboard': '/dashboard',
     'My Workspace': '/dashboard/workspace',
@@ -204,7 +203,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     'New Project': '/dashboard/new-project',
   };
 
-  // Sync active section with URL path
+
   useEffect(() => {
     const section = pathToSection[location.pathname];
     if (section && section !== activeSection) {
@@ -212,14 +211,13 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }
   }, [location.pathname]);
 
-  // Determine if we should show the landing page (DashboardHome)
-  // Only show if we are effectively on the "Dashboard" root path and haven't navigated yet
+
   const [isLanding, setIsLanding] = useState(false);
 
-  // Update URL when section changes (only if not caused by URL change)
+
   const handleSectionChange = (section: string) => {
-    setIsLanding(false); // Dismiss landing page on any navigation
-    localStorage.setItem("ZYNC_HAS_SEEN_LANDING", "true"); // Persist dismissal
+    setIsLanding(false);
+    localStorage.setItem("ZYNC_HAS_SEEN_LANDING", "true");
     setActiveSection(section);
     const path = sectionToPath[section];
     if (path && location.pathname !== path) {
@@ -227,7 +225,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }
   };
 
-  // Handle GitHub App Installation Callback (works on any dashboard section)
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const installationId = params.get('installation_id');
@@ -250,7 +248,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             description: "App installation verified successfully."
           });
 
-          // Remove query params and stay on current path
+
           navigate(location.pathname, { replace: true });
         } catch (error) {
           console.error("Failed to save installation ID", error);
@@ -267,20 +265,20 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   const [loading, setLoading] = useState(true);
   const [usersList, setUsersList] = useState<any[]>([]);
-  // const [userStatuses, setUserStatuses] = useState<Record<string, any>>({});
+
   const userStatuses = usePresence(currentUser?.uid);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
-  // Session Timer State
+
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
-  const [leaderTasks, setLeaderTasks] = useState<any[]>([]); // Tasks for Activity Graph
-  const [teamSessions, setTeamSessions] = useState<any[]>([]); // Sessions for Time Graph
+  const [leaderTasks, setLeaderTasks] = useState<any[]>([]);
+  const [teamSessions, setTeamSessions] = useState<any[]>([]);
   const [ownedTeams, setOwnedTeams] = useState<any[]>([]);
 
-  // Start Session on Login
+
   useEffect(() => {
     if (currentUser && !isPreview) {
       const storedSession = localStorage.getItem('currentSession');
@@ -289,7 +287,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       if (storedSession) {
         const { id, startTime } = JSON.parse(storedSession);
         const start = new Date(startTime);
-        // If session is from today (less than 12 hours old for safety), resume it
+
         if (new Date().getTime() - start.getTime() < 12 * 60 * 60 * 1000) {
           setSessionId(id);
           setSessionStartTime(start);
@@ -304,7 +302,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             return;
           }
           try {
-            // console.log("Starting session for user:", currentUser.uid);
+
             const token = await currentUser.getIdToken();
             const response = await fetch(`${API_BASE_URL}/api/sessions/start`, {
               method: 'POST',
@@ -336,7 +334,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }
   }, [currentUser, isPreview]);
 
-  // Timer & Heartbeat
+
   useEffect(() => {
     if (!sessionStartTime) { return; }
 
@@ -360,21 +358,21 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
-          // Self-healing: If session is not found (404), it means server restarted or session invalid.
+
           if (response.status === 404) {
             console.warn("Session expired or server restarted, resetting session...");
             localStorage.removeItem("currentSession");
             setSessionId(null);
-            // Reload to trigger fresh session creation
+
             window.location.reload();
           }
         } catch (error) {
           console.error("Heartbeat failed", error);
         }
       }
-    }, 60000); // Every minute
+    }, 60000);
 
-    // Save on close
+
     const handleBeforeUnload = () => {
       if (sessionId && tokenRef.current) {
         const url = `${API_BASE_URL}/api/sessions/${sessionId}`;
@@ -400,7 +398,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     };
   }, [sessionStartTime, sessionId]);
 
-  // Fetch Activity Logs
+
   useEffect(() => {
     if (activeSection === "Activity log" && currentUser && !isPreview) {
       const fetchLogs = async () => {
@@ -421,7 +419,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }
   }, [activeSection, currentUser, isPreview]);
 
-  // Fetch Tasks for Activity Graph (Only for owned projects - Team Leader View)
+
   useEffect(() => {
     if (activeSection === "Activity log" && currentUser && !isPreview) {
       const fetchLeaderTasks = async () => {
@@ -432,10 +430,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           });
           if (response.ok) {
             const projects = await response.json();
-            // Filter only owned projects to ensure "Team Leader" context
+
             const ownedProjects = projects.filter((p: any) => p.ownerId === currentUser.uid);
 
-            // Extract all tasks
+
             const allTasks = ownedProjects.flatMap((p: any) =>
               p.steps.flatMap((s: any) => s.tasks || [])
             );
@@ -449,7 +447,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }
   }, [activeSection, currentUser, isPreview]);
 
-  // Fetch Team Sessions for Activity Graph
+
   useEffect(() => {
     if (activeSection === "Activity log" && currentUser && !isPreview && usersList.length > 0) {
       const fetchTeamSessions = async () => {
@@ -469,7 +467,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             setTeamSessions(sessions);
           }
 
-          // Fetch Owned Teams
+
           const teamsRes = await fetch(`${API_BASE_URL}/api/teams/owned`, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -527,12 +525,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   };
 
 
-  // Global Message Delivery Listener
   useEffect(() => {
     if (!currentUser || isPreview) { return; }
 
-    // Listen for messages sent TO the current user that are NOT yet delivered
-    // This marks them as delivered as long as the user is online (DesktopView is mounted)
+
     const q = query(
       collection(db, "messages"),
       where("receiverId", "==", currentUser.uid),
@@ -559,7 +555,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
 
-      // Show landing page ONLY for new users (first login)
+
       if (user && user.metadata.creationTime === user.metadata.lastSignInTime && !localStorage.getItem("ZYNC_HAS_SEEN_LANDING")) {
         if (location.pathname === '/dashboard') {
           setIsLanding(true);
@@ -569,7 +565,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       setLoading(false);
 
       if (user && !isPreview) {
-        // Sync user to backend
+
         try {
           const token = await user.getIdToken();
           await fetch(`${API_BASE_URL}/api/users/sync`, {
@@ -594,32 +590,25 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     return () => unsubscribe();
   }, [isPreview]);
 
-  // ... existing state ...
+
   const [userData, setUserData] = useState<any>(null);
   const [githubProfile, setGithubProfile] = useState<any>(null);
 
-  // Fetch Full User Data (including integrations and team info)
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser?.uid) {
         try {
           const token = await currentUser.getIdToken();
-          // Use /me endpoint which returns teamId with team info
-          const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+          const res = await fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
           const data = await res.json();
-
-          // Normalize teamId: /me returns it as an object, extract the id string
-          if (data.teamId && typeof data.teamId === 'object') {
-            data.teamId = data.teamId.id;
-          }
-
           setUserData(data);
 
-          // If connected to GitHub, fetch public profile
+
           if (data?.githubIntegration?.connected && data?.githubIntegration?.username) {
             const username = data.githubIntegration.username;
             fetch(`https://api.github.com/users/${username}`)
@@ -633,9 +622,8 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       }
     };
     fetchUserData();
-  }, [currentUser, activeSection]); // Re-fetch when section changes or user loads
+  }, [currentUser, activeSection]);
 
-  // ... existing effects ...
 
   useEffect(() => {
     if ((activeSection === "People" || activeSection === "Notes" || activeSection === "Chat" || activeSection === "Meet" || activeSection === "Tasks") && !isPreview) {
@@ -664,7 +652,6 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   }, [activeSection, isPreview, currentUser]);
 
 
-
   const [isGenerating, setIsGenerating] = useState(false);
 
   const sidebarItems = [
@@ -672,7 +659,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     {
       icon: FolderKanban, label: "My Workspace", active: activeSection === "My Workspace", children: [
         { label: "Roadmap" },
-        // { label: "Schedule" }, // Moved to top level
+
       ]
     },
     { icon: Calendar, label: "Calendar", active: activeSection === "Calendar" },
@@ -690,7 +677,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const tasks: any[] = [];
   const waitingList: any[] = [];
 
-  // Mock Users Data for Preview
+
   const mockUsers = [
     { _id: 1, displayName: "Oliver Campbell", email: "oliver@ZYNC.io", status: "online", avatar: "OC" },
     { _id: 2, displayName: "Sarah Chen", email: "sarah@ZYNC.io", status: "online", avatar: "SC" },
@@ -702,23 +689,13 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     ? mockUsers
     : usersList.filter(user => user.uid !== currentUser?.uid);
 
-  /*
-  const handleCreateMeeting = () => {
-    // Legacy Google Meet link
-    const meetLink = `https://meet.google.com/new`;
-    window.open(meetLink, "_blank");
-  };
-  */
-
-
-
 
   const handleChat = (user: any) => {
     setSelectedChatUser(user);
     handleSectionChange("Chat");
   };
 
-  // Renamed to renderActiveView to avoid potential conflicts and clarify purpose
+
   const renderActiveView = () => {
     switch (activeSection) {
       case "Dashboard":
@@ -771,7 +748,6 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             isPreview={isPreview}
           />
         );
-
 
 
       case "New Project":

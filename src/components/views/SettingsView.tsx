@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select"
 import { useTheme } from "next-themes";
 
-// Simple Country List (Truncated for brevity, can be expanded)
+
 const countries = [
   { name: "United States", code: "US", dial_code: "+1", flag: "🇺🇸" },
   { name: "India", code: "IN", dial_code: "+91", flag: "🇮🇳" },
@@ -51,14 +51,14 @@ const countries = [
 ];
 
 export default function SettingsView() {
-  useUserSync(); // Sync side-effect only
-  const [userData, setUserData] = useState<any>(null); // Local state
+  useUserSync();
+  const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [teamData, setTeamData] = useState<any>(null);
   const [teamLoading, setTeamLoading] = useState(false);
 
-  // Auth Listener to ensure we have the latest user state (e.g. after linking)
+
   useEffect(() => {
     return onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -71,12 +71,12 @@ export default function SettingsView() {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperImage, setCropperImage] = useState<string>("");
 
-  // Computed Properties
+
   const googleProvider = currentUser?.providerData?.find((p: any) => p.providerId === 'google.com');
   const isGoogleLinked = !!googleProvider;
   const isCalendarSynced = userData?.integrations?.google?.connected;
 
-  // Fetch Full User Data
+
   useEffect(() => {
     if (currentUser?.uid) {
       fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`)
@@ -86,7 +86,7 @@ export default function SettingsView() {
     }
   }, [currentUser]);
 
-  // Form State
+
   const [profileForm, setProfileForm] = useState({
     username: "",
     firstName: "",
@@ -98,7 +98,7 @@ export default function SettingsView() {
     photoURL: ""
   });
 
-  // Sync profile form with userData
+
   useEffect(() => {
     if (userData) {
       setProfileForm({
@@ -114,7 +114,7 @@ export default function SettingsView() {
     }
   }, [userData, currentUser]);
 
-  // --- Profile Update Logic ---
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -125,7 +125,7 @@ export default function SettingsView() {
         body: JSON.stringify(profileForm)
       });
 
-      // Sync with Firebase Auth Profile to prevent overwrite by use-user-sync
+
       if (currentUser && profileForm.displayName) {
         await updateProfile(currentUser, {
           displayName: profileForm.displayName
@@ -151,14 +151,14 @@ export default function SettingsView() {
         toast({ title: "Error", description: "You must be signed in.", variant: "destructive" });
         return;
       }
-      // Read file and open cropper
+
       const reader = new FileReader();
       reader.onload = () => {
         setCropperImage(reader.result as string);
         setCropperOpen(true);
       };
       reader.readAsDataURL(file);
-      // Reset input so the same file can be re-selected
+
       e.target.value = "";
     }
   };
@@ -202,12 +202,12 @@ export default function SettingsView() {
     }
   }, [currentUser]);
 
-  // --- GitHub Integration Logic ---
+
   const handleGithubConnect = async () => {
     setLoading(true);
     try {
       const provider = new GithubAuthProvider();
-      provider.addScope('repo'); // Critical for repo access
+      provider.addScope('repo');
       provider.addScope('read:user');
 
       if (!auth.currentUser) { throw new Error("User must be signed in"); }
@@ -216,7 +216,7 @@ export default function SettingsView() {
       let githubUsername: string | undefined;
 
       try {
-        // 1. Try to Link Account
+
         const result = await linkWithPopup(auth.currentUser, provider);
         const credential = GithubAuthProvider.credentialFromResult(result);
         accessToken = credential?.accessToken;
@@ -227,7 +227,7 @@ export default function SettingsView() {
       } catch (linkError: any) {
         console.warn("Firebase Link Warning:", linkError.code);
 
-        // 2. Handle "Credential Already In Use" or other errors
+
         if (linkError.code === 'auth/credential-already-in-use') {
           const credential = GithubAuthProvider.credentialFromError(linkError);
           accessToken = credential?.accessToken;
@@ -238,7 +238,7 @@ export default function SettingsView() {
 
       if (!accessToken) { throw new Error("No Access Token retrieved from GitHub."); }
 
-      // 3. If Username is missing (e.g. from error flow), fetch it
+
       if (!githubUsername) {
         try {
           const ghResponse = await fetch('https://api.github.com/user', {
@@ -253,7 +253,7 @@ export default function SettingsView() {
         }
       }
 
-      // 4. Send Token to Backend
+
       const idToken = await auth.currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/github/connect`, {
         method: 'POST',
@@ -263,7 +263,7 @@ export default function SettingsView() {
         },
         body: JSON.stringify({
           accessToken,
-          username: githubUsername || 'GitHub User' // Fallback
+          username: githubUsername || 'GitHub User'
         })
       });
 
@@ -275,7 +275,7 @@ export default function SettingsView() {
       const data = await response.json();
       toast({ title: "Connected!", description: `Linked GitHub account: ${data.username}` });
 
-      // Update Local State
+
       setUserData((prev: any) => ({
         ...prev,
         githubIntegration: { ...prev?.githubIntegration, connected: true, username: data.username }
@@ -320,7 +320,7 @@ export default function SettingsView() {
     }
   };
 
-  // --- Google Integration Logic ---
+
   const handleGoogleConnect = async () => {
     setLoading(true);
     try {
@@ -334,7 +334,7 @@ export default function SettingsView() {
       let googleEmail: string | undefined;
 
       try {
-        // Link Account
+
         const result = await linkWithPopup(auth.currentUser, provider);
         const credential = GoogleAuthProvider.credentialFromResult(result);
         accessToken = credential?.accessToken;
@@ -344,11 +344,11 @@ export default function SettingsView() {
 
       } catch (linkError: any) {
         if (linkError.code === 'auth/credential-already-in-use') {
-          // If already linked to another account... (could handle merge here)
+
           const credential = GoogleAuthProvider.credentialFromError(linkError);
           accessToken = credential?.accessToken;
         } else if (linkError.code === 'auth/provider-already-linked') {
-          // Already linked to THIS account. Re-auth to get fresher token/scopes.
+
           const reauthResult = await reauthenticateWithPopup(auth.currentUser, provider);
           const credential = GoogleAuthProvider.credentialFromResult(reauthResult);
           accessToken = credential?.accessToken;
@@ -359,7 +359,7 @@ export default function SettingsView() {
 
       if (!accessToken) { throw new Error("No Access Token retrieved."); }
 
-      // Send to Backend
+
       const idToken = await auth.currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/google/connect`, {
         method: 'POST',
@@ -378,7 +378,7 @@ export default function SettingsView() {
       const data = await response.json();
       toast({ title: "Connected!", description: `Linked Google Calendar: ${data.email}` });
 
-      // Update Local State
+
       setUserData((prev: any) => ({
         ...prev,
         integrations: {
@@ -420,12 +420,12 @@ export default function SettingsView() {
     }
   };
 
-  // --- Security Functions ---
+
   const [deleteStep, setDeleteStep] = useState<'initial' | 'verifying'>('initial');
   const [deleteCode, setDeleteCode] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // --- Support Form Logic ---
+
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportForm, setSupportForm] = useState({
     firstName: "",
@@ -458,16 +458,16 @@ export default function SettingsView() {
         try {
           data = await res.json();
         } catch (jsonError) {
-          // Response was not JSON, likely a server error page (500)
+
           console.error("Failed to parse JSON response:", jsonError);
         }
       }
 
       if (!res.ok) {
-        // Use the error message from backend if available, otherwise a generic one
+
         let errorMessage = data?.message || res.statusText || "Failed to send message";
 
-        // Sanitize technical errors for the user
+
         if (errorMessage.includes("Invalid login") || res.status === 500) {
           console.error("Backend Error:", errorMessage);
           errorMessage = "Our support system is temporarily unavailable. Please try again later or email us directly.";
@@ -496,7 +496,7 @@ export default function SettingsView() {
     setDeleteLoading(true);
     try {
       if (deleteStep === 'initial') {
-        // Step 1: Request Code
+
         const idToken = await currentUser?.getIdToken();
         const res = await fetch(`${API_BASE_URL}/api/users/delete/request`, {
           method: "POST",
@@ -513,7 +513,7 @@ export default function SettingsView() {
         setDeleteStep('verifying');
 
       } else {
-        // Step 2: Confirm Deletion
+
         const idToken = await currentUser?.getIdToken();
         const res = await fetch(`${API_BASE_URL}/api/users/delete/confirm`, {
           method: "POST",
@@ -529,9 +529,7 @@ export default function SettingsView() {
           throw new Error(err.message || "Failed to verify code");
         }
 
-        // 3. Cleanup Firebase Auth
-        // Backend handles Firebase deletion to avoid "requires recent login" error on client
-        // We just sign out the user locally to clear the session
+
         await auth.signOut();
         window.location.href = "/";
       }
@@ -561,7 +559,7 @@ export default function SettingsView() {
             <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
 
-          {/* PROFILE TAB */}
+          {}
           <TabsContent value="profile">
             <Card>
               <CardHeader>
@@ -570,7 +568,7 @@ export default function SettingsView() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  {/* Avatar Upload */}
+                  {}
                   <div className="flex flex-col items-center justify-center mb-6">
                     <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                       <Avatar className="w-24 h-24 border-2 border-border">
@@ -591,7 +589,7 @@ export default function SettingsView() {
                     <p className="text-xs text-muted-foreground mt-2">Click to change profile photo</p>
                   </div>
 
-                  {/* Profile Photo Cropper Dialog */}
+                  {}
                   <ProfilePhotoCropper
                     open={cropperOpen}
                     imageSrc={cropperImage}
@@ -679,7 +677,7 @@ export default function SettingsView() {
             </Card>
           </TabsContent>
 
-          {/* TEAM TAB */}
+          {}
           <TabsContent value="team">
             <TeamTabContent
               currentUser={currentUser}
@@ -692,7 +690,7 @@ export default function SettingsView() {
             />
           </TabsContent>
 
-          {/* INTEGRATIONS TAB */}
+          {}
           <TabsContent value="integrations">
             <Card>
               <CardHeader>
@@ -700,7 +698,7 @@ export default function SettingsView() {
                 <CardDescription>Manage your external connections to sync projects.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* GitHub Connection */}
+                {}
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-4">
                     <Github className="w-8 h-8" />
@@ -721,7 +719,7 @@ export default function SettingsView() {
                   </Button>
                 </div>
 
-                {/* Google Connection */}
+                {}
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-4">
                     <div className={cn("w-8 h-8 flex items-center justify-center font-bold text-xl rounded-full", (isGoogleLinked || isCalendarSynced) ? "text-blue-600 bg-blue-50" : "text-gray-500 bg-gray-100")}>G</div>
@@ -748,7 +746,7 @@ export default function SettingsView() {
             </Card>
           </TabsContent>
 
-          {/* PREFERENCES TAB */}
+          {}
           <TabsContent value="preferences">
             <Card>
               <CardHeader><CardTitle>App Preferences</CardTitle></CardHeader>
@@ -768,12 +766,12 @@ export default function SettingsView() {
             </Card>
           </TabsContent>
 
-          {/* SUPPORT TAB */}
+          {}
           <TabsContent value="support">
             <div className="space-y-6">
-              {/* Contact Header */}
+              {}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left - Contact Info */}
+                {}
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-2xl font-bold tracking-tight">Contact Us</h3>
@@ -783,7 +781,7 @@ export default function SettingsView() {
                   </div>
                 </div>
 
-                {/* Right - Contact Form */}
+                {}
                 <Card className="shadow-lg">
                   <CardHeader>
                     <CardTitle>Get in Touch</CardTitle>
@@ -852,7 +850,7 @@ export default function SettingsView() {
                 </Card>
               </div>
 
-              {/* Info Cards */}
+              {}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="bg-muted/30">
                   <CardContent className="pt-6">
@@ -899,7 +897,7 @@ export default function SettingsView() {
             </div>
           </TabsContent>
 
-          {/* SECURITY TAB */}
+          {}
           <TabsContent value="security">
             <Card className="border-destructive/50">
               <CardHeader>
@@ -949,11 +947,11 @@ export default function SettingsView() {
   );
 }
 
-// ─── TEAM TAB COMPONENT ─────────────────────────────────────────────
+
 function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoading, setTeamLoading, setUserData }: any) {
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Fetch team details when tab mounts or userData changes
+
   useEffect(() => {
     const fetchTeamDetails = async () => {
       if (!currentUser || !userData?.teamMemberships?.length) {
@@ -1006,7 +1004,7 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
       }
 
       toast({ title: "Member Removed", description: "Successfully removed from the team." });
-      // Refresh team data
+
       setTeamData((prev: any) => ({
         ...prev,
         members: prev.members.filter((uid: string) => uid !== memberUid),
@@ -1038,7 +1036,7 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
 
       toast({ title: "Left Team", description: "You have left the team." });
       setTeamData(null);
-      // Update local user data to remove teamMembership
+
       setUserData((prev: any) => ({
         ...prev,
         teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamData.id) || []
@@ -1120,7 +1118,7 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
 
   return (
     <div className="space-y-6">
-      {/* Team Info */}
+      {}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -1151,7 +1149,7 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
         </CardContent>
       </Card>
 
-      {/* Members List */}
+      {}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Members</CardTitle>
@@ -1180,7 +1178,7 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
                 </div>
               </div>
 
-              {/* Actions */}
+              {}
               {isOwner && !member.isOwner && (
                 <Button
                   variant="ghost"
@@ -1198,7 +1196,7 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
         </CardContent>
       </Card>
 
-      {/* Actions Card */}
+      {}
       <Card className={isOwner ? "border-destructive/50" : ""}>
         <CardHeader>
           <CardTitle className={isOwner ? "text-destructive" : ""}>{isOwner ? "Danger Zone" : "Team Actions"}</CardTitle>

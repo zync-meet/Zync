@@ -38,9 +38,9 @@ interface ActivityLogViewProps {
     currentUserId?: string;
 }
 
-// Chart color palette - calm, professional colors
+
 const CHART_COLORS = {
-    primary: '#6366f1', // Indigo/violet
+    primary: '#6366f1',
     secondary: '#8b5cf6',
     focus: '#6366f1',
     meetings: '#22c55e',
@@ -49,7 +49,7 @@ const CHART_COLORS = {
     missed: '#334155',
 };
 
-// Badge type definition
+
 interface Badge {
     id: string;
     name: string;
@@ -61,7 +61,7 @@ interface Badge {
     requirement?: string;
 }
 
-// BadgeCard component
+
 const BadgeCard: React.FC<{ badge: Badge }> = ({ badge }) => {
     const [showTooltip, setShowTooltip] = useState(false);
 
@@ -77,7 +77,7 @@ const BadgeCard: React.FC<{ badge: Badge }> = ({ badge }) => {
             onMouseEnter={() => !badge.isUnlocked && setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
         >
-            {/* Tooltip for locked badges */}
+            {}
             {showTooltip && !badge.isUnlocked && badge.requirement && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 px-3 py-1.5 bg-popover border border-border/50 rounded-md shadow-md whitespace-nowrap">
                     <p className="text-xs text-muted-foreground">{badge.requirement}</p>
@@ -107,7 +107,7 @@ const BadgeCard: React.FC<{ badge: Badge }> = ({ badge }) => {
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                         {badge.description}
                     </p>
-                    {/* Progress text for locked badges */}
+                    {}
                     {!badge.isUnlocked && badge.progress && (
                         <p className="text-[10px] text-muted-foreground/70 mt-1.5 font-medium">
                             {badge.progress}
@@ -126,21 +126,21 @@ const BadgeCard: React.FC<{ badge: Badge }> = ({ badge }) => {
 
 const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsedTime, handleClearLogs, handleDeleteLog, tasks, users, teamSessions, currentTeamId, ownedTeams, currentUserId }) => {
     const [showAllLogs, setShowAllLogs] = useState(false);
-    
-    // Calculate Streak and Total Time
+
+
     const sortedLogs = [...activityLogs].sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
 
     let currentStreak = 0;
     let totalSeconds = 0;
 
-    // Calculate Total Time
+
     activityLogs.forEach(log => {
         const start = new Date(log.startTime);
         const end = new Date(log.endTime);
         totalSeconds += (log.duration || Math.round((end.getTime() - start.getTime()) / 1000));
     });
 
-    // Simple Streak Calculation (Consecutive Days)
+
     if (sortedLogs.length > 0) {
         currentStreak = 1;
         let lastDate = new Date(sortedLogs[0].startTime).setHours(0, 0, 0, 0);
@@ -154,9 +154,9 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                 currentStreak++;
                 lastDate = currentDate;
             } else if (diffDays === 0) {
-                continue; // Same day
+                continue;
             } else {
-                break; // Streak broken
+                break;
             }
         }
     }
@@ -164,9 +164,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
     const totalHours = Math.floor(totalSeconds / 3600);
     const totalMinutes = Math.floor((totalSeconds % 3600) / 60);
 
-    // ==================== ANALYTICS DATA ====================
 
-    // 1. Daily Active Time (Last 14 days)
     const dailyActiveTimeData = useMemo(() => {
         const days = 14;
         const data: { date: string; label: string; minutes: number }[] = [];
@@ -194,12 +192,11 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         return data;
     }, [activityLogs]);
 
-    // 2. Usage Distribution (Focus Time, Meetings, Idle)
-    // Simulated breakdown based on session patterns
+
     const usageDistributionData = useMemo(() => {
-        const focusTime = Math.round(totalSeconds * 0.65); // 65% focus
-        const meetingsTime = Math.round(totalSeconds * 0.25); // 25% meetings
-        const idleTime = Math.round(totalSeconds * 0.10); // 10% idle
+        const focusTime = Math.round(totalSeconds * 0.65);
+        const meetingsTime = Math.round(totalSeconds * 0.25);
+        const idleTime = Math.round(totalSeconds * 0.10);
 
         const total = focusTime + meetingsTime + idleTime;
         if (total === 0) {return [];}
@@ -211,9 +208,9 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         ];
     }, [totalSeconds]);
 
-    // 3. Streak Ring Chart (Active vs Missed Days)
+
     const streakChartData = useMemo(() => {
-        const trackingDays = 30; // Last 30 days for context
+        const trackingDays = 30;
         const now = new Date();
         const activeDaysSet = new Set<string>();
 
@@ -239,14 +236,14 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         ];
     }, [activityLogs]);
 
-    // 4. Badges Data - Computed from activity data
+
     const badgesData = useMemo((): Badge[] => {
         const totalHoursComputed = totalSeconds / 3600;
-        const focusPercentage = 65; // Simulated focus percentage
-        const idlePercentage = 10; // Simulated idle percentage
+        const focusPercentage = 65;
+        const idlePercentage = 10;
 
         return [
-            // Streak Badges
+
             {
                 id: 'streak-5',
                 name: '5-Day Streak',
@@ -277,7 +274,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                 progress: currentStreak < 30 ? `${currentStreak} / 30 days` : undefined,
                 requirement: 'Maintain a 30-day activity streak to unlock',
             },
-            // Time-based Badges
+
             {
                 id: 'time-10h',
                 name: '10 Hour Club',
@@ -308,7 +305,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                 progress: totalHoursComputed < 100 ? `${Math.floor(totalHoursComputed)} / 100 hours` : undefined,
                 requirement: 'Accumulate 100 hours of usage to unlock',
             },
-            // Focus-based Badges
+
             {
                 id: 'focus-high',
                 name: 'Deep Focus',
@@ -332,7 +329,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         ];
     }, [currentStreak, totalSeconds]);
 
-    // Group badges by category
+
     const groupedBadges = useMemo(() => {
         return {
             streak: badgesData.filter(b => b.category === 'streak'),
@@ -341,7 +338,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         };
     }, [badgesData]);
 
-    // Custom tooltip for bar chart
+
     const BarTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
@@ -356,7 +353,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         return null;
     };
 
-    // Custom tooltip for pie chart
+
     const PieTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             return (
@@ -371,7 +368,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         return null;
     };
 
-    // Custom label for pie chart
+
     const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
         const RADIAN = Math.PI / 180;
         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -398,8 +395,8 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         <div className="p-6 h-full space-y-6 overflow-y-auto">
             <h2 className="text-2xl font-bold">Activity Log</h2>
 
-            {/* Team Leader Graph */}
-            {/* Team Leader Graph */}
+            {}
+            {}
             {tasks && tasks.length > 0 && users && (
                 <div className="mb-8">
                     <ActivityGraph tasks={tasks} users={users} teamSessions={teamSessions} currentTeamId={currentTeamId} ownedTeams={ownedTeams} currentUserId={currentUserId} />
@@ -407,7 +404,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Current Session */}
+                {}
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Current Session</CardTitle>
@@ -418,7 +415,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                     </CardContent>
                 </Card>
 
-                {/* Usage Streak */}
+                {}
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Usage Streak</CardTitle>
@@ -432,7 +429,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                     </CardContent>
                 </Card>
 
-                {/* Total Time */}
+                {}
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total Time Spent</CardTitle>
@@ -444,9 +441,9 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                 </Card>
             </div>
 
-            {/* ==================== ANALYTICS CHARTS ==================== */}
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Bar Chart - Daily Active Time (Takes 2 columns) */}
+                {}
                 <Card className="lg:col-span-2">
                     <CardHeader className="pb-4">
                         <CardTitle className="text-base font-semibold">Daily Active Time</CardTitle>
@@ -484,9 +481,9 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                     </CardContent>
                 </Card>
 
-                {/* Right Column - Pie Charts Stacked */}
+                {}
                 <div className="flex flex-col gap-6">
-                    {/* Usage Distribution Pie Chart */}
+                    {}
                     <Card className="flex-1">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-base font-semibold">Usage Distribution</CardTitle>
@@ -521,7 +518,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                                     </div>
                                 )}
                             </div>
-                            {/* Legend */}
+                            {}
                             {usageDistributionData.length > 0 && (
                                 <div className="flex justify-center gap-4 mt-2">
                                     <div className="flex items-center gap-1.5">
@@ -541,7 +538,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                         </CardContent>
                     </Card>
 
-                    {/* Streak Ring Chart */}
+                    {}
                     <Card className="flex-1">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-base font-semibold">Activity Streak</CardTitle>
@@ -568,13 +565,13 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                                         <Tooltip content={<PieTooltip />} />
                                     </PieChart>
                                 </ResponsiveContainer>
-                                {/* Center Label */}
+                                {}
                                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                     <span className="text-2xl font-bold">{currentStreak}</span>
                                     <span className="text-xs text-muted-foreground">day streak</span>
                                 </div>
                             </div>
-                            {/* Legend */}
+                            {}
                             <div className="flex justify-center gap-4 mt-2">
                                 <div className="flex items-center gap-1.5">
                                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.active }} />
@@ -590,14 +587,14 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                 </div>
             </div>
 
-            {/* ==================== BADGES SECTION ==================== */}
+            {}
             <Card>
                 <CardHeader className="pb-4">
                     <CardTitle className="text-base font-semibold">Badges</CardTitle>
                     <CardDescription>Unlock achievements as you use the platform</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* Streak Badges */}
+                    {}
                     <div>
                         <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Streak</h5>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -607,7 +604,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                         </div>
                     </div>
 
-                    {/* Time Badges */}
+                    {}
                     <div>
                         <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Time</h5>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -617,7 +614,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                         </div>
                     </div>
 
-                    {/* Focus Badges */}
+                    {}
                     <div>
                         <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Focus</h5>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

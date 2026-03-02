@@ -58,7 +58,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
     const [searchQuery, setSearchQuery] = useState("");
     const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
-    // Real Data State
+
     const [meetings, setMeetings] = useState<Meeting[]>([]);
     const [isScheduling, setIsScheduling] = useState(false);
     const [scheduleData, setScheduleData] = useState({
@@ -67,13 +67,13 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
         time: ""
     });
 
-    // Team Selection State
+
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoadingTeams, setIsLoadingTeams] = useState(false);
     const [isTeamSelectDialogOpen, setIsTeamSelectDialogOpen] = useState(false);
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
-    // Fetch Teams
+
     const fetchTeams = async () => {
         if (!currentUser?.uid) {return;}
         setIsLoadingTeams(true);
@@ -93,12 +93,12 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
         }
     };
 
-    // Fetch Meetings
+
     useEffect(() => {
         if (currentUser?.uid) {
             fetchMeetings();
             fetchTeams();
-            // Poll for updates every 30s
+
             const interval = setInterval(fetchMeetings, 30000);
             return () => clearInterval(interval);
         }
@@ -122,14 +122,14 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
 
     const handleDeleteMeeting = async (meetingId: string) => {
         if (!currentUser?.uid) {return;}
-        
+
         try {
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/meet/${meetingId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
+
             if (res.ok) {
                 toast({ title: "Deleted", description: "Meeting removed successfully." });
                 setMeetings(prev => prev.filter(m => m._id !== meetingId));
@@ -159,7 +159,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
     const handleStartInstantMeeting = async (teamId: string | null = null, customReceiverIds: string[] | null = null) => {
         setIsGenerating(true);
         try {
-            // Get team members if a team is selected, or use custom receiver IDs
+
             let receiverIds: string[] = [];
             if (customReceiverIds && customReceiverIds.length > 0) {
                 receiverIds = customReceiverIds;
@@ -170,7 +170,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                 }
             }
 
-            // 1. Open Placeholder Window
+
             const newWindow = window.open("", "_blank");
             if (newWindow) {
                 newWindow.document.write(`
@@ -185,7 +185,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
         `);
             }
 
-            // 2. Call Backend
+
             const idToken = await currentUser?.getIdToken();
             const body: any = {
                 senderId: currentUser?.uid,
@@ -208,15 +208,15 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                 else {window.open(data.meetingUrl, "_blank");}
 
                 const teamName = teamId ? teams.find(t => t._id === teamId)?.name : null;
-                toast({ 
-                    title: "Meeting Started", 
-                    description: teamName ? `Invites sent to ${teamName} team members.` : "Instant meeting ready." 
+                toast({
+                    title: "Meeting Started",
+                    description: teamName ? `Invites sent to ${teamName} team members.` : "Instant meeting ready."
                 });
                 setInvitedUserIds([]);
                 setIsInviteDialogOpen(false);
                 setIsTeamSelectDialogOpen(false);
                 setSelectedTeamId(null);
-                fetchMeetings(); // Refresh list immediately
+                fetchMeetings();
             } else {
                 if (newWindow) {newWindow.close();}
                 throw new Error(data.message || "Failed to create meeting");
@@ -239,7 +239,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
         setIsGenerating(true);
         try {
             const idToken = await currentUser?.getIdToken();
-            // Combine date and time
+
             const startTime = new Date(`${scheduleData.date}T${scheduleData.time}`);
 
             const res = await fetch(`${API_BASE_URL}/api/meet/schedule`, {
@@ -312,7 +312,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
         const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const day = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 
-        // Check if it's vastly future
+
         if (date.getTime() - today.getTime() > 7 * 24 * 60 * 60 * 1000) {
             return `${day}, ${time}`;
         }
@@ -323,7 +323,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
     return (
         <div className="max-w-7xl mx-auto p-8 space-y-12 h-full flex flex-col">
 
-            {/* Header Section */}
+            {}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Meet</h1>
@@ -405,7 +405,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                         </Button>
                     </Dialog>
 
-                    {/* Team Selection Dialog for Instant Meeting */}
+                    {}
                     <Dialog open={isTeamSelectDialogOpen} onOpenChange={(open) => {
                         setIsTeamSelectDialogOpen(open);
                         if (!open) {setSelectedTeamId(null);}
@@ -446,8 +446,8 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                                                         onClick={() => setSelectedTeamId(isSelected ? null : team._id)}
                                                         className={cn(
                                                             "p-4 rounded-xl border cursor-pointer transition-all",
-                                                            isSelected 
-                                                                ? "bg-blue-500/10 border-blue-500/30" 
+                                                            isSelected
+                                                                ? "bg-blue-500/10 border-blue-500/30"
                                                                 : "bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10"
                                                         )}
                                                     >
@@ -475,7 +475,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                                                                 {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {/* Team Members Preview */}
                                                         {isSelected && teamMembers.length > 0 && (
                                                             <div className="mt-3 pt-3 border-t border-white/5">
@@ -510,20 +510,20 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                                 )}
                             </div>
                             <DialogFooter className="flex gap-2 sm:gap-2">
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     onClick={() => {
                                         setIsTeamSelectDialogOpen(false);
                                         handleStartInstantMeeting(null);
-                                    }} 
+                                    }}
                                     className="border-white/10 text-white hover:bg-white/5 flex-1"
                                     disabled={isGenerating}
                                 >
                                     {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                                     Start Alone
                                 </Button>
-                                <Button 
-                                    onClick={() => handleStartInstantMeeting(selectedTeamId)} 
+                                <Button
+                                    onClick={() => handleStartInstantMeeting(selectedTeamId)}
                                     disabled={isGenerating || !selectedTeamId}
                                     className="bg-blue-600 hover:bg-blue-700 flex-1"
                                 >
@@ -631,15 +631,15 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                                                     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
                                                         // Popup was blocked, copy link instead
                                                         navigator.clipboard.writeText(meeting.meetLink);
-                                                        toast({ 
-                                                            title: "Popup Blocked", 
+                                                        toast({
+                                                            title: "Popup Blocked",
                                                             description: "Meeting link copied to clipboard. Please allow popups or paste the link manually.",
                                                             variant: "destructive"
                                                         });
                                                     }
                                                 } else {
-                                                    toast({ 
-                                                        title: "Error", 
+                                                    toast({
+                                                        title: "Error",
                                                         description: "Meeting link not available.",
                                                         variant: "destructive"
                                                     });

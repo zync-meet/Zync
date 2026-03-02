@@ -47,7 +47,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // GitHub Linking State
+
   const [repoModalOpen, setRepoModalOpen] = useState(false);
   const [selectedProjectForLink, setSelectedProjectForLink] = useState<Project | null>(null);
   const [repos, setRepos] = useState<any[]>([]);
@@ -55,14 +55,14 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
   const [searchTerm, setSearchTerm] = useState("");
   const [linkingRepo, setLinkingRepo] = useState(false);
 
-  // New Project Creation State
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creatingProject, setCreatingProject] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Handle GitHub Installation Callback
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const installationId = params.get('installation_id');
@@ -87,7 +87,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
             description: "App installation verified successfully."
           });
 
-          // Remove query param
+
           navigate(location.pathname, { replace: true });
         } catch (error) {
           console.error("Failed to save installation ID", error);
@@ -97,7 +97,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     }
   }, [location.search, currentUser, navigate]);
 
-  // Background refresh of repos (silent, no loading state)
+
   const refreshReposInBackground = async () => {
     try {
       const user = auth.currentUser;
@@ -123,7 +123,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     setRepoModalOpen(true);
     setSearchTerm("");
 
-    // Show cached repos instantly; if none cached, show loading
+
     if (repos.length === 0) {
       setLoadingRepos(true);
     }
@@ -216,12 +216,12 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     setCreateModalOpen(true);
     setSearchTerm("");
 
-    // Show cached repos instantly; if none cached, show loading
+
     if (repos.length === 0) {
       setLoadingRepos(true);
     }
 
-    // Always refresh in background to get latest repos
+
     try {
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
@@ -346,7 +346,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
   );
 
   const deleteProject = async (e: React.MouseEvent, projectId: string) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation();
     if (!confirm("Are you sure you want to delete this project?")) { return; }
 
     try {
@@ -379,10 +379,10 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     }
   };
 
-  // Load projects and pre-fetch repos in background
+
   useEffect(() => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort('timeout'), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort('timeout'), 10000);
 
     const loadData = async () => {
       try {
@@ -422,25 +422,25 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
           setPinnedNotes(notes.filter((n: any) => n.isPinned));
         }
 
-        // Pre-fetch GitHub repos in the background (non-blocking)
+
         refreshReposInBackground();
 
       } catch (error: any) {
         if (error.name === 'AbortError') {
-          // Only show toast if it was a timeout abort, not a user navigation abort
+
           if (controller.signal.reason === 'timeout') {
             toast({ title: "Timeout", description: "Server is taking too long to respond.", variant: "destructive" });
           }
-          return; // Ignore aborts
+          return;
         }
         console.error("Failed to fetch data:", error);
       } finally {
         clearTimeout(timeoutId);
-        // Only stop loading if we are still mounted (not strictly necessary with cleanup but good practice)
+
         if (!controller.signal.aborted) {
           setLoading(false);
         } else if (controller.signal.reason === 'timeout') {
-          // If timed out, we still want to stop loading to show "Try again" or empty state
+
           setLoading(false);
         }
       }
@@ -478,7 +478,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
           </Button>
         </div>
 
-        {/* Pinned Notes Widget */}
+        {}
         {pinnedNotes.length > 0 && (
           <div>
             <div className="flex items-center mb-4">
@@ -625,7 +625,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
         )}
       </div>
 
-      {/* GitHub Link Modal */}
+      {}
       <Dialog open={repoModalOpen} onOpenChange={setRepoModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -678,7 +678,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
         </DialogContent>
       </Dialog>
 
-      {/* Create Project Modal */}
+      {}
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Phone, Video, MoreVertical, FileText, Link as LinkIcon, Image as ImageIcon, ChevronLeft, Send, UserPlus, Lock, Star } from "lucide-react";
-import ChatView from "./ChatView"; // Re-using existing ChatView for core logic
+import ChatView from "./ChatView";
 import { getFullUrl, getUserName, getUserInitials, API_BASE_URL } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/lib/firebase";
@@ -62,21 +62,21 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
         if (!selectedUser || !currentUser) {return;}
         const friendId = selectedUser.uid;
         const isClose = localCloseFriendsIds.includes(friendId);
-        
-        // Optimistic update
+
+
         if (isClose) {
             setLocalCloseFriendsIds(prev => prev.filter(id => id !== friendId));
         } else {
              setLocalCloseFriendsIds(prev => [...prev, friendId]);
         }
-        
+
         try {
              const token = await currentUser.getIdToken();
              const res = await fetch(`${API_BASE_URL}/api/users/close-friends/toggle`, {
                  method: 'POST',
-                 headers: { 
+                 headers: {
                      'Content-Type': 'application/json',
-                     Authorization: `Bearer ${token}` 
+                     Authorization: `Bearer ${token}`
                  },
                  body: JSON.stringify({ friendId })
              });
@@ -85,7 +85,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
                  const data = await res.json();
                  toast({ description: data.message });
              } else {
-                 // Revert
+
                  setLocalCloseFriendsIds(prev => isClose ? [...prev, friendId] : prev.filter(id => id !== friendId));
                  toast({ description: "Failed to update close friend status", variant: "destructive" });
              }
@@ -98,7 +98,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
 
     const isCloseFriend = (uid: string) => localCloseFriendsIds.includes(uid);
 
-    // Fetch all contacts (Teams + Connections)
+
     useEffect(() => {
         const fetchContacts = async () => {
             if (!currentUser) {return;}
@@ -120,7 +120,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
         fetchContacts();
     }, [currentUser]);
 
-    // Fetch pending requests
+
     const fetchRequests = async () => {
         if (!currentUser) {return;}
         try {
@@ -130,7 +130,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
             });
             if (res.ok) {
                 const data = await res.json();
-                // Filter pending requests
+
                 const requests = (data.chatRequests || []).filter((r: any) => r.status === 'pending');
                 setPendingRequests(requests);
             }
@@ -159,11 +159,11 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
 
             if (res.ok) {
                 toast({ title: `Request ${status}` });
-                fetchRequests(); // Refresh list
+                fetchRequests();
 
-                // Refresh contacts list too if accepted
+
                 if (status === 'accepted') {
-                    // Quick re-fetch of contacts
+
                     const token = await currentUser.getIdToken();
                     const contactsRes = await fetch(`${API_BASE_URL}/api/users`, {
                         headers: { Authorization: `Bearer ${token}` }
@@ -184,8 +184,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
         }
     };
 
-    // Filter Contacts based on search
-    // We use allContacts for the main list, effectively merging team and external
+
     const filteredContacts = allContacts.filter(user =>
         user.uid !== currentUser?.uid && (
             getUserName(user).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -193,13 +192,13 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
         )
     );
 
-    // Derived list for display
+
     const showSearchResults = searchTerm.trim().length > 1;
 
-    // Check if selected user is in the same team (for UI distinction)
+
     const isSameTeam = (user: any) => {
         if (!user || !currentUser) {return false;}
-        // Compare with the props.users (which represent the current team members view)
+
         return teamUsers.some(u => u.uid === user.uid);
     };
 
@@ -213,7 +212,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
         try {
             const token = await currentUser.getIdToken();
 
-            // 1. Send Request API
+
             const response = await fetch(`${API_BASE_URL}/api/users/chat-request`, {
                 method: 'POST',
                 headers: {
@@ -228,7 +227,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
 
             if (!response.ok) {throw new Error('Failed to send request');}
 
-            // 2. Optimistically start the chat in Firestore
+
             const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
             await addDoc(collection(db, "messages"), {
                 chatId,
@@ -252,16 +251,16 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
         }
     };
 
-    // Helper: Is this a REQUEST user?
+
     const isRequestUser = (user: any) => {
-        return pendingRequests.some(r => r.senderId === user.uid || r.senderId === user._id); // Handle both formats if mapped
+        return pendingRequests.some(r => r.senderId === user.uid || r.senderId === user._id);
     };
 
     return (
         <div className="flex h-full w-full bg-background overflow-hidden relative">
-            {/* LEFT SIDEBAR */}
+            {}
             <div className="w-80 shrink-0 border-r border-border flex flex-col bg-background">
-                {/* Header */}
+                {}
                 <div className="p-4 border-b border-border/40 space-y-4 flex-none">
                     <div className="flex items-center">
                         <Button variant="ghost" onClick={onNavigateBack} className="gap-2 pl-0 hover:bg-transparent hover:text-primary -ml-2" title="Back to Team">
@@ -517,7 +516,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
                                     </Button>
                                 </>
                             )}
-                            <Button 
+                            <Button
                                 variant={isCloseFriend(selectedUser.uid) ? "default" : "outline"}
                                 size="icon"
                                 className={`rounded-full w-10 h-10 transition-colors ${isCloseFriend(selectedUser.uid) ? "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500" : ""}`}

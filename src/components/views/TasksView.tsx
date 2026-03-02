@@ -130,9 +130,9 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
         }
     }, [currentUser]);
 
-    // Helper to mark task as Active when user interacts with it
+
     const markTaskActive = async (task: FlattenedTask) => {
-        // Only update if currently Pending
+
         if (task.status !== 'Pending') {return;}
 
         try {
@@ -145,7 +145,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                 },
                 body: JSON.stringify({ status: 'Active' })
             });
-            // Silently update local state
+
             loadTasks();
         } catch (error) {
             console.error("Failed to mark task active", error);
@@ -214,7 +214,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
         if (['Completed', 'Done'].includes(status)) {return 'bg-emerald-500';}
         if (['In Progress'].includes(status)) {return 'bg-amber-500';}
         if (['Active'].includes(status)) {return 'bg-sky-500';}
-        return 'bg-zinc-500'; // Pending
+        return 'bg-zinc-500';
     };
 
     const getStatusLabel = (status: string) => {
@@ -239,7 +239,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
         return priority || 'Medium';
     };
 
-    // Calculate task statistics
+
     const taskStats = useMemo(() => {
         const allTasks = groupedTasks.flatMap(g => g.tasks);
         return {
@@ -262,7 +262,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
 
     return (
         <div className="flex-1 p-6 md:p-8 h-full flex flex-col overflow-hidden bg-background">
-            {/* Header */}
+            {}
             <div className="mb-8 flex items-start justify-between shrink-0">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">My Tasks</h2>
@@ -284,9 +284,9 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                     <p className="text-sm text-muted-foreground mt-2 max-w-sm leading-relaxed">
                         You have no tasks assigned at the moment. When a project owner assigns you work, it will appear here.
                     </p>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
+                    <Button
+                        variant="outline"
+                        size="sm"
                         className="mt-6 gap-2"
                         onClick={() => setIsCreateDialogOpen(true)}
                     >
@@ -299,7 +299,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                     <div className="space-y-10 pb-20 max-w-4xl">
                         {groupedTasks.map((group) => (
                             <section key={group.projectId}>
-                                {/* Project Header */}
+                                {}
                                 <div className="flex items-center gap-3 mb-4">
                                     <h3 className="text-base font-medium text-foreground">{group.projectName}</h3>
                                     <span className="text-[11px] font-medium text-muted-foreground bg-zinc-800 px-2 py-0.5 rounded-full tabular-nums">
@@ -308,14 +308,14 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                     <div className="flex-1 h-px bg-border/40" />
                                 </div>
 
-                                {/* Task List */}
+                                {}
                                 <div className="space-y-3">
                                     {group.tasks.map((task) => (
                                         <div
                                             key={task.id}
                                             className="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-4 transition-all duration-200 hover:border-zinc-700 hover:shadow-md hover:shadow-zinc-900/50"
                                         >
-                                            {/* Top Row: Status + Title + Priority */}
+                                            {}
                                             <div className="flex items-start gap-3 mb-4">
                                                 <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${getStatusColor(task.status)}`} />
                                                 <div className="flex-1 min-w-0">
@@ -347,9 +347,9 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                                 </div>
                                             </div>
 
-                                            {/* Action Bar - Always Visible, No Manual Status Change */}
+                                            {}
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                {/* Git Helper */}
+                                                {}
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
@@ -360,7 +360,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                                     Git Commands
                                                 </Button>
 
-                                                {/* Architecture */}
+                                                {}
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
@@ -371,7 +371,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                                     Architecture
                                                 </Button>
 
-                                                {/* GitHub Repo */}
+                                                {}
                                                 {task.githubRepoName && task.githubRepoOwner && (
                                                     <Button
                                                         size="sm"
@@ -391,7 +391,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                             </section>
                         ))}
 
-                        {/* Simple Stats Footer */}
+                        {}
                         <div className="pt-8 border-t border-zinc-800/40">
                             <div className="flex items-center gap-6 text-xs text-muted-foreground">
                                 <span>{taskStats.total} total</span>

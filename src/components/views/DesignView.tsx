@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "ZYNC-design-view-state";
 
-// --- Components ---
 
 const DesignCard = ({ item }: { item: any }) => {
   const [loaded, setLoaded] = useState(false);
@@ -15,7 +14,7 @@ const DesignCard = ({ item }: { item: any }) => {
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    // Prevent blinking if image is already cached
+
     if (imgRef.current && imgRef.current.complete) {
       setLoaded(true);
     }
@@ -29,7 +28,7 @@ const DesignCard = ({ item }: { item: any }) => {
       className="group relative block break-inside-avoid mb-6"
     >
       <div className="relative overflow-hidden bg-secondary/20 rounded-md">
-        {/* Loading Placeholder with Dots */}
+        {}
         <div
           className={cn(
             "absolute inset-0 bg-secondary/10 flex items-center justify-center z-10 transition-opacity duration-500",
@@ -43,7 +42,7 @@ const DesignCard = ({ item }: { item: any }) => {
           </div>
         </div>
 
-        {/* Aspect Ratio Preserver (Approximate 4:3 default) */}
+        {}
         {!loaded && <div className="w-full pb-[75%]" />}
 
         <img
@@ -60,7 +59,7 @@ const DesignCard = ({ item }: { item: any }) => {
           referrerPolicy="no-referrer"
         />
 
-        {/* Minimal Overlay */}
+        {}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px] z-20">
           <div className="bg-white/90 text-black px-4 py-2 rounded-full flex items-center gap-2 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75">
             <span className="text-xs font-bold uppercase tracking-wider">{item.source}</span>
@@ -85,7 +84,6 @@ const SkeletonCard = () => (
   </div>
 );
 
-// --- Main View ---
 
 const DesignView = () => {
   const savedState = (() => {
@@ -101,7 +99,7 @@ const DesignView = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  // Observer
+
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && hasMore) {loadMore();}
@@ -110,7 +108,7 @@ const DesignView = () => {
     return () => observer.disconnect();
   }, [hasMore, loadMore]);
 
-  // Persistence
+
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ query, selectedCategory, scrollTop: scrollRef.current?.scrollTop || 0 }));
   }, [query, selectedCategory]);
@@ -125,7 +123,7 @@ const DesignView = () => {
 
   return (
     <div ref={scrollRef} className="h-full bg-background overflow-y-auto w-full">
-      {/* Editorial Header */}
+      {}
       <div className="w-full max-w-[1800px] mx-auto pt-16 pb-12 px-6 md:px-10 flex flex-col items-start gap-8">
         <div className="w-full flex flex-col md:flex-row justify-between items-end gap-6 border-b border-border/40 pb-6">
           <div className="space-y-1">
@@ -150,7 +148,7 @@ const DesignView = () => {
           </form>
         </div>
 
-        {/* Text Filters */}
+        {}
         <div className="flex flex-wrap gap-8 text-sm font-medium tracking-wide">
           {["All", "Godly", "SiteInspire", "Dribbble", "Lapa Ninja", "Awwwards"].map((cat) => (
             <button
@@ -170,11 +168,11 @@ const DesignView = () => {
         </div>
       </div>
 
-      {/* Experimental Grid - Clean & Sharp */}
+      {}
       <div className="px-6 md:px-10 pb-20 max-w-[1800px] mx-auto">
         <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
 
-          {/* Skeleton Loaders for Initial Search */}
+          {}
           {loading && items.length === 0 && Array.from({ length: 12 }).map((_, i) => (
             <SkeletonCard key={`skel-${i}`} />
           ))}
@@ -187,10 +185,10 @@ const DesignView = () => {
             ))}
         </div>
 
-        {/* Status States */}
+        {}
         <div ref={observerTarget} className="py-20 flex justify-center w-full">
           {loading && items.length > 0 && (
-            // Small spinner for load more only
+
             <div className="flex gap-1 items-center opacity-50">
               <span className="w-1.5 h-1.5 bg-foreground rounded-full animate-bounce [animation-delay:-0.3s]" />
               <span className="w-1.5 h-1.5 bg-foreground rounded-full animate-bounce [animation-delay:-0.15s]" />

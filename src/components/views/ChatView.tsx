@@ -57,8 +57,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
   useEffect(() => {
     if (!currentUser || !selectedUser) {return;}
 
-    // Refactored to use a single top-level collection with chatId field
-    // This requires a composite index on 'chatId' and 'timestamp'
+
     const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
     const messagesRef = collection(db, "messages");
     const q = query(messagesRef, where("chatId", "==", chatId), orderBy("timestamp", "asc"));
@@ -70,7 +69,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
       }));
       setMessages(msgs);
 
-      // Mark unseen messages as seen
+
       msgs.forEach(async (msg: any) => {
         if (msg.receiverId === currentUser.uid && !msg.seen) {
           const msgRef = doc(db, "messages", msg.id);
@@ -86,13 +85,13 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
   }, [currentUser, selectedUser]);
 
   const prevMessagesLengthRef = useRef(messages.length);
-  const isNearBottomRef = useRef(true); // Default to true for initial load
+  const isNearBottomRef = useRef(true);
 
   useEffect(() => {
-    // Determine if we should scroll
+
     const isNewMessage = messages.length > prevMessagesLengthRef.current;
 
-    // Check if the last message is from the current user
+
     const lastMessage = messages[messages.length - 1];
     const isMyMessage = lastMessage?.senderId === currentUser?.uid;
 
@@ -106,10 +105,10 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
         }
       }
     } else if (messages.length === 0) {
-      // Reset or empty
+
     } else {
-      // Messages updated but length same (e.g. seen status)
-      // Do nothing (don't scroll)
+
+
     }
 
     prevMessagesLengthRef.current = messages.length;
@@ -117,7 +116,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    // Consider near bottom if within 100px
+
     const isNear = scrollHeight - scrollTop - clientHeight < 100;
     isNearBottomRef.current = isNear;
   };
@@ -157,7 +156,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
         }
 
         const data = await response.json();
-        fileUrl = data.fileUrl; // Relative path
+        fileUrl = data.fileUrl;
         originalName = data.originalname;
         fileSize = data.size;
 
@@ -210,7 +209,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
 
         const snapshot = await getDocs(q);
 
-        // Firestore batch limit is 500. We chunk it to be safe.
+
         const CHUNK_SIZE = 400;
         const chunks = [];
 
@@ -253,7 +252,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
               },
               body: JSON.stringify({ friendId: selectedUser.uid })
           });
-          
+
           if (response.ok) {
               const data = await response.json();
               setIsCloseFriend(data.isCloseFriend);
@@ -268,10 +267,9 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
   };
 
 
-
   return (
     <div className="flex flex-col h-full bg-background relative">
-      {/* Chat Header */}
+      {}
       <div className="flex items-center gap-3 p-4 border-b border-border/50 bg-background z-10">
         {onBack && (
           <Button variant="ghost" size="sm" onClick={onBack} className="mr-2">
@@ -311,8 +309,8 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
                         <h2 className="text-2xl font-bold">{getUserName(selectedUser)}</h2>
                         <p className="text-muted-foreground">{selectedUser.email}</p>
                     </div>
-                    <Button 
-                        onClick={handleToggleCloseFriend} 
+                    <Button
+                        onClick={handleToggleCloseFriend}
                         variant={isCloseFriend ? "secondary" : "default"}
                         className="gap-2 w-full max-w-xs"
                     >
@@ -335,7 +333,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
         </div>
       </div >
 
-      {/* Messages Area */}
+      {}
       <div className="flex-1 p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-secondary" onScroll={handleScroll} ref={containerRef}>
         <div className="space-y-4 pb-4">
           {messages.map((msg) => {
@@ -440,10 +438,10 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
         </div>
       </div>
 
-      {/* Input Area */}
+      {}
       < div className="p-4 border-t border-border/50 bg-background" >
 
-        {/* File Preview */}
+        {}
         {
           file && (
             <div className="mb-2 p-2 bg-secondary/30 rounded-lg flex items-center justify-between">
@@ -477,7 +475,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
             ref={fileInputRef}
             className="hidden"
             onChange={handleFileSelect}
-          // accept="image/*,.pdf,.doc,.docx,.txt" // backend validates too
+
           />
 
           <Button

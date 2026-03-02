@@ -44,17 +44,17 @@ const TaskDetailDrawer = ({ task, open, onOpenChange }: TaskDetailDrawerProps) =
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="sm:max-w-xl w-full flex flex-col gap-0 p-0 bg-background/95 backdrop-blur-sm">
-                {/* Header */}
+                {}
                 <SheetHeader className="flex flex-col p-6 border-b border-border/50 space-y-4">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-2">
                             <Badge variant={task.status === 'Completed' ? 'default' : 'secondary'} className="capitalize px-3 py-1">
                                 {task.status}
                             </Badge>
-                            {/* Placeholder for Priority if added later */}
-                            {/* <Badge variant="outline" className="text-orange-500 border-orange-200 bg-orange-50">High Priority</Badge> */}
+                            {}
+                            {}
                         </div>
-                        {/* Close button is handled by SheetContent default close, but we can add custom actions here */}
+                        {}
                     </div>
 
                     <div className="space-y-1">
@@ -68,10 +68,10 @@ const TaskDetailDrawer = ({ task, open, onOpenChange }: TaskDetailDrawerProps) =
                     </div>
                 </SheetHeader>
 
-                {/* Body */}
+                {}
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-8">
-                        {/* Metadata Grid */}
+                        {}
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-1">
                                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -92,7 +92,7 @@ const TaskDetailDrawer = ({ task, open, onOpenChange }: TaskDetailDrawerProps) =
                                     <Calendar className="w-3.5 h-3.5" /> Due Date
                                 </span>
                                 <div className="text-sm font-medium text-foreground/80">
-                                    {/* Placeholder as DueDate doesn't exist on schema yet */}
+                                    {}
                                     <span className="text-muted-foreground italic">No due date</span>
                                 </div>
                             </div>
@@ -109,7 +109,7 @@ const TaskDetailDrawer = ({ task, open, onOpenChange }: TaskDetailDrawerProps) =
 
                         <Separator />
 
-                        {/* Description */}
+                        {}
                         <div className="space-y-3">
                             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                                 <CheckSquare className="w-4 h-4" /> Description
@@ -126,14 +126,14 @@ const TaskDetailDrawer = ({ task, open, onOpenChange }: TaskDetailDrawerProps) =
 
                         <Separator />
 
-                        {/* Git Sync */}
+                        {}
                         <div className="space-y-3">
                             <TaskGitSync taskId={task.id} />
                         </div>
 
                         <Separator />
 
-                        {/* Activity / Subtasks Placeholder */}
+                        {}
                         <div className="space-y-3">
                             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                                 <Flag className="w-4 h-4" /> Activity
@@ -153,7 +153,7 @@ const TaskDetailDrawer = ({ task, open, onOpenChange }: TaskDetailDrawerProps) =
                     </div>
                 </ScrollArea>
 
-                {/* Footer */}
+                {}
                 <div className="p-6 border-t border-border/50 bg-secondary/10 flex justify-end gap-3">
                     <SheetClose asChild>
                         <Button variant="outline">Close</Button>

@@ -20,7 +20,7 @@ export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialog
     const handleJoinTeam = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Basic validation
+
         if (!inviteCode.trim() || inviteCode.length !== 6) {
             toast.error("Please enter a valid 6-digit invite code");
             return;

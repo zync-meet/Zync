@@ -95,7 +95,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                     'Content-Type': 'application/json'
                 };
 
-                // Fetch stats and events only if not already loaded (optimization)
+
                 const promises: Promise<Response>[] = [
                     fetch(`${API_BASE_URL}/api/github/contributions?year=${selectedYear}`, { headers })
                 ];
@@ -189,7 +189,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
         }
     };
 
-    // Generate contribution data for the Kibo UI graph
+
     const contributionMap = contributions.reduce((acc, c) => {
         acc[c.date] = c.count;
         return acc;
@@ -197,15 +197,15 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
 
     const maxCount = Math.max(...contributions.map(c => c.count), 1);
 
-    // Generate days for the updated selected year
+
     const yearStart = new Date(selectedYear, 0, 1);
     const yearEnd = new Date(selectedYear, 11, 31);
-    // Ensure we don't go into the future if it's the current year
+
     const today = new Date();
     const isCurrentYear = selectedYear === today.getFullYear();
     const end = isCurrentYear ? today : yearEnd;
 
-    // However, GitHub style graphs usually show the full grid for the year
+
     const days = eachDayOfInterval({
         start: yearStart,
         end: yearEnd,
@@ -222,7 +222,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
         };
     });
 
-    // Calculate stats for Radar Chart
+
     const activityStats = [
         { subject: 'Commits', A: events.filter(e => e.type === 'PushEvent').length, fullMark: 100 },
         { subject: 'Pull Requests', A: events.filter(e => e.type === 'PullRequestEvent').length, fullMark: 100 },
@@ -230,10 +230,10 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
         { subject: 'Issues', A: events.filter(e => e.type === 'IssuesEvent').length, fullMark: 100 },
     ];
 
-    // Get unique repositories
+
     const repositories = Array.from(new Set(events.map(e => e.repo))).slice(0, 5);
 
-    // Calculate available years
+
     const currentYear = new Date().getFullYear();
     const startYear = stats?.created_at ? new Date(stats.created_at).getFullYear() : currentYear;
     const availableYears = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
@@ -283,10 +283,9 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
     }
 
 
-
     return (
         <div className="p-6 space-y-6 max-w-7xl mx-auto">
-            {/* Profile Header */}
+            {}
             {stats && (
                 <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20 bg-card/40 backdrop-blur-sm">
                     <CardContent className="pt-6">
@@ -330,11 +329,11 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                 </Card>
             )}
 
-            {/* Contribution Chart Section */}
+            {}
             <div className="flex flex-col md:flex-row gap-6">
                 <div className={`flex-1 bg-card/50 border rounded-xl p-4 shadow-sm transition-opacity duration-200 ${isRefreshing ? 'opacity-60 pointer-events-none' : ''}`}>
                     <ContributionGraph data={graphData} blockSize={12} blockMargin={3} blockRadius={2} className="w-full">
-                        {/* Header */}
+                        {}
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
                                 <ContributionGraphTotalCount className="text-lg font-semibold" />
@@ -355,7 +354,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                             </DropdownMenu>
                         </div>
 
-                        {/* Graph */}
+                        {}
                         <div className="overflow-x-auto">
                             <ContributionGraphCalendar>
                                 {({ activity, dayIndex, weekIndex }) => (
@@ -369,7 +368,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                             </ContributionGraphCalendar>
                         </div>
 
-                        {/* Footer */}
+                        {}
                         <div className="flex items-center justify-between mt-2 pt-2 text-xs text-muted-foreground">
                             <a href="#" className="hover:text-primary hover:underline">Learn how we count contributions</a>
                             <ContributionGraphLegend />
@@ -377,7 +376,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                     </ContributionGraph>
                 </div>
 
-                {/* Year Selector */}
+                {}
                 <div className="w-full md:w-32 flex flex-col gap-2">
                     {availableYears.map((year) => (
                         <Button
@@ -394,7 +393,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                 </div>
             </div>
 
-            {/* Activity Overview */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-card/50 border rounded-xl p-6 shadow-sm">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -444,7 +443,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                 </div>
             </div>
 
-            {/* Recent Activity */}
+            {}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">

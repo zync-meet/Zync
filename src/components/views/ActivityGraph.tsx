@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -33,7 +32,7 @@ interface Session {
     userId: string;
     startTime: string;
     endTime: string;
-    activeDuration?: number; // Seconds
+    activeDuration?: number;
 }
 
 interface ActivityGraphProps {
@@ -47,7 +46,7 @@ interface ActivityGraphProps {
 
 const AvatarLabel = (props: any) => {
     const { x, y, width, value, users } = props;
-    const user = users.find((u: User) => u.displayName === value || u.email === value || u.uid === value); // Match by name/id logic
+    const user = users.find((u: User) => u.displayName === value || u.email === value || u.uid === value);
 
     if (!user) {return null;}
     const userName = getUserName(user);
@@ -75,46 +74,46 @@ export const ActivityGraph = ({ tasks = [], users, teamSessions = [], currentTea
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(currentTeamId || null);
     const [openTeamSelect, setOpenTeamSelect] = useState(false);
 
-    // Default to current team if available
+
     useMemo(() => {
         if (currentTeamId && !selectedTeamId) {setSelectedTeamId(currentTeamId);}
     }, [currentTeamId]);
 
-    // Auto-switch mode if sessions available and no tasks, or user preference
+
     useMemo(() => {
         if (teamSessions.length > 0 && tasks.length === 0) {setMode("time");}
     }, [teamSessions, tasks]);
 
     const filteredData = useMemo(() => {
         const now = new Date();
-        let startDate = subDays(now, 7); // Default weekly
+        let startDate = subDays(now, 7);
 
         if (timeRange === "daily") {startDate = subDays(now, 1);}
         if (timeRange === "monthly") {startDate = subDays(now, 30);}
 
-        // Map to store aggregated data per user
+
         const userMap: Record<string, {
             name: string,
             uid: string,
-            // Task Fields
+
             Ready: number,
             InProgress: number,
             Done: number,
-            // Time Fields
+
             ActiveHours: number
         }> = {};
 
-        // Initialize User Map
+
         users.forEach(user => {
-            // Filter out current user (self)
+
             if (currentUserId && user.uid === currentUserId) {return;}
 
             if (showTeamOnly) {
-                // If using owned teams dropdown selector
+
                 if (ownedTeams.length > 0) {
                     if (user.teamId !== selectedTeamId) {return;}
                 } else if (currentTeamId) {
-                    // Fallback to simple check
+
                     if (user.teamId !== currentTeamId) {return;}
                 }
             }
@@ -145,7 +144,7 @@ export const ActivityGraph = ({ tasks = [], users, teamSessions = [], currentTea
 
             return Object.values(userMap).filter(u => (u.Ready + u.InProgress + u.Done) > 0);
         } else {
-            // TIME MODE
+
             const relevantSessions = teamSessions.filter(session => {
                 const sessionDate = new Date(session.startTime);
                 return isAfter(sessionDate, startDate);
@@ -157,18 +156,18 @@ export const ActivityGraph = ({ tasks = [], users, teamSessions = [], currentTea
                     if (session.activeDuration) {
                         duration = session.activeDuration;
                     } else {
-                        // Fallback to start-end diff (less accurate for "active" but robust)
+
                         const start = new Date(session.startTime).getTime();
                         const end = new Date(session.endTime).getTime();
                         duration = (end - start) / 1000;
                     }
 
-                    // Convert to Hours
+
                     userMap[session.userId].ActiveHours += (duration / 3600);
                 }
             });
 
-            // Round to 2 decimals
+
             Object.values(userMap).forEach(u => {
                 u.ActiveHours = Math.round(u.ActiveHours * 100) / 100;
             });

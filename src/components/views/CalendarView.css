@@ -1,19 +1,16 @@
-/* CalendarView.css */
-
-/* General Calendar Background and Text */
 .rbc-calendar {
     color: hsl(var(--foreground));
     font-family: inherit;
 }
 
-/* Header (Toolbar) */
+
 .rbc-toolbar {
     margin-bottom: 20px;
     flex-wrap: wrap;
     gap: 10px;
 }
 
-/* Toolbar Buttons - Default State (Outline/Ghost-like) */
+
 .rbc-toolbar button {
     color: hsl(var(--foreground));
     border: 1px solid hsl(var(--border));
@@ -22,11 +19,11 @@
     border-radius: var(--radius);
     font-weight: 500;
     transition: transform 0.2s, box-shadow 0.2s;
-    /* Remove color transition for instant active state */
+
     cursor: pointer;
 }
 
-/* Hover State - "Float" effect */
+
 .rbc-toolbar button:hover {
     background-color: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
@@ -35,7 +32,7 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Active/Focus State - Force Immediate Blue */
+
 .rbc-toolbar button:active,
 .rbc-toolbar button:focus,
 .rbc-toolbar button.rbc-active,
@@ -46,20 +43,20 @@
     border-color: hsl(var(--primary)) !important;
     box-shadow: 0 4px 6px -1px hsl(222 47% 11% / 0.1);
     transform: none !important;
-    /* Reset float on click for tactile feedback */
+
     transition: none !important;
-    /* Instant change, no gray fade */
+
     outline: none !important;
     opacity: 1 !important;
 }
 
-/* Active Hover - Lift slightly but keep blue */
+
 .rbc-toolbar button.rbc-active:hover {
     background-color: hsl(var(--primary)) !important;
     filter: brightness(1.1);
     transform: translateY(-2px) !important;
     transition: transform 0.2s !important;
-    /* Only animate movement */
+
 }
 
 .rbc-toolbar button:focus-visible {
@@ -73,7 +70,7 @@
     color: hsl(var(--foreground));
 }
 
-/* Grid and Headers */
+
 .rbc-header {
     padding: 10px 0;
     font-weight: 600;
@@ -99,12 +96,12 @@
     border-left: 1px solid hsl(var(--border));
 }
 
-/* Off-range days */
+
 .rbc-off-range-bg {
     background-color: hsl(var(--muted) / 0.3);
 }
 
-/* Date Cell Text */
+
 .rbc-date-cell {
     padding: 8px;
     font-size: 0.875rem;
@@ -115,12 +112,12 @@
     color: hsl(var(--muted-foreground));
 }
 
-/* Today Highlight */
+
 .rbc-today {
     background-color: hsl(var(--accent) / 0.1);
 }
 
-/* Events */
+
 .rbc-event {
     background-color: hsl(var(--primary));
     border: 1px solid hsl(var(--primary));
@@ -140,7 +137,7 @@
     outline: none;
 }
 
-/* Agenda View */
+
 .rbc-agenda-view table.rbc-agenda-table {
     border: 1px solid hsl(var(--border));
     background-color: hsl(var(--card));
@@ -164,7 +161,7 @@
     color: hsl(var(--foreground));
 }
 
-/* Time View / Week View */
+
 .rbc-time-view {
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius);
@@ -188,7 +185,7 @@
     padding: 5px;
 }
 
-/* Current Time Indicator */
+
 .rbc-current-time-indicator {
     background-color: hsl(var(--destructive));
 }

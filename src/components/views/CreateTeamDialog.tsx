@@ -81,7 +81,7 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
             toast.success("Team created successfully!");
             onSuccess();
             onOpenChange(false);
-            // Reset form
+
             setTeamName("");
             setInvites([]);
         } catch (error: any) {

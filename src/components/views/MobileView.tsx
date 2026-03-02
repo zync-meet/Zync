@@ -46,7 +46,7 @@ const MobileView = () => {
     return () => unsubscribe();
   }, []);
 
-  // Fetch Users (needed for various views)
+
   useEffect(() => {
     if (currentUser) {
       const fetchUsers = async () => {
@@ -88,12 +88,12 @@ const MobileView = () => {
     }
   };
 
-  // Drawer Navigation Items (Sidebar Content)
+
   const drawerItems = [
     { id: 'Home', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'Projects', label: 'Projects', icon: Folder },
     { id: 'Tasks', label: 'My Tasks', icon: CheckSquare },
-    { id: 'People', label: 'Team', icon: Users }, // Not in bottom nav
+    { id: 'People', label: 'Team', icon: Users },
     { id: 'Activity', label: 'Activity', icon: Bell },
     { id: 'Calendar', label: 'Calendar', icon: Calendar },
     { id: 'Notes', label: 'Notes', icon: FileText },
@@ -104,7 +104,7 @@ const MobileView = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "Home":
-        return currentUser ? <DashboardView /> : null; // Reusing Desktop DashboardView for now, check responsiveness later
+        return currentUser ? <DashboardView /> : null;
       case "Projects":
         return currentUser ? (
           <div className="p-4">
@@ -119,13 +119,11 @@ const MobileView = () => {
         return currentUser ? <TasksView currentUser={currentUser} users={usersList} /> : null;
       case "Activity":
         // ActivityLogView needs props. For now using placeholder or minimal props if possible.
-        // DesktopView passes many props. Let is check ActivityLogView again.
-        // It needs activityLogs, elapsedTime, etc. 
-        // Since logic is in DesktopView, we might need to duplicate data fetching or lift state.
-        // For now, render a simplified version or placeholder if complex:
+
+
         return <div className="p-4 text-center text-muted-foreground">Activity Log (Coming Soon on Mobile)</div>;
       case "People":
-        // Need userStatuses. For now passing empty object or fetching.
+
         return <PeopleView users={usersList} userStatuses={{}} onChat={() => { }} />;
       case "Calendar":
         return <CalendarView />;

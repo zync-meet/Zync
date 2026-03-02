@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 const DashboardHome = ({ onNavigate }: { onNavigate: (section: string) => void }) => {
     return (
         <div className="relative w-full h-full flex flex-col items-center justify-center p-8">
-            {/* Content Container */}
+            {}
             <div className="relative z-10 max-w-5xl w-full flex flex-col items-center text-center space-y-12">
 
-                {/* Header Content */}
+                {}
                 <div className="space-y-6">
-                    {/* Logo/Brand */}
+                    {}
                     <div className="flex items-center justify-center gap-2 mb-8 opacity-0 animate-fade-in" style={{ animationDelay: "0ms", animationFillMode: "forwards" }}>
                         <span className="text-xl font-bold tracking-widest uppercase">ZYNC</span>
                     </div>

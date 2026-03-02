@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -38,7 +37,7 @@ const CalendarView = () => {
         const loadData = async () => {
             setLoading(true);
             try {
-                // 1. Fetch Indian Holidays
+
                 const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
                 let holidayEvents: CalendarEvent[] = [];
 
@@ -53,16 +52,16 @@ const CalendarView = () => {
                     if (response.ok) {
                         const data = await response.json();
                         holidayEvents = data.items.map((item: any) => {
-                            // Fix: Parse YYYY-MM-DD as local midnight to avoid timezone shifts
-                            // Google API returns 'end' date as exclusive (next day) for all-day events
+
+
                             let start: Date, end: Date;
 
                             if (item.start.date) {
-                                // It's an all-day event (YYYY-MM-DD)
+
                                 start = new Date(item.start.date + 'T00:00:00');
                                 end = new Date(item.end.date + 'T00:00:00');
                             } else {
-                                // It's a timed event (ISO string)
+
                                 start = new Date(item.start.dateTime);
                                 end = new Date(item.end.dateTime);
                             }
@@ -78,7 +77,7 @@ const CalendarView = () => {
                     }
                 }
 
-                // 2. Fetch User Projects
+
                 let projectEvents: CalendarEvent[] = [];
                 const user = auth.currentUser;
                 if (user) {
@@ -112,9 +111,9 @@ const CalendarView = () => {
         let backgroundColor = '#3174ad';
 
         if (event.resource?.type === 'project') {
-            backgroundColor = '#10b981'; // Emerald for Projects
+            backgroundColor = '#10b981';
         } else if (event.resource?.type === 'holiday') {
-            backgroundColor = '#f43f5e'; // Rose for Holidays
+            backgroundColor = '#f43f5e';
         }
 
         return {

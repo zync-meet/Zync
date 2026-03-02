@@ -1,4 +1,3 @@
-/// <reference types="vite/client" />
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -53,7 +52,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
 
   const { toast } = useToast();
 
-  // Fetch full user data including integrations
+
   const fetchUserData = async () => {
     try {
       if (!currentUser?.uid) { return; }
@@ -67,7 +66,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
         const data = await response.json();
         setUserData(data);
       } else {
-        // Silent failure or retry?
+
         console.warn("Failed to fetch user data for GitHub check");
       }
     } catch (error) {
@@ -81,7 +80,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
     }
   }, [currentUser]);
 
-  // Fetch Repositories
+
   useEffect(() => {
     const fetchRepos = async () => {
       if (userData?.githubIntegration?.connected) {
@@ -144,7 +143,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
         });
 
         toast({ title: "GitHub Connected!", description: "Your repositories are now linked." });
-        // Refresh user data to show repos
+
         await fetchUserData();
       }
     } catch (error: any) {
@@ -157,13 +156,13 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
 
   const getFilteredAndSortedRepos = (filterType: string) => {
     let result = repos.filter(repo => {
-      // Tab Filter
+
       if (filterType === "all") { return true; }
       if (filterType === "collaborator") { return userData?.githubIntegration?.username && repo.owner.login !== userData.githubIntegration.username; }
       return repo.visibility === filterType;
     });
 
-    // Search Filter
+
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       result = result.filter(r =>
@@ -173,12 +172,12 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
       );
     }
 
-    // Sort
+
     result.sort((a, b) => {
       if (sortBy === "stars") { return b.stargazers_count - a.stargazers_count; }
       if (sortBy === "forks") { return b.forks_count - a.forks_count; }
       if (sortBy === "name") { return a.name.localeCompare(b.name); }
-      // Default: Updated
+
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
 

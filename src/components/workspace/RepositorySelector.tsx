@@ -31,7 +31,7 @@ export function RepositorySelector({ projectId, currentRepoIds = [] }: { project
       const res = await fetch(`${API_BASE_URL}/api/github/repos`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const data = await res.json();
       if (data.repos) {
         setRepos(data.repos);
@@ -49,10 +49,10 @@ export function RepositorySelector({ projectId, currentRepoIds = [] }: { project
     setConnecting(true);
     try {
       const token = await import('@/lib/firebase').then(m => m.auth.currentUser?.getIdToken());
-      
+
       const res = await fetch(`${API_BASE_URL}/api/link/link-repo`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },

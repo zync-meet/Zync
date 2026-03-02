@@ -17,9 +17,9 @@ interface GitCommandsDrawerProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     task: {
-        id: string; // The DB ID or functional ID
+        id: string;
         title: string;
-        _id?: string; // The real ID used for tagging
+        _id?: string;
         projectName?: string;
     } | null;
     project: {
@@ -40,10 +40,10 @@ const CommandBlock = ({ label, command, stepNumber }: { label: string, command: 
 
     return (
         <div className="group relative pl-6 pb-8 last:pb-0">
-            {/* Timeline Line */}
+            {}
             <div className="absolute left-[11px] top-7 bottom-0 w-px bg-border/20 group-last:hidden" />
 
-            {/* Step Number Bubble */}
+            {}
             <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-background border border-border/50 flex items-center justify-center text-[10px] font-mono text-muted-foreground z-10 shadow-sm">
                 {stepNumber}
             </div>
@@ -58,7 +58,7 @@ const CommandBlock = ({ label, command, stepNumber }: { label: string, command: 
                     "font-mono text-xs text-blue-200"
                 )}
             >
-                {/* Mac-style Window Dots (Decoration) */}
+                {}
                 <div className="absolute top-3 left-3 flex gap-1.5 opacity-50">
                     <div className="w-2 h-2 rounded-full bg-red-500/20" />
                     <div className="w-2 h-2 rounded-full bg-yellow-500/20" />
@@ -86,7 +86,7 @@ const CommandBlock = ({ label, command, stepNumber }: { label: string, command: 
 export const GitCommandsDrawer = ({ open, onOpenChange, task, project }: GitCommandsDrawerProps) => {
     if (!task) {return null;}
 
-    // Slugify task title for branch name
+
     const slug = task.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
@@ -98,7 +98,7 @@ export const GitCommandsDrawer = ({ open, onOpenChange, task, project }: GitComm
         ? `https://github.com/${project.githubRepoOwner}/${project.githubRepoName}.git`
         : "git remote add origin <your-repo-url>";
 
-    // Ensure we use the robust ID for tagging
+
     const taskId = task._id || task.id;
     const commitMessage = `feat: ${task.title} [ZYNC-COMPLETE #${taskId}]`;
 
@@ -161,4 +161,3 @@ export const GitCommandsDrawer = ({ open, onOpenChange, task, project }: GitComm
         </Sheet>
     );
 };
-

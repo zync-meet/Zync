@@ -72,7 +72,7 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
     const toggleCloseFriend = async (friendId: string) => {
         if (isPreview) {return;}
 
-        // Optimistic update
+
         const isCurrentlyCloseFriend = localCloseFriendsIds.includes(friendId);
         let newIds;
         if (isCurrentlyCloseFriend) {
@@ -96,7 +96,7 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
             });
 
             if (!res.ok) {
-                // Revert on error
+
                 setLocalCloseFriendsIds(localCloseFriendsIds);
                 console.error("Failed to toggle close friend");
             }
@@ -108,8 +108,8 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
 
     const isCloseFriend = (uid: string) => localCloseFriendsIds.includes(uid);
 
-    const filteredUsers = users.filter(user => 
-        (getUserName(user).toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const filteredUsers = users.filter(user =>
+        (getUserName(user).toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
@@ -118,7 +118,7 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
 
     return (
         <div className="flex h-full w-full">
-            {/* Chat Sidebar (User List) */}
+            {}
             <div className="w-80 shrink-0 border-r border-border/40 flex flex-col bg-background">
                 <div className="p-5 flex flex-col gap-4 border-b border-border/40">
                     <div className="flex items-center justify-between">
@@ -143,9 +143,9 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
                         </div>
                     ) : (
                         <>
-                             {/* My Teams Section */}
+                             {}
                              <div className="mb-2">
-                                <div 
+                                <div
                                     className="flex items-center justify-between px-3 py-2 text-sm font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                                     onClick={() => setMyTeamsOpen(!myTeamsOpen)}
                                 >
@@ -155,13 +155,13 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
                                 {myTeamsOpen && (
                                      <div className="space-y-1 transition-all duration-300 ease-in-out">
                                         {myTeams.map(user => (
-                                            <UserListItem 
-                                                key={user._id || user.uid} 
-                                                user={user} 
-                                                selectedUser={selectedUser} 
-                                                userStatuses={userStatuses} 
-                                                onSelectUser={onSelectUser} 
-                                                isPreview={isPreview} 
+                                            <UserListItem
+                                                key={user._id || user.uid}
+                                                user={user}
+                                                selectedUser={selectedUser}
+                                                userStatuses={userStatuses}
+                                                onSelectUser={onSelectUser}
+                                                isPreview={isPreview}
                                             />
                                         ))}
                                         {myTeams.length === 0 && <p className="text-xs text-center py-2 text-muted-foreground opacity-50">No team members found.</p>}
@@ -169,10 +169,10 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
                                 )}
                              </div>
 
-                             {/* Close Friends Section */}
+                             {}
                              <div className="mb-2">
                                 <div className="flex items-center justify-between px-3 py-2 text-sm font-semibold text-muted-foreground">
-                                    <div 
+                                    <div
                                         className="flex items-center gap-2 cursor-pointer hover:text-foreground transition-colors flex-1"
                                         onClick={() => setCloseFriendsOpen(!closeFriendsOpen)}
                                     >
@@ -204,10 +204,10 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
                                                                     <span className="text-xs text-muted-foreground">{user.email}</span>
                                                                 </div>
                                                             </div>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => toggleCloseFriend(user.uid)}
-                                                                className={`p-1.5 rounded-full transition-colors ${isSelected 
-                                                                    ? 'bg-primary text-primary-foreground hover:opacity-90' 
+                                                                className={`p-1.5 rounded-full transition-colors ${isSelected
+                                                                    ? 'bg-primary text-primary-foreground hover:opacity-90'
                                                                     : 'bg-secondary hover:bg-secondary/80 text-muted-foreground'}`}
                                                             >
                                                                 {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
@@ -225,13 +225,13 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
                                 {closeFriendsOpen && (
                                     <div className="space-y-1 transition-all duration-300 ease-in-out">
                                         {closeFriends.map(user => (
-                                            <UserListItem 
-                                                key={user._id || user.uid} 
-                                                user={user} 
-                                                selectedUser={selectedUser} 
-                                                userStatuses={userStatuses} 
-                                                onSelectUser={onSelectUser} 
-                                                isPreview={isPreview} 
+                                            <UserListItem
+                                                key={user._id || user.uid}
+                                                user={user}
+                                                selectedUser={selectedUser}
+                                                userStatuses={userStatuses}
+                                                onSelectUser={onSelectUser}
+                                                isPreview={isPreview}
                                             />
                                         ))}
                                         {closeFriends.length === 0 && <p className="text-xs text-center py-2 text-muted-foreground opacity-50">No close friends yet.</p>}
@@ -243,7 +243,7 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
                 </div>
             </div>
 
-            {/* Chat Area */}
+            {}
             <div className="flex-1 flex flex-col min-w-0">
                 {selectedUser ? (
                     <ChatView
@@ -252,7 +252,7 @@ const ChatLayout = ({ users, selectedUser, userStatuses, onSelectUser, isPreview
                             status: userStatuses[selectedUser.uid]?.status || selectedUser.status || 'offline'
                         }}
                         currentUserData={currentUserData}
-                    // No onBack prop needed for desktop split view
+
                     />
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-background/50">

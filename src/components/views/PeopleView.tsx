@@ -54,7 +54,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    // Queries
+
     const { data: userData } = useQuery({
         queryKey: ['me', currentUser?.uid],
         queryFn: async () => {
@@ -65,7 +65,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
             });
             if (!res.ok) { throw new Error('Failed to fetch user'); }
             const data = await res.json();
-            // Normalize teamId if it comes as object
+
             if (data.teamId && typeof data.teamId === 'object') {
                 data.teamId = data.teamId.id;
             }
@@ -140,8 +140,6 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const users: User[] = isPreview ? (propUsers || []) : (teamUsersData || []);
 
 
-
-    // Improved loading state to prevent "No members" flash during switch or init
     const loading = !isPreview && (
         myTeamsLoading ||
         (hasTeam && (!teamInfo || usersLoading))
@@ -200,8 +198,6 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     };
 
 
-
-    // Invite State
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteLoading, setInviteLoading] = useState(false);
@@ -209,7 +205,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const [joinTeamOpen, setJoinTeamOpen] = useState(false);
     const [showMessages, setShowMessages] = useState(false);
 
-    // Sidebar State
+
     const [sidebarWidth, setSidebarWidth] = useState(256);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
@@ -217,7 +213,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const sidebarRef = useRef<HTMLDivElement>(null);
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Load Preferences
+
     useEffect(() => {
         const storedWidth = localStorage.getItem('zync-people-sidebar-width');
         if (storedWidth) { setSidebarWidth(parseInt(storedWidth)); }
@@ -225,7 +221,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
         if (storedCollapsed) { setIsCollapsed(storedCollapsed === 'true'); }
     }, []);
 
-    // Resize Logic
+
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isResizing) { return; }
@@ -264,18 +260,15 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     };
 
 
-
-
-
     if (!hasTeam && !isPreview) {
         return <TeamOnboarding onSuccess={() => {
             setHasTeam(true);
-            window.location.reload(); // Reload to refresh global state if needed
+            window.location.reload();
         }} />;
     }
 
     // Removed global loading check to prevent sidebar unmount
-    // if (loading) { return ... }
+
 
     const effectiveCollapsed = isCollapsed && !isHovered;
     const isFloating = isCollapsed && isHovered;
@@ -283,7 +276,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     return (
         <div className="flex-1 w-full h-full overflow-hidden flex flex-col select-none relative">
             <div className="flex h-full gap-0">
-                {/* Sidebar */}
+                {}
                 <div
                     ref={sidebarRef}
                     className={cn("relative h-full shrink-0 group/sidebar bg-background/60 backdrop-blur-xl border-r border-border/50 supports-[backdrop-filter]:bg-background/60 z-[60]")}
@@ -323,7 +316,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                         </div>
 
                         <div className="flex-1 flex flex-col min-h-0">
-                            {/* My Teams Section */}
+                            {}
                             <div className="flex-1 overflow-y-auto p-2 scrollbar-hide space-y-1">
                                 <div className="px-2 text-xs font-bold uppercase mb-2 tracking-wider text-gray-500/80 dark:text-muted-foreground/70 mt-4">
                                     {!effectiveCollapsed && "My Team"}
@@ -363,7 +356,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                 </div>
                             </div>
 
-                            {/* Close Friends Section */}
+                            {}
                             <div className="flex-1 overflow-y-auto p-2 scrollbar-hide border-t border-border/20">
                                 <div className="px-2 text-xs font-bold uppercase mb-2 tracking-wider text-gray-500/80 dark:text-muted-foreground/70 flex justify-between items-center group/section mt-2">
                                     {!effectiveCollapsed && <span>Close Friends</span>}
@@ -422,18 +415,16 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                             className={cn(
                                                 "flex items-center rounded-md transition-all select-none border border-transparent",
                                                 effectiveCollapsed ? "justify-center px-0 py-2" : "px-2 py-1.5 text-sm",
-                                                /* -------------------------------------------------------------------------- */
-                                                /*                          CUSTOMIZE TEXT COLOR HERE                         */
-                                                /* -------------------------------------------------------------------------- */
+
+
                                                 "text-white hover:bg-secondary/50"
                                             )}
                                         >
                                             <div className="relative shrink-0">
                                                 <Avatar className={cn(
                                                     "ring-2 ring-transparent transition-all",
-                                                    /* -------------------------------------------------------------------------- */
-                                                    /*                            CUSTOMIZE SIZE HERE                             */
-                                                    /* -------------------------------------------------------------------------- */
+
+
                                                     effectiveCollapsed ? "w-10 h-10" : "w-10 h-10"
                                                 )}>
                                                     <AvatarImage src={getFullUrl(friend.photoURL)} referrerPolicy="no-referrer" />
@@ -457,7 +448,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                         </div>
                     </div>
 
-                    {/* Resize Handle */}
+                    {}
                     {!isCollapsed && (
                         <div
                             className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-indigo-500/50 hover:w-1.5 transition-all z-20"
@@ -466,9 +457,9 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                     )}
                 </div>
 
-                {/* Main Content */}
+                {}
                 <div className="flex-1 relative flex flex-col overflow-hidden">
-                    {/* Fixed Header */}
+                    {}
                     <div className="flex justify-between items-center p-6 md:pl-8 pb-4 shrink-0 bg-background border-b border-border/40 z-10">
                         <div>
                             <h1 className="text-2xl font-bold tracking-tight">People</h1>
@@ -480,7 +471,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                         </Button>
                     </div>
 
-                    {/* People Content - Scrollable Area */}
+                    {}
                     <div className="flex-1 w-full overflow-y-auto p-6 md:pl-8 space-y-8">
 
                         <div className="space-y-4">
@@ -489,7 +480,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                     <h3 className="text-sm text-muted-foreground mb-1">Team Owner</h3>
                                     <div className="flex items-center gap-3">
                                         {(() => {
-                                            // Resolve Team Owner
+
                                             let ownerUser = null;
                                             if (teamInfo?.ownerId) {
                                                 if (currentUser?.uid === teamInfo.ownerId) {
@@ -498,7 +489,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                                     ownerUser = users.find(u => u.uid === teamInfo.ownerId);
                                                 }
                                             }
-                                            // Fallback to current user if logic fails or data missing (safe default)
+
                                             const displayUser = ownerUser || currentUser;
 
                                             return (
@@ -515,7 +506,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                             );
                                         })()}
 
-                                        {/* Invite Dialog Trigger */}
+                                        {}
                                         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                                             <DialogTrigger asChild>
                                                 <Button size="icon" className="rounded-full h-8 w-8 bg-blue-600 hover:bg-blue-700 text-white shadow-md">
@@ -614,7 +605,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                             </div>
                         </div>
 
-                        {/* Members Grid */}
+                        {}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold">Members</h3>
@@ -657,7 +648,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                         let statusText = status;
                                         if (lastSeenDate && !isNaN(lastSeenDate.getTime())) {
                                             try {
-                                                // Shorten the status text
+
                                                 const duration = formatDistanceToNow(lastSeenDate, { addSuffix: false })
                                                     .replace('less than a minute', '1m')
                                                     .replace(' minutes', 'm')
@@ -673,7 +664,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                                     statusText = `Offline ${duration}`;
                                                 }
                                             } catch (e) {
-                                                // Fallback
+
                                             }
                                         }
 
@@ -685,7 +676,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                                 className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-row items-center p-4 gap-4 h-auto border-border/50 bg-gradient-to-br from-card to-card/50 overflow-hidden relative animate-fade-in-up opacity-0"
                                                 style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
                                             >
-                                                {/* Glow Effect */}
+                                                {}
                                                 <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
 
                                                 <div className="relative shrink-0">
@@ -725,7 +716,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                         </div>
                     </div>
 
-                    {/* Sliding Messages Panel */}
+                    {}
                     <div className={cn(
                         "absolute inset-0 bg-background z-50 transition-transform duration-300 ease-in-out will-change-transform shadow-2xl",
                         showMessages ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none"
@@ -741,7 +732,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
             </div>
 
 
-            {/* Create/Join Team FAB */}
+            {}
             <div className="absolute bottom-6 right-6 z-50">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -771,7 +762,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                 open={createTeamOpen}
                 onOpenChange={setCreateTeamOpen}
                 onSuccess={() => {
-                    // Refresh data
+
                     window.location.reload();
                 }}
             />

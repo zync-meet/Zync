@@ -34,7 +34,7 @@ const COLUMN_MAPPING: Record<string, string> = {
   'Backlog': 'Ready',
   'Ready': 'Ready',
   'Active': 'Active',
-  'In Review': 'In Progress', // Mapping In Review to In Progress if needed, or keep logic consistent with status
+  'In Review': 'In Progress',
   'In Progress': 'In Progress',
   'Completed': 'Done',
   'Done': 'Done'
@@ -126,7 +126,7 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) 
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, column)}
           >
-            {/* Sticky Header */}
+            {}
             <div className={`
               sticky top-0 z-20 backdrop-blur-xl bg-black/20 p-4 rounded-xl border flex items-center justify-between
               ${getColumnColor(column)} shadow-lg
@@ -135,14 +135,14 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) 
               <Badge variant="secondary" className="bg-white/10 text-white border-none">{columns[column].length}</Badge>
             </div>
 
-            {/* Scrollable Column Content */}
+            {}
             <div className="flex-1 overflow-y-auto pr-2 pb-20 custom-scrollbar space-y-3">
               <AnimatePresence mode="popLayout">
                 {columns[column].map(task => (
                   <motion.div
                     key={task._id}
                     layoutId={task._id}
-                    layout // Enable full layout animation
+                    layout
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
@@ -180,7 +180,7 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) 
                         </div>
                       )}
 
-                      {/* Visual Progress Stepper */}
+                      {}
                       <div className="flex items-center pt-3 border-t border-white/10 w-full">
                         {['Ready', 'Active', 'In Progress', 'Done'].map((step, index) => {
                           const STATUS_ORDER = ['Ready', 'Active', 'In Progress', 'Done'];
@@ -188,7 +188,7 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) 
                           const isCompleted = index <= currentStatusIndex;
                           const isCurrent = index === currentStatusIndex;
 
-                          // Color logic based on status
+
                           let activeColorClass = 'bg-white/40';
                           if (task.status === 'Active') {activeColorClass = 'bg-green-500';}
                           else if (task.status === 'In Progress') {activeColorClass = 'bg-orange-500';}
@@ -204,8 +204,8 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) 
                           return (
                             <div key={step} className="flex items-center flex-1 last:flex-none">
                               <div
-                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 z-10 shrink-0 
-                                     ${isCompleted ? activeColorClass : 'bg-white/10'} 
+                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 z-10 shrink-0
+                                     ${isCompleted ? activeColorClass : 'bg-white/10'}
                                      ${isCurrent ? `ring-2 ring-offset-1 ring-offset-transparent ${ringColorClass} scale-125` : ''}
                                    `}
                                 title={step}
