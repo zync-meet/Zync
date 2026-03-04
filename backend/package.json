@@ -30,6 +30,7 @@
     "helmet": "^8.1.0",
     "mime-types": "^3.0.2",
     "mongodb": "^7.1.0",
+    "mongoose": "^9.2.4",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.12",
     "octokit": "^5.0.5",

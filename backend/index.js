@@ -113,17 +113,28 @@ app.use('/api/google', require('./routes/googleRoutes'));
 
 
 mongoose.connect(process.env.MONGO_URI, {
-  dbName: 'zync-production',
+  dbName: 'ZYNC_USER',            // Oracle schema name = database name
 
+  // Oracle ADB 26ai MongoDB API requirements
+  // NOTE: loadBalanced, ssl, authMechanism, authSource are URI-only options
+  //       — do NOT duplicate them here or Mongoose will reject them.
+  retryWrites: false,              // Oracle does not support retryable writes
+
+  // Timeouts — generous for cloud DB
   serverSelectionTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
+  socketTimeoutMS: 60000,
+  connectTimeoutMS: 30000,
+
+  // Disable features unsupported by Oracle MongoDB API
+  autoCreate: false,               // Oracle doesn't support createCollection options
+  autoIndex: false,                // create indexes manually via Oracle tooling
 })
   .then((conn) => {
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    console.log(`Pp Database Name: ${conn.connection.name}`);
+    console.log(`✅ Oracle ADB Connected: ${conn.connection.host}`);
+    console.log(`   Database Name: ${conn.connection.name}`);
   })
   .catch((err) => {
-    console.error(`Error: ${err.message}`);
+    console.error(`❌ Oracle ADB Connection Error: ${err.message}`);
     process.exit(1);
   });
 
