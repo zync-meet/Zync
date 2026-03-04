@@ -2,6 +2,9 @@
 # exit on error
 set -o errexit
 
+# Ensure we're in the backend directory
+cd "$(dirname "$0")"
+
 # Skip Chrome download during npm install (we install it manually below)
 export PUPPETEER_SKIP_DOWNLOAD=true
 
