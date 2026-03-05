@@ -53,7 +53,7 @@ router.post('/connect', verifyToken, async (req, res) => {
           }
         }
       },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
 
     if (!updatedUser) {
@@ -91,7 +91,7 @@ router.delete('/disconnect', verifyToken, async (req, res) => {
           }
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updated) {
@@ -256,7 +256,7 @@ router.post('/install', verifyToken, async (req, res) => {
           }
         }
       },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
 
     res.json({ message: 'GitHub App Installation Connected', user: normalizeDoc(updatedUser) });

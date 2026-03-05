@@ -118,7 +118,7 @@ router.post('/join', verifyToken, async (req, res) => {
         const updatedTeam = await Team.findByIdAndUpdate(
             team._id,
             { $set: { members: newMembers } },
-            { new: true, lean: true }
+            { returnDocument: 'after', lean: true }
         );
 
         const teamId = team._id.toString();

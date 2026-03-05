@@ -72,7 +72,7 @@ router.post('/folders/:id/share', verifyToken, async (req, res) => {
     const folder = await Folder.findByIdAndUpdate(
       id,
       { $set: { collaborators: merged } },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
 
     res.json(normalizeDoc(folder));
@@ -94,7 +94,7 @@ router.put('/folders/:id', verifyToken, async (req, res) => {
     const updated = await Folder.findByIdAndUpdate(
       id,
       { $set: req.body },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
     res.json(normalizeDoc(updated));
   } catch (error) {
@@ -134,7 +134,7 @@ router.post('/folders/:id/unshare', verifyToken, async (req, res) => {
     const updated = await Folder.findByIdAndUpdate(
       id,
       { $set: { collaborators: (folder.collaborators || []).filter(c => c !== userId) } },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
     res.json(normalizeDoc(updated));
   } catch (error) {
@@ -265,7 +265,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     const updatedNote = await Note.findByIdAndUpdate(
       req.params.id,
       { $set: updateData },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
 
     res.json(normalizeDoc(updatedNote));

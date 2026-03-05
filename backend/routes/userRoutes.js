@@ -65,7 +65,7 @@ router.post('/sync', verifyToken, async (req, res) => {
       user = await User.findOneAndUpdate(
         { uid },
         { $set: updateData },
-        { new: true, lean: true }
+        { returnDocument: 'after', lean: true }
       );
     } else {
       const created = await User.create({
@@ -147,7 +147,7 @@ router.post('/sync-github', verifyToken, async (req, res) => {
           }
         }
       },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
 
     if (!user) {
@@ -392,7 +392,7 @@ router.put('/:uid', async (req, res) => {
     const user = await User.findOneAndUpdate(
       { uid },
       { $set: safeUpdates },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json(normalizeDoc(user));

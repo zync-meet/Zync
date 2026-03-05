@@ -27,7 +27,7 @@ router.post('/connect', verifyToken, async (req, res) => {
         const user = await User.findOneAndUpdate(
             { uid },
             { $set: { googleIntegration: googleData } },
-            { new: true, lean: true }
+            { returnDocument: 'after', lean: true }
         );
 
         if (!user) return res.status(404).json({ message: 'User not found' });

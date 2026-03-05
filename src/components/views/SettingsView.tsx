@@ -954,7 +954,7 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
 
   useEffect(() => {
     const fetchTeamDetails = async () => {
-      if (!currentUser || !userData?.teamMemberships?.length) {
+      if (!currentUser) {
         setTeamData(null);
         return;
       }
@@ -962,7 +962,27 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
       setTeamLoading(true);
       try {
         const token = await currentUser.getIdToken();
-        const teamId = userData.teamMemberships[0];
+        let teamId = userData?.teamMemberships?.[0];
+
+        // Fallback: if user has no teamMemberships, check if they're in any team via /mine
+        if (!teamId) {
+          const mineRes = await fetch(`${API_BASE_URL}/api/teams/mine`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (mineRes.ok) {
+            const teams = await mineRes.json();
+            if (teams.length > 0) {
+              teamId = teams[0].id || teams[0]._id;
+            }
+          }
+        }
+
+        if (!teamId) {
+          setTeamData(null);
+          setTeamLoading(false);
+          return;
+        }
+
         const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/details`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });

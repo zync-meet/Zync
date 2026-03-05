@@ -77,7 +77,7 @@ const updateSession = async (req, res) => {
     const updated = await Session.findByIdAndUpdate(
       req.params.id,
       { $set: updateData },
-      { new: true, lean: true }
+      { returnDocument: 'after', lean: true }
     );
 
     res.json(normalizeDoc(updated));

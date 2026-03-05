@@ -178,7 +178,7 @@ router.post('/invite', verifyToken, async (req, res) => {
             const project = await Project.findByIdAndUpdate(
                 projectId,
                 { $set: { meetLink: meetingUrl } },
-                { new: true, lean: true }
+                { returnDocument: 'after', lean: true }
             );
             projectName = project?.name || null;
         }
