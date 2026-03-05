@@ -32,7 +32,7 @@ interface MeetViewProps {
 }
 
 interface Meeting {
-    _id: string;
+    id: string;
     title: string;
     status: 'scheduled' | 'live' | 'ended' | 'cancelled';
     startTime: string;
@@ -44,7 +44,7 @@ interface Meeting {
 }
 
 interface Team {
-    _id: string;
+    id: string;
     name: string;
     type?: string;
     members: string[];
@@ -132,7 +132,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
 
             if (res.ok) {
                 toast({ title: "Deleted", description: "Meeting removed successfully." });
-                setMeetings(prev => prev.filter(m => m._id !== meetingId));
+                setMeetings(prev => prev.filter(m => m.id !== meetingId));
             } else {
                 const data = await res.json();
                 throw new Error(data.message || "Failed to delete meeting");
@@ -437,13 +437,13 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                                         <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                                             {teams.map((team) => {
                                                 const memberCount = team.members.filter(uid => uid !== currentUser?.uid).length;
-                                                const isSelected = selectedTeamId === team._id;
+                                                const isSelected = selectedTeamId === team.id;
                                                 const teamMembers = usersList.filter(u => team.members.includes(u.uid) && u.uid !== currentUser?.uid);
 
                                                 return (
                                                     <div
-                                                        key={team._id}
-                                                        onClick={() => setSelectedTeamId(isSelected ? null : team._id)}
+                                                        key={team.id}
+                                                        onClick={() => setSelectedTeamId(isSelected ? null : team.id)}
                                                         className={cn(
                                                             "p-4 rounded-xl border cursor-pointer transition-all",
                                                             isSelected
@@ -558,7 +558,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {meetings.map((meeting) => (
                             <div
-                                key={meeting._id}
+                                key={meeting.id}
                                 className="group relative flex flex-col justify-between p-5 bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 rounded-2xl transition-all duration-300 min-h-[180px]"
                             >
                                 {/* Top Row: Badge & Meta */}
@@ -604,7 +604,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     if (window.confirm('Are you sure you want to delete this meeting?')) {
-                                                        handleDeleteMeeting(meeting._id);
+                                                        handleDeleteMeeting(meeting.id);
                                                     }
                                                 }}
                                             >

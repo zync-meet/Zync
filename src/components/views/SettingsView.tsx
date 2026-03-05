@@ -55,7 +55,7 @@ export default function SettingsView() {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
-  const [teamData, setTeamData] = useState<any>(null);
+  const [teamsData, setTeamsData] = useState<any[]>([]);
   const [teamLoading, setTeamLoading] = useState(false);
 
 
@@ -682,8 +682,8 @@ export default function SettingsView() {
             <TeamTabContent
               currentUser={currentUser}
               userData={userData}
-              teamData={teamData}
-              setTeamData={setTeamData}
+              teamsData={teamsData}
+              setTeamsData={setTeamsData}
               teamLoading={teamLoading}
               setTeamLoading={setTeamLoading}
               setUserData={setUserData}
@@ -948,72 +948,74 @@ export default function SettingsView() {
 }
 
 
-function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoading, setTeamLoading, setUserData }: any) {
+function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLoading, setTeamLoading, setUserData }: any) {
   const [actionLoading, setActionLoading] = useState(false);
 
 
   useEffect(() => {
-    const fetchTeamDetails = async () => {
+    const fetchAllTeams = async () => {
       if (!currentUser) {
-        setTeamData(null);
+        setTeamsData([]);
         return;
       }
 
       setTeamLoading(true);
       try {
         const token = await currentUser.getIdToken();
-        let teamId = userData?.teamMemberships?.[0];
 
-        // Fallback: if user has no teamMemberships, check if they're in any team via /mine
-        if (!teamId) {
-          const mineRes = await fetch(`${API_BASE_URL}/api/teams/mine`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (mineRes.ok) {
-            const teams = await mineRes.json();
-            if (teams.length > 0) {
-              teamId = teams[0].id || teams[0]._id;
-            }
-          }
-        }
+        // Fetch all teams the user belongs to
+        const mineRes = await fetch(`${API_BASE_URL}/api/teams/mine`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-        if (!teamId) {
-          setTeamData(null);
+        if (!mineRes.ok) {
+          setTeamsData([]);
           setTeamLoading(false);
           return;
         }
 
-        const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/details`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const teams = await mineRes.json();
+        if (!teams || teams.length === 0) {
+          setTeamsData([]);
+          setTeamLoading(false);
+          return;
+        }
+
+        // Fetch details for each team in parallel
+        const detailPromises = teams.map(async (team: any) => {
+          const teamId = team.id || team._id;
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/details`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) return await res.json();
+            return null;
+          } catch {
+            return null;
+          }
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          setTeamData(data);
-        } else {
-          setTeamData(null);
-        }
+        const details = await Promise.all(detailPromises);
+        setTeamsData(details.filter(Boolean));
       } catch (err) {
-        console.error("Failed to fetch team details:", err);
-        setTeamData(null);
+        console.error("Failed to fetch teams:", err);
+        setTeamsData([]);
       } finally {
         setTeamLoading(false);
       }
     };
 
-    fetchTeamDetails();
+    fetchAllTeams();
   }, [currentUser, userData?.teamMemberships]);
 
-  const isOwner = teamData?.ownerId === currentUser?.uid;
-
-  const handleRemoveMember = async (memberUid: string) => {
-    if (!teamData || !currentUser) return;
+  const handleRemoveMember = async (teamId: string, memberUid: string) => {
+    if (!currentUser) return;
     if (!window.confirm("Remove this member from the team?")) return;
 
     setActionLoading(true);
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(`${API_BASE_URL}/api/teams/${teamData.id}/members/${memberUid}`, {
+      const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/members/${memberUid}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1025,11 +1027,13 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
 
       toast({ title: "Member Removed", description: "Successfully removed from the team." });
 
-      setTeamData((prev: any) => ({
-        ...prev,
-        members: prev.members.filter((uid: string) => uid !== memberUid),
-        memberDetails: prev.memberDetails.filter((m: any) => m.uid !== memberUid)
-      }));
+      setTeamsData((prev: any[]) => prev.map(t =>
+        t.id === teamId ? {
+          ...t,
+          members: t.members.filter((uid: string) => uid !== memberUid),
+          memberDetails: t.memberDetails.filter((m: any) => m.uid !== memberUid)
+        } : t
+      ));
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -1037,14 +1041,14 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
     }
   };
 
-  const handleLeaveTeam = async () => {
-    if (!teamData || !currentUser) return;
+  const handleLeaveTeam = async (teamId: string) => {
+    if (!currentUser) return;
     if (!window.confirm("Are you sure you want to leave this team?")) return;
 
     setActionLoading(true);
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(`${API_BASE_URL}/api/teams/${teamData.id}/leave`, {
+      const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/leave`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1055,11 +1059,10 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
       }
 
       toast({ title: "Left Team", description: "You have left the team." });
-      setTeamData(null);
-
+      setTeamsData((prev: any[]) => prev.filter(t => t.id !== teamId));
       setUserData((prev: any) => ({
         ...prev,
-        teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamData.id) || []
+        teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamId) || []
       }));
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1068,14 +1071,14 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
     }
   };
 
-  const handleDeleteTeam = async () => {
-    if (!teamData || !currentUser) return;
+  const handleDeleteTeam = async (teamId: string) => {
+    if (!currentUser) return;
     if (!window.confirm("Are you sure you want to DELETE this team? This action cannot be undone.")) return;
 
     setActionLoading(true);
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(`${API_BASE_URL}/api/teams/${teamData.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1086,10 +1089,10 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
       }
 
       toast({ title: "Team Deleted", description: "The team has been permanently deleted." });
-      setTeamData(null);
+      setTeamsData((prev: any[]) => prev.filter(t => t.id !== teamId));
       setUserData((prev: any) => ({
         ...prev,
-        teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamData.id) || []
+        teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamId) || []
       }));
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1098,11 +1101,9 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
     }
   };
 
-  const copyInviteCode = () => {
-    if (teamData?.inviteCode) {
-      navigator.clipboard.writeText(teamData.inviteCode);
-      toast({ title: "Copied!", description: "Invite code copied to clipboard." });
-    }
+  const copyInviteCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: "Copied!", description: "Invite code copied to clipboard." });
   };
 
   if (teamLoading) {
@@ -1115,7 +1116,7 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
     );
   }
 
-  if (!teamData) {
+  if (!teamsData || teamsData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -1137,117 +1138,128 @@ function TeamTabContent({ currentUser, userData, teamData, setTeamData, teamLoad
   }
 
   return (
-    <div className="space-y-6">
-      {}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{teamData.name}</CardTitle>
-              <CardDescription>{teamData.type} · {teamData.members?.length || 0} member{teamData.members?.length !== 1 ? 's' : ''}</CardDescription>
-            </div>
-            {isOwner && (
-              <Badge variant="secondary" className="gap-1">
-                <Crown className="h-3 w-3" />
-                Owner
-              </Badge>
+    <div className="space-y-8">
+      {teamsData.map((team: any) => {
+        const isOwner = team.ownerId === currentUser?.uid;
+        return (
+          <div key={team.id} className="space-y-6">
+            {/* Team Info Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>{team.name}</CardTitle>
+                    <CardDescription>{team.type} · {team.members?.length || 0} member{team.members?.length !== 1 ? 's' : ''}</CardDescription>
+                  </div>
+                  {isOwner && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Crown className="h-3 w-3" />
+                      Owner
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-xs text-muted-foreground">Invite Code</Label>
+                    <div className="flex items-center gap-2">
+                      <code className="px-3 py-1.5 rounded-md bg-muted text-sm font-mono tracking-wider">{team.inviteCode}</code>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyInviteCode(team.inviteCode)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Members Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Members</CardTitle>
+                <CardDescription>
+                  {isOwner ? "Manage your team members." : "View team members."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {team.memberDetails?.map((member: any) => (
+                  <div key={member.uid} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={member.photoURL ? getFullUrl(member.photoURL) : undefined} />
+                        <AvatarFallback className="text-xs">
+                          {member.displayName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium flex items-center gap-1.5">
+                          {member.displayName}
+                          {member.isOwner && (
+                            <Crown className="h-3.5 w-3.5 text-amber-500" />
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{member.email}</p>
+                      </div>
+                    </div>
+
+                    {isOwner && !member.isOwner && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleRemoveMember(team.id, member.uid)}
+                        disabled={actionLoading}
+                      >
+                        <UserMinus className="h-4 w-4 mr-1" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Danger Zone / Leave */}
+            <Card className={isOwner ? "border-destructive/50" : ""}>
+              <CardHeader>
+                <CardTitle className={isOwner ? "text-destructive" : ""}>{isOwner ? "Danger Zone" : "Team Actions"}</CardTitle>
+                <CardDescription>
+                  {isOwner
+                    ? "Permanently delete this team and remove all members."
+                    : "Leave this team to stop receiving updates and lose access to team resources."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isOwner ? (
+                  <div className="space-y-4">
+                    <div className="bg-destructive/10 p-4 rounded-md text-sm text-destructive font-medium border border-destructive/20">
+                      <AlertTriangle className="w-4 h-4 inline mr-2" />
+                      Deleting the team will remove all members and cannot be undone.
+                    </div>
+                    <Button variant="destructive" onClick={() => handleDeleteTeam(team.id)} disabled={actionLoading}>
+                      {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Team
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" onClick={() => handleLeaveTeam(team.id)} disabled={actionLoading}>
+                    {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Leave Team
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Separator between teams */}
+            {teamsData.indexOf(team) < teamsData.length - 1 && (
+              <div className="border-t border-border my-2" />
             )}
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-3">
-            <div className="space-y-1 flex-1">
-              <Label className="text-xs text-muted-foreground">Invite Code</Label>
-              <div className="flex items-center gap-2">
-                <code className="px-3 py-1.5 rounded-md bg-muted text-sm font-mono tracking-wider">{teamData.inviteCode}</code>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyInviteCode}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Members</CardTitle>
-          <CardDescription>
-            {isOwner ? "Manage your team members." : "View team members."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {teamData.memberDetails?.map((member: any) => (
-            <div key={member.uid} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={member.photoURL ? getFullUrl(member.photoURL) : undefined} />
-                  <AvatarFallback className="text-xs">
-                    {member.displayName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium flex items-center gap-1.5">
-                    {member.displayName}
-                    {member.isOwner && (
-                      <Crown className="h-3.5 w-3.5 text-amber-500" />
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{member.email}</p>
-                </div>
-              </div>
-
-              {}
-              {isOwner && !member.isOwner && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleRemoveMember(member.uid)}
-                  disabled={actionLoading}
-                >
-                  <UserMinus className="h-4 w-4 mr-1" />
-                  Remove
-                </Button>
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {}
-      <Card className={isOwner ? "border-destructive/50" : ""}>
-        <CardHeader>
-          <CardTitle className={isOwner ? "text-destructive" : ""}>{isOwner ? "Danger Zone" : "Team Actions"}</CardTitle>
-          <CardDescription>
-            {isOwner
-              ? "Permanently delete this team and remove all members."
-              : "Leave this team to stop receiving updates and lose access to team resources."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isOwner ? (
-            <div className="space-y-4">
-              <div className="bg-destructive/10 p-4 rounded-md text-sm text-destructive font-medium border border-destructive/20">
-                <AlertTriangle className="w-4 h-4 inline mr-2" />
-                Deleting the team will remove all members and cannot be undone.
-              </div>
-              <Button variant="destructive" onClick={handleDeleteTeam} disabled={actionLoading}>
-                {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Team
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={handleLeaveTeam} disabled={actionLoading}>
-              {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <LogOut className="mr-2 h-4 w-4" />
-              Leave Team
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+        );
+      })}
     </div>
   );
 }

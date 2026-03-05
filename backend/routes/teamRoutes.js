@@ -151,7 +151,7 @@ router.delete('/:teamId', verifyToken, async (req, res) => {
             if (member) {
                 await User.updateOne(
                     { uid: memberUid },
-                    { $set: { teamMemberships: member.teamMemberships.filter(id => id !== teamId) } }
+                    { $set: { teamMemberships: (member.teamMemberships || []).filter(id => id !== teamId) } }
                 );
             }
         }
@@ -191,7 +191,7 @@ router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
         if (member) {
             await User.updateOne(
                 { uid: memberUid },
-                { $set: { teamMemberships: member.teamMemberships.filter(id => id !== teamId) } }
+                { $set: { teamMemberships: (member.teamMemberships || []).filter(id => id !== teamId) } }
             );
         }
 
@@ -265,7 +265,7 @@ router.post('/:teamId/leave', verifyToken, async (req, res) => {
         if (user) {
             await User.updateOne(
                 { uid },
-                { $set: { teamMemberships: user.teamMemberships.filter(id => id !== teamId) } }
+                { $set: { teamMemberships: (user.teamMemberships || []).filter(id => id !== teamId) } }
             );
         }
 
