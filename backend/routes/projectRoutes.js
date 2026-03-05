@@ -3,10 +3,15 @@ const router = express.Router();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { sendZyncEmail } = require('../services/mailer');
 const { escapeRegExp } = require('../utils/regexUtils');
-const prisma = require('../lib/prisma');
+const User = require('../models/User');
+const Project = require('../models/Project');
+const Step = require('../models/Step');
+const ProjectTask = require('../models/ProjectTask');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const authMiddleware = require('../middleware/authMiddleware');
+const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
+const { getProjectWithSteps, getProjectsWithSteps } = require('../utils/projectHelper');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
 const MODEL_NAME = "gemini-2.5-flash";
@@ -156,8 +161,7 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Name is required' });
     }
 
-
-    const owner = await prisma.user.findUnique({ where: { uid: ownerUid } });
+    const owner = await User.findOne({ uid: ownerUid }).lean();
     if (!owner) return res.status(404).json({ message: 'User not found' });
 
     const defaultSteps = [
@@ -168,22 +172,24 @@ router.post('/', authMiddleware, async (req, res) => {
       { title: 'Deployment', description: 'CI/CD and hosting setup', type: 'Other', order: 4 }
     ];
 
-    const newProject = await prisma.project.create({
-      data: {
-        name,
-        description: description || 'No description',
-        ownerId: owner.id,
-        githubRepoName,
-        githubRepoOwner,
-        isTrackingActive: !!(githubRepoName && githubRepoOwner),
-        steps: {
-          create: defaultSteps
-        }
-      },
-      include: { steps: { include: { tasks: true } } }
+    const newProject = await Project.create({
+      name,
+      description: description || 'No description',
+      ownerId: owner._id,
+      githubRepoName,
+      githubRepoOwner,
+      isTrackingActive: !!(githubRepoName && githubRepoOwner),
     });
 
-    res.status(201).json(newProject);
+    // Create default steps
+    const createdSteps = [];
+    for (const s of defaultSteps) {
+      const step = await Step.create({ ...s, projectId: newProject._id });
+      createdSteps.push(step);
+    }
+
+    const result = await getProjectWithSteps(newProject._id);
+    res.status(201).json(result);
   } catch (error) {
     console.error('Error creating project:', error);
     res.status(500).json({ message: 'Failed to create project', error: error.message });
@@ -194,15 +200,11 @@ router.post('/', authMiddleware, async (req, res) => {
 router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const project = await prisma.project.findUnique({
-      where: { id },
-      include: { steps: { include: { tasks: true } } }
-    });
+    const project = await Project.findById(id).lean();
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || owner.uid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
@@ -230,17 +232,15 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
     console.log("Analysis Result:", JSON.stringify(analyzedArch, null, 2));
 
     if (analyzedArch && Object.keys(analyzedArch).length > 0) {
-      const updatedProject = await prisma.project.update({
-        where: { id },
-        data: { architecture: analyzedArch },
-        include: { steps: { include: { tasks: true } } }
-      });
+      await Project.updateOne({ _id: id }, { $set: { architecture: analyzedArch } });
       console.log("Project architecture saved successfully.");
+      const updatedProject = await getProjectWithSteps(id);
       return res.json(updatedProject);
     }
 
     console.warn("Analysis returned empty or null.");
-    res.json(project);
+    const full = await getProjectWithSteps(id);
+    res.json(full);
   } catch (error) {
     console.error("Architecture analysis failed:", error);
     res.status(500).json({ message: 'Failed to analyze architecture', error: error.message });
@@ -256,7 +256,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Name and description are required' });
     }
 
-    const owner = await prisma.user.findUnique({ where: { uid: ownerUid } });
+    const owner = await User.findOne({ uid: ownerUid }).lean();
     if (!owner) return res.status(404).json({ message: 'User not found' });
 
     const prompt = `
@@ -325,36 +325,39 @@ router.post('/generate', authMiddleware, async (req, res) => {
       return res.status(500).json({ message: 'Failed to generate valid project structure', error: e.message });
     }
 
-
-    const stepsData = (generatedData.steps || []).map((step, idx) => ({
-      title: step.title,
-      description: step.description || '',
-      type: step.type || 'Other',
-      page: step.page || 'General',
-      order: idx,
-      tasks: {
-        create: (step.tasks || []).map(task => ({
-          title: task.title,
-          description: task.description || '',
-          status: 'Pending'
-        }))
-      }
-    }));
-
-    const newProject = await prisma.project.create({
-      data: {
-        name,
-        description,
-        ownerId: owner.id,
-        architecture: generatedData.architecture || {},
-        steps: {
-          create: stepsData
-        }
-      },
-      include: { steps: { include: { tasks: true } } }
+    const newProject = await Project.create({
+      name,
+      description,
+      ownerId: owner._id,
+      architecture: generatedData.architecture || {},
+      team: [],
     });
 
-    res.status(201).json(newProject);
+    // Create steps and tasks
+    for (const [idx, stepData] of (generatedData.steps || []).entries()) {
+      const step = await Step.create({
+        title: stepData.title,
+        description: stepData.description || '',
+        type: stepData.type || 'Other',
+        page: stepData.page || 'General',
+        order: idx,
+        projectId: newProject._id,
+      });
+
+      if (stepData.tasks && stepData.tasks.length > 0) {
+        for (const task of stepData.tasks) {
+          await ProjectTask.create({
+            title: task.title,
+            description: task.description || '',
+            status: 'Pending',
+            stepId: step._id,
+          });
+        }
+      }
+    }
+
+    const fullProject = await getProjectWithSteps(newProject._id);
+    res.status(201).json(fullProject);
 
   } catch (error) {
     console.error('Error generating project:', error);
@@ -367,38 +370,34 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const ownerUid = req.user.uid;
 
-
-    const user = await prisma.user.findUnique({ where: { uid: ownerUid } });
+    const user = await User.findOne({ uid: ownerUid }).lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-
-    const projects = await prisma.project.findMany({
-      where: {
-        OR: [
-          { ownerId: user.id },
-          { team: { has: ownerUid } }
-        ]
-      },
-      include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } },
-      orderBy: { createdAt: 'desc' }
+    // Projects owned by user or where user is a team member
+    const projects = await getProjectsWithSteps({
+      $or: [
+        { ownerId: user._id },
+        { team: ownerUid }
+      ]
     });
 
+    // Projects where user has assigned tasks
+    const assignedTasks = await ProjectTask.find({ assignedTo: ownerUid }).select('stepId').lean();
+    const assignedStepIds = [...new Set(assignedTasks.map(t => t.stepId.toString()))];
 
-    const assignedProjects = await prisma.project.findMany({
-      where: {
-        steps: {
-          some: {
-            tasks: {
-              some: { assignedTo: ownerUid }
-            }
-          }
-        }
-      },
-      include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } },
-      orderBy: { createdAt: 'desc' }
-    });
+    let assignedProjects = [];
+    if (assignedStepIds.length > 0) {
+      const assignedSteps = await Step.find({ _id: { $in: assignedStepIds } }).select('projectId').lean();
+      const assignedProjectIds = [...new Set(assignedSteps.map(s => s.projectId.toString()))];
 
+      if (assignedProjectIds.length > 0) {
+        assignedProjects = await getProjectsWithSteps({
+          _id: { $in: assignedProjectIds }
+        });
+      }
+    }
 
+    // Merge and deduplicate
     const projectMap = new Map();
     [...projects, ...assignedProjects].forEach(p => projectMap.set(p.id, p));
     const allProjects = Array.from(projectMap.values());
@@ -413,29 +412,22 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/:id/team', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.body;
-    const project = await prisma.project.findUnique({
-      where: { id: req.params.id },
-      include: { steps: { include: { tasks: true } } }
-    });
+    const project = await Project.findById(req.params.id).lean();
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || owner.uid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
     if (!project.team.includes(userId) && owner.uid !== userId) {
-      const updatedProject = await prisma.project.update({
-        where: { id: req.params.id },
-        data: { team: { push: userId } },
-        include: { steps: { include: { tasks: true } } }
-      });
-      return res.json(updatedProject);
+      const newTeam = [...project.team, userId];
+      await Project.updateOne({ _id: req.params.id }, { $set: { team: newTeam } });
     }
 
-    res.json(project);
+    const full = await getProjectWithSteps(req.params.id);
+    res.json(full);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -444,42 +436,32 @@ router.post('/:id/team', authMiddleware, async (req, res) => {
 
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const project = await prisma.project.findUnique({
-      where: { id: req.params.id },
-      include: {
-        steps: {
-          include: { tasks: true },
-          orderBy: { order: 'asc' }
-        }
-      }
-    });
+    const project = await Project.findById(req.params.id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
+    // Check if project has any steps
+    const stepCount = await Step.countDocuments({ projectId: project._id });
 
-    if (!project.steps || project.steps.length === 0) {
+    if (stepCount === 0) {
       const defaultSteps = [
-        { title: 'Planning', description: 'Initial requirements and design', type: 'Design', order: 0, projectId: project.id },
-        { title: 'Frontend', description: 'Client-side implementation', type: 'Frontend', order: 1, projectId: project.id },
-        { title: 'Backend', description: 'Server-side logic and APIs', type: 'Backend', order: 2, projectId: project.id },
-        { title: 'Database', description: 'Schema design and data management', type: 'Database', order: 3, projectId: project.id },
-        { title: 'Deployment', description: 'CI/CD and hosting setup', type: 'Other', order: 4, projectId: project.id }
+        { title: 'Planning', description: 'Initial requirements and design', type: 'Design', order: 0, projectId: project._id },
+        { title: 'Frontend', description: 'Client-side implementation', type: 'Frontend', order: 1, projectId: project._id },
+        { title: 'Backend', description: 'Server-side logic and APIs', type: 'Backend', order: 2, projectId: project._id },
+        { title: 'Database', description: 'Schema design and data management', type: 'Database', order: 3, projectId: project._id },
+        { title: 'Deployment', description: 'CI/CD and hosting setup', type: 'Other', order: 4, projectId: project._id }
       ];
-      await prisma.step.createMany({ data: defaultSteps });
-
-      const updatedProject = await prisma.project.findUnique({
-        where: { id: req.params.id },
-        include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } }
-      });
-      return res.json(updatedProject);
+      for (const s of defaultSteps) {
+        await Step.create(s);
+      }
     }
 
-    res.json(project);
+    const full = await getProjectWithSteps(req.params.id);
+    res.json(full);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -488,16 +470,23 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const project = await prisma.project.findUnique({ where: { id: req.params.id } });
+    const project = await Project.findById(req.params.id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || owner.uid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
+    // Delete tasks, steps, then project
+    const steps = await Step.find({ projectId: project._id }).select('_id').lean();
+    const stepIds = steps.map(s => s._id);
+    if (stepIds.length > 0) {
+      await ProjectTask.deleteMany({ stepId: { $in: stepIds } });
+    }
+    await Step.deleteMany({ projectId: project._id });
+    await Project.findByIdAndDelete(req.params.id);
 
-    await prisma.project.delete({ where: { id: req.params.id } });
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -508,10 +497,10 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 router.patch('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const project = await prisma.project.findUnique({ where: { id } });
+    const project = await Project.findById(id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
@@ -526,12 +515,9 @@ router.patch('/:id', authMiddleware, async (req, res) => {
       }
     });
 
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: filteredUpdates,
-      include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } }
-    });
+    await Project.updateOne({ _id: id }, { $set: filteredUpdates });
 
+    const updatedProject = await getProjectWithSteps(id);
     res.json(updatedProject);
   } catch (error) {
     console.error('Error updating project:', error);
@@ -549,24 +535,20 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       return res.status(400).json({ message: 'Task title is required' });
     }
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: { steps: true }
-    });
+    const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const step = project.steps.find(s => s.id === stepId);
+    const step = await Step.findOne({ _id: stepId, projectId: project._id }).lean();
     if (!step) return res.status(404).json({ message: 'Step not found' });
 
-
+    // Send assignment email
     if (assignedTo) {
-      const assigneeUser = await prisma.user.findUnique({ where: { uid: assignedTo } });
+      const assigneeUser = await User.findOne({ uid: assignedTo }).lean();
       if (assigneeUser && assigneeUser.email) {
         const subject = `New Task Assigned: ${title}`;
         const text = `You have been assigned a new task in project "${project.name}".\n\nTask: ${title}\nDescription: ${description || 'No description'}\nAssigned By: ${assignedBy || 'Admin'}`;
@@ -590,25 +572,18 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       }
     }
 
-    await prisma.projectTask.create({
-      data: {
-        title,
-        description: description || null,
-        status: 'Pending',
-        assignedTo,
-        assignedToName,
-        assignedBy: assignedBy || 'Admin',
-        createdBy: req.user ? req.user.uid : (assignedBy || 'Admin'),
-        stepId
-      }
+    await ProjectTask.create({
+      title,
+      description: description || null,
+      status: 'Pending',
+      assignedTo,
+      assignedToName,
+      assignedBy: assignedBy || 'Admin',
+      createdBy: req.user ? req.user.uid : (assignedBy || 'Admin'),
+      stepId
     });
 
-
-    const updatedProject = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } }
-    });
-
+    const updatedProject = await getProjectWithSteps(projectId);
     res.status(201).json(updatedProject);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -622,27 +597,22 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     const { projectId, stepId, taskId } = req.params;
     const { status, assignedTo, assignedToName, assignedBy } = req.body;
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: { steps: true }
-    });
+    const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const step = project.steps.find(s => s.id === stepId);
+    const step = await Step.findOne({ _id: stepId, projectId: project._id }).lean();
     if (!step) return res.status(404).json({ message: 'Step not found' });
 
-    const task = await prisma.projectTask.findUnique({ where: { id: taskId } });
-    if (!task || task.stepId !== stepId) return res.status(404).json({ message: 'Task not found' });
+    const task = await ProjectTask.findOne({ _id: taskId, stepId }).lean();
+    if (!task) return res.status(404).json({ message: 'Task not found' });
 
     const taskUpdate = {};
     if (status) taskUpdate.status = status;
-
 
     if (assignedTo !== undefined) {
       const oldAssignee = task.assignedTo;
@@ -650,7 +620,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
       taskUpdate.assignedToName = assignedToName;
 
       if (assignedTo && assignedTo !== oldAssignee) {
-        const assigneeUser = await prisma.user.findUnique({ where: { uid: assignedTo } });
+        const assigneeUser = await User.findOne({ uid: assignedTo }).lean();
 
         if (assigneeUser && assigneeUser.email) {
           const subject = `New Task Assigned: ${task.title}`;
@@ -677,16 +647,9 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
       }
     }
 
-    await prisma.projectTask.update({
-      where: { id: taskId },
-      data: taskUpdate
-    });
+    await ProjectTask.updateOne({ _id: taskId }, { $set: taskUpdate });
 
-    const updatedProject = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } }
-    });
-
+    const updatedProject = await getProjectWithSteps(projectId);
 
     req.app.get('io').emit('projectUpdate', {
       projectId: updatedProject.id,
@@ -710,23 +673,20 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || owner.uid !== userId) {
       return res.status(403).json({ message: 'Permission denied. Only the project owner can delete tasks.' });
     }
 
-    const task = await prisma.projectTask.findUnique({ where: { id: taskId } });
-    if (!task || task.stepId !== stepId) return res.status(404).json({ message: 'Task not found' });
+    const task = await ProjectTask.findOne({ _id: taskId, stepId }).lean();
+    if (!task) return res.status(404).json({ message: 'Task not found' });
 
-    await prisma.projectTask.delete({ where: { id: taskId } });
+    await ProjectTask.findByIdAndDelete(taskId);
 
-    const updatedProject = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } }
-    });
+    const updatedProject = await getProjectWithSteps(projectId);
 
     req.app.get('io').emit('projectUpdate', {
       projectId: updatedProject.id,
@@ -748,51 +708,56 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
 
     if (!query) return res.json([]);
 
-
-    const user = await prisma.user.findUnique({ where: { uid: userId } });
+    const user = await User.findOne({ uid: userId }).lean();
     if (!user) return res.json([]);
 
+    // Get all projects user has access to
+    const ownedProjects = await Project.find({ ownerId: user._id }).select('_id name').lean();
+    const teamProjects = await Project.find({ team: userId }).select('_id name').lean();
 
-    const ownedProjects = await prisma.project.findMany({
-      where: { ownerId: user.id },
-      include: { steps: { include: { tasks: true } } }
-    });
-
-    const teamProjects = await prisma.project.findMany({
-      where: { team: { has: userId } },
-      include: { steps: { include: { tasks: true } } }
-    });
-
-    const assignedProjects = await prisma.project.findMany({
-      where: {
-        steps: { some: { tasks: { some: { assignedTo: userId } } } }
-      },
-      include: { steps: { include: { tasks: true } } }
-    });
-
+    // Get projects via task assignment
+    const assignedTasks = await ProjectTask.find({ assignedTo: userId }).select('stepId').lean();
+    const assignedStepIds = [...new Set(assignedTasks.map(t => t.stepId.toString()))];
+    let assignedProjectIds = [];
+    if (assignedStepIds.length > 0) {
+      const assignedSteps = await Step.find({ _id: { $in: assignedStepIds } }).select('projectId').lean();
+      assignedProjectIds = assignedSteps.map(s => s.projectId.toString());
+    }
+    const assignedProjectDocs = assignedProjectIds.length > 0
+      ? await Project.find({ _id: { $in: assignedProjectIds } }).select('_id name').lean()
+      : [];
 
     const projectMap = new Map();
-    [...ownedProjects, ...teamProjects, ...assignedProjects].forEach(p => projectMap.set(p.id, p));
-    const projects = Array.from(projectMap.values());
+    [...ownedProjects, ...teamProjects, ...assignedProjectDocs].forEach(p => projectMap.set(p._id.toString(), p));
+    const projectIds = Array.from(projectMap.keys());
+
+    if (projectIds.length === 0) return res.json([]);
+
+    // Get steps for these projects
+    const steps = await Step.find({ projectId: { $in: projectIds } }).lean();
+    const stepMap = new Map();
+    steps.forEach(s => stepMap.set(s._id.toString(), s));
+
+    const stepIds = steps.map(s => s._id);
+
+    // Search tasks
+    const searchLower = query.toLowerCase();
+    const allTasks = await ProjectTask.find({ stepId: { $in: stepIds } }).lean();
 
     const results = [];
-    const searchLower = query.toLowerCase();
-
-    projects.forEach(project => {
-      project.steps.forEach(step => {
-        step.tasks.forEach(task => {
-          if (task.title.toLowerCase().includes(searchLower)) {
-            results.push({
-              id: task.id,
-              title: task.title,
-              projectId: project.id,
-              projectName: project.name,
-              status: task.status,
-              stepName: step.title
-            });
-          }
+    allTasks.forEach(task => {
+      if (task.title.toLowerCase().includes(searchLower)) {
+        const step = stepMap.get(task.stepId.toString());
+        const proj = step ? projectMap.get(step.projectId.toString()) : null;
+        results.push({
+          id: task._id.toString(),
+          title: task.title,
+          projectId: proj?._id?.toString() || '',
+          projectName: proj?.name || '',
+          status: task.status,
+          stepName: step?.title || ''
         });
-      });
+      }
     });
 
     res.json(results.slice(0, 10));
@@ -808,58 +773,50 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
     const { projectId } = req.params;
     const { title, description, assignedTo, assignedToName } = req.body;
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: { steps: { orderBy: { order: 'asc' } } }
-    });
+    const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-
-    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    const owner = await User.findById(project.ownerId).lean();
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
+    const steps = await Step.find({ projectId: project._id }).sort({ order: 1 }).lean();
 
-    let step = project.steps.find(s =>
+    let step = steps.find(s =>
       s.title.toLowerCase().includes('backlog') ||
       s.title.toLowerCase().includes('planning') ||
       s.title.toLowerCase().includes('general')
     );
 
-    if (!step && project.steps.length > 0) {
-      step = project.steps[0];
+    if (!step && steps.length > 0) {
+      step = steps[0];
     }
 
     if (!step) {
-
-      step = await prisma.step.create({
-        data: {
-          title: 'Backlog',
-          description: 'Auto-generated backlog',
-          type: 'Other',
-          order: 0,
-          projectId
-        }
+      const created = await Step.create({
+        title: 'Backlog',
+        description: 'Auto-generated backlog',
+        type: 'Other',
+        order: 0,
+        projectId: project._id
       });
+      step = created.toObject();
     }
 
-    const newTask = await prisma.projectTask.create({
-      data: {
-        title,
-        description: description || null,
-        status: 'Backlog',
-        assignedTo,
-        assignedToName,
-        assignedBy: req.user?.name || 'Admin',
-        createdBy: req.user ? req.user.uid : 'Admin',
-        stepId: step.id
-      }
+    const newTask = await ProjectTask.create({
+      title,
+      description: description || null,
+      status: 'Backlog',
+      assignedTo,
+      assignedToName,
+      assignedBy: req.user?.name || 'Admin',
+      createdBy: req.user ? req.user.uid : 'Admin',
+      stepId: step._id
     });
 
-
     if (assignedTo) {
-      const assigneeUser = await prisma.user.findUnique({ where: { uid: assignedTo } });
+      const assigneeUser = await User.findOne({ uid: assignedTo }).lean();
       if (assigneeUser && assigneeUser.email) {
         const subject = `New Task Assigned: ${newTask.title}`;
         const text = `You have been assigned a new task in project "${project.name}".\n\nTask: ${newTask.title}\nDescription: ${newTask.description || 'No description'}\nAssigned By: Admin`;
@@ -882,12 +839,10 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
       }
     }
 
-    const updatedProject = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: { steps: { include: { tasks: true }, orderBy: { order: 'asc' } } }
-    });
+    const updatedProject = await getProjectWithSteps(projectId);
+    const taskObj = normalizeDoc(newTask.toObject());
 
-    res.json({ message: 'Task created', task: newTask, stepId: step.id, project: updatedProject });
+    res.json({ message: 'Task created', task: taskObj, stepId: step._id?.toString() || step.id, project: updatedProject });
   } catch (error) {
     console.error('Error creating quick task:', error);
     res.status(500).json({ message: 'Server error' });

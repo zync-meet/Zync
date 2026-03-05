@@ -1,6 +1,3 @@
-const prisma = require('../lib/prisma');
-
-
 const onlineUsers = new Map();
 
 module.exports = (io) => {

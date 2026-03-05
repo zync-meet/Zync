@@ -256,6 +256,28 @@ exports.Prisma.SessionScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.MessageScalarFieldEnum = {
+  id: 'id',
+  chatId: 'chatId',
+  text: 'text',
+  senderId: 'senderId',
+  senderName: 'senderName',
+  senderPhotoURL: 'senderPhotoURL',
+  receiverId: 'receiverId',
+  type: 'type',
+  fileUrl: 'fileUrl',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  projectId: 'projectId',
+  projectName: 'projectName',
+  projectOwnerId: 'projectOwnerId',
+  seen: 'seen',
+  seenAt: 'seenAt',
+  delivered: 'delivered',
+  deliveredAt: 'deliveredAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.TeamScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -288,6 +310,7 @@ exports.Prisma.ModelName = {
   Folder: 'Folder',
   Meeting: 'Meeting',
   Session: 'Session',
+  Message: 'Message',
   Team: 'Team'
 };
 

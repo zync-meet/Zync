@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const prisma = require('../lib/prisma');
+const Note = require('../models/Note');
+const Folder = require('../models/Folder');
 const verifyToken = require('../middleware/authMiddleware');
+const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 
 
 router.post('/folders', verifyToken, async (req, res) => {
@@ -13,21 +15,18 @@ router.post('/folders', verifyToken, async (req, res) => {
     }
     const finalOwnerId = ownerId || req.user.uid;
 
-    const folder = await prisma.folder.create({
-      data: {
-        name,
-        ownerId: finalOwnerId,
-        parentId: parentId || null,
-        type: type || 'personal',
-        projectId: projectId || null,
-        color: color || '#FFFFFF'
-      }
+    const folder = await Folder.create({
+      name,
+      ownerId: finalOwnerId,
+      parentId: parentId || null,
+      type: type || 'personal',
+      projectId: projectId || null,
+      color: color || '#FFFFFF'
     });
 
-    res.status(201).json(folder);
+    res.status(201).json(normalizeDoc(folder.toObject()));
   } catch (error) {
-
-    if (error.code === 'P2002') {
+    if (error.code === 11000) {
       return res.status(409).json({ error: 'A folder with this name already exists in this location' });
     }
     res.status(500).json({ error: error.message });
@@ -39,17 +38,16 @@ router.get('/folders', verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    const folders = await prisma.folder.findMany({
-      where: {
-        OR: [
-          { ownerId: userId },
-          { collaborators: { has: userId } }
-        ]
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const folders = await Folder.find({
+      $or: [
+        { ownerId: userId },
+        { collaborators: userId }
+      ]
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.json(folders);
+    res.json(normalizeDocs(folders));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -61,23 +59,84 @@ router.post('/folders/:id/share', verifyToken, async (req, res) => {
     const { collaboratorIds } = req.body;
     const { id } = req.params;
 
-    const folderToCheck = await prisma.folder.findUnique({ where: { id } });
+    const folderToCheck = await Folder.findById(id).lean();
     if (!folderToCheck) return res.status(404).json({ error: 'Folder not found' });
 
     if (folderToCheck.ownerId !== req.user.uid) {
       return res.status(403).json({ error: 'Unauthorized: Only owner can share folder' });
     }
 
-
     const existing = folderToCheck.collaborators || [];
     const merged = [...new Set([...existing, ...collaboratorIds])];
 
-    const folder = await prisma.folder.update({
-      where: { id },
-      data: { collaborators: merged }
-    });
+    const folder = await Folder.findByIdAndUpdate(
+      id,
+      { $set: { collaborators: merged } },
+      { new: true, lean: true }
+    );
 
-    res.json(folder);
+    res.json(normalizeDoc(folder));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+router.put('/folders/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const folder = await Folder.findById(id).lean();
+    if (!folder) return res.status(404).json({ error: 'Folder not found' });
+    if (folder.ownerId !== req.user.uid) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const updated = await Folder.findByIdAndUpdate(
+      id,
+      { $set: req.body },
+      { new: true, lean: true }
+    );
+    res.json(normalizeDoc(updated));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+router.delete('/folders/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const folder = await Folder.findById(id).lean();
+    if (!folder) return res.status(404).json({ error: 'Folder not found' });
+    if (folder.ownerId !== req.user.uid) {
+      return res.status(403).json({ error: 'Unauthorized: Only owner can delete folder' });
+    }
+
+    await Note.deleteMany({ folderId: id });
+    await Folder.findByIdAndDelete(id);
+    res.json({ message: 'Folder deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+router.post('/folders/:id/unshare', verifyToken, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { id } = req.params;
+    const folder = await Folder.findById(id).lean();
+    if (!folder) return res.status(404).json({ error: 'Folder not found' });
+    if (folder.ownerId !== req.user.uid) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const updated = await Folder.findByIdAndUpdate(
+      id,
+      { $set: { collaborators: (folder.collaborators || []).filter(c => c !== userId) } },
+      { new: true, lean: true }
+    );
+    res.json(normalizeDoc(updated));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -93,17 +152,15 @@ router.post('/', verifyToken, async (req, res) => {
     }
     const finalOwnerId = ownerId || req.user.uid;
 
-    const note = await prisma.note.create({
-      data: {
-        title: title || 'Untitled',
-        content: content || {},
-        ownerId: finalOwnerId,
-        folderId: folderId || null,
-        projectId: projectId || null
-      }
+    const note = await Note.create({
+      title: title || 'Untitled',
+      content: content || {},
+      ownerId: finalOwnerId,
+      folderId: folderId || null,
+      projectId: projectId || null
     });
 
-    res.status(201).json(note);
+    res.status(201).json(normalizeDoc(note.toObject()));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -119,10 +176,10 @@ router.get('/', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Invalid Folder ID format' });
     }
 
-    let where = {};
+    let filter = {};
 
     if (folderId) {
-      const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+      const folder = await Folder.findById(folderId).lean();
       if (!folder) {
         return res.status(404).json({ error: 'Folder not found' });
       }
@@ -131,29 +188,27 @@ router.get('/', verifyToken, async (req, res) => {
       if (!isOwner && !isCollaborator) {
         return res.status(403).json({ error: 'Access denied to this folder' });
       }
-      where = { folderId };
+      filter = { folderId };
     } else {
+      const sharedFolders = await Folder.find(
+        { collaborators: userId },
+        { _id: 1 }
+      ).lean();
+      const sharedFolderIds = sharedFolders.map(f => f._id.toString());
 
-      const sharedFolders = await prisma.folder.findMany({
-        where: { collaborators: { has: userId } },
-        select: { id: true }
-      });
-      const sharedFolderIds = sharedFolders.map(f => f.id);
-
-      where = {
-        OR: [
+      filter = {
+        $or: [
           { ownerId: userId },
-          { folderId: { in: sharedFolderIds } },
-          { sharedWith: { has: userId } }
+          { folderId: { $in: sharedFolderIds } },
+          { sharedWith: userId }
         ]
       };
     }
 
-    const notes = await prisma.note.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' }
-    });
-    res.json(notes);
+    const notes = await Note.find(filter)
+      .sort({ updatedAt: -1 })
+      .lean();
+    res.json(normalizeDocs(notes));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -162,18 +217,17 @@ router.get('/', verifyToken, async (req, res) => {
 
 router.get('/:id', verifyToken, async (req, res) => {
   try {
-    const note = await prisma.note.findUnique({ where: { id: req.params.id } });
+    const note = await Note.findById(req.params.id).lean();
     if (!note) return res.status(404).json({ error: 'Note not found' });
 
     const isOwner = note.ownerId === req.user.uid;
     const isShared = note.sharedWith && note.sharedWith.includes(req.user.uid);
 
     if (!isOwner && !isShared) {
-
       if (note.folderId) {
-        const folder = await prisma.folder.findUnique({ where: { id: note.folderId } });
+        const folder = await Folder.findById(note.folderId).lean();
         if (folder && (folder.ownerId === req.user.uid || (folder.collaborators && folder.collaborators.includes(req.user.uid)))) {
-
+          // Access via folder collaboration — allowed
         } else {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -182,7 +236,7 @@ router.get('/:id', verifyToken, async (req, res) => {
       }
     }
 
-    res.json(note);
+    res.json(normalizeDoc(note));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -193,7 +247,7 @@ router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { title, content, folderId } = req.body;
 
-    const note = await prisma.note.findUnique({ where: { id: req.params.id } });
+    const note = await Note.findById(req.params.id).lean();
     if (!note) return res.status(404).json({ error: 'Note not found' });
 
     const isOwner = note.ownerId === req.user.uid;
@@ -208,12 +262,13 @@ router.put('/:id', verifyToken, async (req, res) => {
     if (content !== undefined) updateData.content = content;
     if (folderId !== undefined) updateData.folderId = folderId;
 
-    const updatedNote = await prisma.note.update({
-      where: { id: req.params.id },
-      data: updateData
-    });
+    const updatedNote = await Note.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true, lean: true }
+    );
 
-    res.json(updatedNote);
+    res.json(normalizeDoc(updatedNote));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -222,14 +277,14 @@ router.put('/:id', verifyToken, async (req, res) => {
 
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    const note = await prisma.note.findUnique({ where: { id: req.params.id } });
+    const note = await Note.findById(req.params.id).lean();
     if (!note) return res.status(404).json({ error: 'Note not found' });
 
     if (note.ownerId !== req.user.uid) {
       return res.status(403).json({ error: 'Unauthorized: Only owner can delete note' });
     }
 
-    await prisma.note.delete({ where: { id: req.params.id } });
+    await Note.findByIdAndDelete(req.params.id);
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

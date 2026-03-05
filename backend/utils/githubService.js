@@ -1,10 +1,10 @@
 const { App } = require('octokit');
-const prisma = require('../lib/prisma');
+const User = require('../models/User');
 const { decrypt } = require('./encryption');
 
 
 const getUserApp = async (userId) => {
-  const user = await prisma.user.findUnique({ where: { uid: userId } });
+  const user = await User.findOne({ uid: userId }).lean();
   const github = user?.githubIntegration;
 
   if (!user || !github?.encryptedAppId || !github?.encryptedPrivateKey) {
@@ -28,7 +28,7 @@ const getUserApp = async (userId) => {
 
 
 const getUserInstallationId = async (userId) => {
-  const user = await prisma.user.findUnique({ where: { uid: userId } });
+  const user = await User.findOne({ uid: userId }).lean();
   const github = user?.githubIntegration;
   if (!github?.installationId) {
     return null;
@@ -38,7 +38,7 @@ const getUserInstallationId = async (userId) => {
 
 
 const checkGithubConfig = async (userId) => {
-  const user = await prisma.user.findUnique({ where: { uid: userId } });
+  const user = await User.findOne({ uid: userId }).lean();
   const github = user?.githubIntegration;
   return !!(github?.encryptedAppId && github?.encryptedPrivateKey);
 };

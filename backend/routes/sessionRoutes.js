@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const prisma = require('../lib/prisma');
+const Session = require('../models/Session');
 const verifyToken = require('../middleware/authMiddleware');
+const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 
 
 router.use(verifyToken);
@@ -18,16 +19,14 @@ router.post('/start', async (req, res) => {
 
     const today = new Date().toISOString().split('T')[0];
 
-    const session = await prisma.session.create({
-      data: {
-        userId,
-        startTime: new Date(),
-        endTime: new Date(),
-        date: today
-      }
+    const session = await Session.create({
+      userId,
+      startTime: new Date(),
+      endTime: new Date(),
+      date: today
     });
 
-    res.status(201).json(session);
+    res.status(201).json(normalizeDoc(session.toObject()));
   } catch (error) {
     console.error('Error starting session:', error);
     if (!res.headersSent) {
@@ -43,11 +42,10 @@ router.post('/batch', async (req, res) => {
     if (!userIds || !Array.isArray(userIds)) {
       return res.status(400).json({ message: 'userIds array is required' });
     }
-    const sessions = await prisma.session.findMany({
-      where: { userId: { in: userIds } },
-      orderBy: { startTime: 'desc' }
-    });
-    res.json(sessions);
+    const sessions = await Session.find({ userId: { $in: userIds } })
+      .sort({ startTime: -1 })
+      .lean();
+    res.json(normalizeDocs(sessions));
   } catch (error) {
     console.error('Error fetching batch sessions:', error);
     res.status(500).json({ message: 'Server error' });
@@ -57,11 +55,8 @@ router.post('/batch', async (req, res) => {
 
 const updateSession = async (req, res) => {
   try {
-    const session = await prisma.session.findUnique({
-      where: { id: req.params.id }
-    });
+    const session = await Session.findById(req.params.id).lean();
     if (!session) return res.status(404).json({ message: 'Session not found' });
-
 
     if (session.userId !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized access to session' });
@@ -76,16 +71,16 @@ const updateSession = async (req, res) => {
       updateData.activeDuration = (session.activeDuration || 0) + req.body.activeIncrement;
     }
 
-
     const startTime = session.startTime;
     updateData.duration = Math.round((updateData.endTime - startTime) / 1000);
 
-    const updated = await prisma.session.update({
-      where: { id: req.params.id },
-      data: updateData
-    });
+    const updated = await Session.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true, lean: true }
+    );
 
-    res.json(updated);
+    res.json(normalizeDoc(updated));
   } catch (error) {
     console.error('Error updating session:', error);
     res.status(500).json({ message: 'Server error' });
@@ -102,11 +97,10 @@ router.get('/:userId', async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized access to user sessions' });
     }
 
-    const sessions = await prisma.session.findMany({
-      where: { userId: req.params.userId },
-      orderBy: { startTime: 'desc' }
-    });
-    res.json(sessions);
+    const sessions = await Session.find({ userId: req.params.userId })
+      .sort({ startTime: -1 })
+      .lean();
+    res.json(normalizeDocs(sessions));
   } catch (error) {
     console.error('Error fetching sessions:', error);
     res.status(500).json({ message: 'Server error' });
@@ -116,10 +110,7 @@ router.get('/:userId', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-
-    const session = await prisma.session.findUnique({
-      where: { id: req.params.id }
-    });
+    const session = await Session.findById(req.params.id).lean();
 
     if (!session) {
       return res.status(404).json({ message: 'Session not found' });
@@ -129,7 +120,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized to delete this session' });
     }
 
-    await prisma.session.delete({ where: { id: req.params.id } });
+    await Session.findByIdAndDelete(req.params.id);
     res.json({ message: 'Session deleted' });
   } catch (error) {
     console.error('Error deleting session:', error);
@@ -144,7 +135,7 @@ router.delete('/user/:userId', async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized action' });
     }
 
-    await prisma.session.deleteMany({ where: { userId: req.params.userId } });
+    await Session.deleteMany({ userId: req.params.userId });
     res.json({ message: 'All sessions deleted' });
   } catch (error) {
     console.error('Error clearing sessions:', error);

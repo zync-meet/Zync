@@ -253,6 +253,40 @@ model Session {
   @@map("sessions")
 }
 
+// ─── MESSAGE (replaces Firebase Firestore "messages" collection) ─────
+model Message {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  chatId    String  // deterministic: sorted "<uid1>_<uid2>"
+  text      String?
+  senderId  String  // Firebase UID
+  senderName String
+  senderPhotoURL String?
+  receiverId String // Firebase UID
+
+  type      String  @default("text") // text, image, file, project-invite, request
+  fileUrl   String?
+  fileName  String?
+  fileSize  Int?
+
+  // project-invite specific
+  projectId      String?
+  projectName    String?
+  projectOwnerId String?
+
+  seen        Boolean   @default(false)
+  seenAt      DateTime?
+  delivered   Boolean   @default(false)
+  deliveredAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([chatId, createdAt])
+  @@index([receiverId, delivered])
+  @@index([receiverId, createdAt])
+
+  @@map("messages")
+}
+
 // ─── TEAM ────────────────────────────────────────────────────────────
 model Team {
   id         String @id @default(auto()) @map("_id") @db.ObjectId

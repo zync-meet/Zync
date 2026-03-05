@@ -34,6 +34,7 @@ app.set('io', io);
 
 require('./sockets/noteSocketHandler')(io);
 require('./sockets/presenceSocketHandler')(io);
+require('./sockets/chatSocketHandler')(io);
 
 
 const PORT = process.env.PORT || 5000;
@@ -51,6 +52,7 @@ const githubRoutes = require('./routes/github');
 const linkRoutes = require('./routes/linkRoutes');
 const githubAppWebhook = require('./routes/githubAppWebhook');
 const noteRoutes = require('./routes/noteRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 
 app.use(
@@ -60,7 +62,7 @@ app.use(
       directives: {
         "default-src": ["'self'"],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "https://apis.google.com", "https://www.googleapis.com", "https://www.gstatic.com"],
-        "connect-src": ["'self'", "https://github.com", "https://api.github.com", "http://localhost:*", "https://*.firebaseio.com", "ws://localhost:*", "wss://*.glitch.me", "https://*.googleapis.com"],
+        "connect-src": ["'self'", "https://github.com", "https://api.github.com", "http://localhost:*", "ws://localhost:*", "wss://*.glitch.me", "https://*.googleapis.com"],
         "img-src": ["'self'", "data:", "https://avatars.githubusercontent.com", "https://*.googleusercontent.com", "https://*.google.com", "blob:", "https://ui-avatars.com"],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "worker-src": ["'self'", "blob:"],
@@ -104,6 +106,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/design', designRoutes);
 app.use('/api/inspiration', inspirationRoutes);
 app.use('/api/notes', noteRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/github-app', githubAppWebhook);
@@ -112,31 +115,39 @@ app.use('/api/teams', require('./routes/teamRoutes'));
 app.use('/api/google', require('./routes/googleRoutes'));
 
 
-mongoose.connect(process.env.MONGO_URI, {
+// ── Database connection with automatic retry ──────────────────────────
+const MONGO_OPTIONS = {
   dbName: 'ZYNC_USER',            // Oracle schema name = database name
-
-  // Oracle ADB 26ai MongoDB API requirements
-  // NOTE: loadBalanced, ssl, authMechanism, authSource are URI-only options
-  //       — do NOT duplicate them here or Mongoose will reject them.
   retryWrites: false,              // Oracle does not support retryable writes
-
-  // Timeouts — generous for cloud DB
+  tls: true,
+  tlsAllowInvalidCertificates: true, // Oracle ADB uses certs not in default CA bundle
   serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 60000,
   connectTimeoutMS: 30000,
+  autoCreate: false,
+  autoIndex: false,
+};
 
-  // Disable features unsupported by Oracle MongoDB API
-  autoCreate: false,               // Oracle doesn't support createCollection options
-  autoIndex: false,                // create indexes manually via Oracle tooling
-})
-  .then((conn) => {
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 5000;
+
+async function connectWithRetry(attempt = 1) {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI, MONGO_OPTIONS);
     console.log(`✅ Oracle ADB Connected: ${conn.connection.host}`);
     console.log(`   Database Name: ${conn.connection.name}`);
-  })
-  .catch((err) => {
-    console.error(`❌ Oracle ADB Connection Error: ${err.message}`);
-    process.exit(1);
-  });
+  } catch (err) {
+    console.error(`❌ Oracle ADB Connection Error (attempt ${attempt}/${MAX_RETRIES}): ${err.message}`);
+    if (attempt < MAX_RETRIES) {
+      console.log(`   Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      return connectWithRetry(attempt + 1);
+    }
+    console.error('⚠️  All DB connection attempts failed — server continues without DB.');
+  }
+}
+
+connectWithRetry();
 
 app.get('/', (req, res) => {
   res.send('API is running...');

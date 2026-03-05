@@ -1,140 +1,140 @@
 const express = require('express');
 const router = express.Router();
-const { Groq } = require('groq-sdk');
-const { randomUUID } = require('crypto');
-const prisma = require('../lib/prisma');
-const verifyToken = require('../middleware/authMiddleware');
+const Groq = require('groq-sdk');
+const authMiddleware = require('../middleware/authMiddleware');
+const User = require('../models/User');
+const Project = require('../models/Project');
+const Step = require('../models/Step');
+const ProjectTask = require('../models/ProjectTask');
+const { normalizeDoc } = require('../utils/normalize');
+const { getProjectWithSteps } = require('../utils/projectHelper');
 
+const groq = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const MODEL_NAME = "llama-3.3-70b-versatile";
-
-router.post('/', verifyToken, async (req, res) => {
-  const { name, description } = req.body;
-  const ownerId = req.user.uid;
-
-  if (!name || !description) {
-    return res.status(400).json({ message: 'Project Name and Description are required' });
-  }
-
+// POST /api/generate-project — AI-generate project with architecture/steps/tasks
+router.post('/', authMiddleware, async (req, res) => {
   try {
+    const { name, description, ownerId } = req.body;
+    const uid = req.user.uid;
 
-    const prompt = `
-      You are a Senior Software Architect and Project Manager.
-      Create a comprehensive technical Implementation Plan for a software project.
+    if (!name || !description) {
+      return res.status(400).json({ message: 'Name and description are required' });
+    }
 
-      Project Name: "${name}"
-      Project Description: "${description}"
+    if (!groq) {
+      return res.status(503).json({ message: 'AI generation service not configured (missing GROQ_API_KEY)' });
+    }
 
-      You must return a STRICT JSON object with the following structure:
-      {
-        "architecture": {
-           "highLevel": "Description of the system architecture",
-           "frontend": { "tech": "Stack details", "components": ["List of core components"] },
-           "backend": { "tech": "Stack details", "services": ["List of services/endpoints"] },
-           "database": { "tech": "DB choice", "schema": ["Key collections/tables"] },
-           "flow": "Description of data flow"
-        },
-        "steps": [
-           {
-             "id": "STEP-01",
-             "title": "Phase 1: Foundation",
-             "description": "Setting up the environment",
-             "status": "Pending",
-             "type": "Backend",
-             "tasks": [
-                { "title": "Setup Repository", "description": "Initialize Git", "status": "Pending", "assignedTo": null },
-                { "title": "Configure Database", "description": "Setup connection", "status": "Pending", "assignedTo": null }
-             ]
-           },
-           {
-             "id": "STEP-02",
-             "title": "Test Board",
-             "description": "QA and Testing Phase",
-             "status": "Pending",
-             "type": "Other",
-             "tasks": [
-                { "title": "Unit Tests", "description": "Write core unit tests", "status": "Pending", "assignedTo": null },
-                { "title": "Integration Tests", "description": "Test API endpoints", "status": "Pending", "assignedTo": null }
-             ]
-           }
-        ],
-        "team": [
-            "Suggested Role 1", "Suggested Role 2"
-        ]
-      }
+    // Find or verify user
+    let user = await User.findOne({ uid }).lean();
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-      Make the tasks specific, actionable, and technical. Include a "Test Board" step/phase explicitly.
-    `;
+    const prompt = `You are a senior software architect. Generate a comprehensive project plan for:
+
+Project Name: ${name}
+Description: ${description}
+
+Return ONLY a valid JSON object (no markdown, no explanation) with this exact structure:
+
+{
+  "architecture": {
+    "highLevel": "Brief summary of the architecture",
+    "frontend": {
+      "structure": "Frontend organization description",
+      "pages": ["List of pages"],
+      "components": ["Key components"],
+      "routing": "Routing strategy"
+    },
+    "backend": {
+      "structure": "Backend organization",
+      "apis": ["API endpoints"],
+      "controllers": ["Controllers"],
+      "services": ["Services"],
+      "authFlow": "Auth mechanism"
+    },
+    "database": {
+      "design": "Database design",
+      "collections": ["Collections/tables"],
+      "relationships": "Key relationships"
+    },
+    "apiFlow": "Frontend-backend communication",
+    "integrations": ["External libraries/SDKs"]
+  },
+  "steps": [
+    {
+      "title": "Phase Title",
+      "description": "Phase description",
+      "type": "Frontend|Backend|Database|Design|Other",
+      "tasks": [
+        { "title": "Task title", "description": "Task details" }
+      ]
+    }
+  ]
+}`;
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: MODEL_NAME,
-      response_format: { type: 'json_object' }
+      model: 'llama3-70b-8192',
+      temperature: 0.7,
+      max_tokens: 4096,
+      response_format: { type: 'json_object' },
     });
 
-    const responseText = completion.choices[0]?.message?.content || "{}";
+    const responseText = completion.choices?.[0]?.message?.content;
+    if (!responseText) {
+      return res.status(500).json({ message: 'AI returned empty response' });
+    }
+
     let generatedData;
     try {
-      generatedData = JSON.parse(responseText);
+      const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      generatedData = JSON.parse(cleaned);
     } catch (e) {
-      console.error("Failed to parse AI JSON:", responseText);
-      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      generatedData = JSON.parse(cleanJson);
+      console.error('Failed to parse AI response:', responseText);
+      return res.status(500).json({ message: 'Failed to parse AI response', error: e.message });
     }
 
-
-    let user = await prisma.user.findUnique({ where: { uid: ownerId } });
-    if (!user) {
-
-      user = await prisma.user.create({
-        data: {
-          uid: ownerId,
-          email: req.user.email || `${ownerId}@placeholder.com`,
-          displayName: 'User'
-        }
-      });
-    }
-
-
-    const newProject = await prisma.project.create({
-      data: {
-        name,
-        description,
-        ownerId: user.id,
-        architecture: generatedData.architecture || {},
-        team: [],
-        steps: {
-          create: (generatedData.steps || []).map((step, index) => ({
-            title: step.title,
-            description: step.description || '',
-            status: 'Pending',
-            type: step.type || 'Other',
-            order: index,
-            tasks: {
-              create: (step.tasks || []).map(t => ({
-                title: t.title,
-                description: t.description || '',
-                status: 'Pending',
-                assignedTo: null
-              }))
-            }
-          }))
-        }
-      },
-      include: {
-        steps: {
-          include: { tasks: true },
-          orderBy: { order: 'asc' }
-        }
-      }
+    // Create project
+    const newProject = await Project.create({
+      name,
+      description,
+      ownerId: user._id,
+      architecture: generatedData.architecture || {},
+      team: [],
     });
 
-    res.status(201).json(newProject);
+    // Create steps and tasks
+    for (const [idx, stepData] of (generatedData.steps || []).entries()) {
+      const step = await Step.create({
+        title: stepData.title,
+        description: stepData.description || '',
+        type: stepData.type || 'Other',
+        page: stepData.page || 'General',
+        order: idx,
+        projectId: newProject._id,
+      });
 
+      if (stepData.tasks && stepData.tasks.length > 0) {
+        for (const task of stepData.tasks) {
+          await ProjectTask.create({
+            title: task.title,
+            description: task.description || '',
+            status: 'Pending',
+            stepId: step._id,
+          });
+        }
+      }
+    }
+
+    const fullProject = await getProjectWithSteps(newProject._id);
+    res.status(201).json(fullProject);
   } catch (error) {
-    console.error('Project Generation Error:', error);
-    res.status(500).json({ message: 'Server error generating project', error: error.message });
+    console.error('Error generating project:', error);
+    res.status(500).json({ message: 'Failed to generate project', error: error.message });
   }
 });
 

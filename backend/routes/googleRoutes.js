@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
-const prisma = require('../lib/prisma');
+const User = require('../models/User');
+const { normalizeDoc } = require('../utils/normalize');
 
 
 router.post('/connect', verifyToken, async (req, res) => {
@@ -23,10 +24,11 @@ router.post('/connect', verifyToken, async (req, res) => {
             googleData.refreshToken = refreshToken;
         }
 
-        const user = await prisma.user.update({
-            where: { uid },
-            data: { googleIntegration: googleData }
-        });
+        const user = await User.findOneAndUpdate(
+            { uid },
+            { $set: { googleIntegration: googleData } },
+            { new: true, lean: true }
+        );
 
         if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -37,9 +39,6 @@ router.post('/connect', verifyToken, async (req, res) => {
 
     } catch (error) {
         console.error('Google Connect Error:', error);
-        if (error.code === 'P2025') {
-            return res.status(404).json({ message: 'User not found' });
-        }
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
@@ -49,17 +48,19 @@ router.delete('/disconnect', verifyToken, async (req, res) => {
     const uid = req.user.uid;
 
     try {
-        await prisma.user.update({
-            where: { uid },
-            data: {
-                googleIntegration: {
-                    connected: false,
-                    accessToken: null,
-                    refreshToken: null,
-                    email: null
+        await User.updateOne(
+            { uid },
+            {
+                $set: {
+                    googleIntegration: {
+                        connected: false,
+                        accessToken: null,
+                        refreshToken: null,
+                        email: null
+                    }
                 }
             }
-        });
+        );
 
         res.status(200).json({ message: 'Google disconnected' });
 

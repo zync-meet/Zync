@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
-const prisma = require('../lib/prisma');
+const User = require('../models/User');
+const Meeting = require('../models/Meeting');
+const Project = require('../models/Project');
 const { createInstantMeet } = require('../services/googleMeet');
 const { sendZyncEmail } = require('../services/mailer');
 const { getMeetingInviteTextVersion, getMeetingEmailHtml } = require('../utils/emailTemplates');
+const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 
 
 router.get('/user/:uid', verifyToken, async (req, res) => {
@@ -14,18 +17,14 @@ router.get('/user/:uid', verifyToken, async (req, res) => {
     }
 
     try {
-        const meetings = await prisma.meeting.findMany({
-            where: {
-                OR: [
-                    { organizerId: uid },
-
-
-                ]
-            },
-            orderBy: { startTime: 'desc' },
-            take: 20
-        });
-
+        const meetings = await Meeting.find({
+            $or: [
+                { organizerId: uid },
+            ]
+        })
+            .sort({ startTime: -1 })
+            .limit(20)
+            .lean();
 
         const filteredMeetings = meetings.filter(m => {
             if (m.organizerId === uid) return true;
@@ -33,14 +32,13 @@ router.get('/user/:uid', verifyToken, async (req, res) => {
             return participants.some(p => p.uid === uid);
         });
 
-
         const now = new Date();
         const updatedMeetings = filteredMeetings.map(m => {
             const startTime = new Date(m.startTime);
             const meetingEnd = m.endTime ? new Date(m.endTime) : new Date(startTime.getTime() + 60 * 60 * 1000);
 
             let status = m.status;
-            if (status === 'cancelled') return { ...m, status };
+            if (status === 'cancelled') return { ...normalizeDoc(m), status };
 
             if (now.getTime() > meetingEnd.getTime()) {
                 status = 'ended';
@@ -50,7 +48,7 @@ router.get('/user/:uid', verifyToken, async (req, res) => {
                 status = 'scheduled';
             }
 
-            return { ...m, status };
+            return { ...normalizeDoc(m), status };
         });
 
         res.json(updatedMeetings);
@@ -66,7 +64,7 @@ router.delete('/:meetingId', verifyToken, async (req, res) => {
     const uid = req.user.uid;
 
     try {
-        const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+        const meeting = await Meeting.findById(meetingId).lean();
 
         if (!meeting) {
             return res.status(404).json({ message: 'Meeting not found' });
@@ -76,7 +74,7 @@ router.delete('/:meetingId', verifyToken, async (req, res) => {
             return res.status(403).json({ message: 'Only the organizer can delete this meeting' });
         }
 
-        await prisma.meeting.delete({ where: { id: meetingId } });
+        await Meeting.findByIdAndDelete(meetingId);
 
         res.json({ message: 'Meeting deleted successfully' });
     } catch (error) {
@@ -96,9 +94,9 @@ router.post('/schedule', verifyToken, async (req, res) => {
     try {
         const meetingUrl = await createInstantMeet();
 
-        const organizer = await prisma.user.findUnique({ where: { uid: organizerId } });
+        const organizer = await User.findOne({ uid: organizerId }).lean();
         const participants = participantIds && participantIds.length > 0
-            ? await prisma.user.findMany({ where: { uid: { in: participantIds } } })
+            ? await User.find({ uid: { $in: participantIds } }).lean()
             : [];
 
         const participantData = participants.map(u => ({
@@ -108,20 +106,19 @@ router.post('/schedule', verifyToken, async (req, res) => {
             status: 'invited'
         }));
 
-        const newMeeting = await prisma.meeting.create({
-            data: {
-                title: title || 'Scheduled Meeting',
-                description,
-                startTime: new Date(startTime),
-                endTime: endTime ? new Date(endTime) : new Date(new Date(startTime).getTime() + 60 * 60 * 1000),
-                organizerId,
-                organizerName: organizer?.displayName || 'Unknown',
-                meetLink: meetingUrl,
-                status: 'scheduled',
-                participants: participantData
-            }
+        const newMeeting = await Meeting.create({
+            title: title || 'Scheduled Meeting',
+            description,
+            startTime: new Date(startTime),
+            endTime: endTime ? new Date(endTime) : new Date(new Date(startTime).getTime() + 60 * 60 * 1000),
+            organizerId,
+            organizerName: organizer?.displayName || 'Unknown',
+            meetLink: meetingUrl,
+            status: 'scheduled',
+            participants: participantData
         });
 
+        const meetingObj = normalizeDoc(newMeeting.toObject());
 
         (async () => {
             await Promise.all(participants.map(async (receiver) => {
@@ -129,7 +126,7 @@ router.post('/schedule', verifyToken, async (req, res) => {
                     try {
                         const senderName = organizer.displayName || 'A colleague';
                         const recipientName = receiver.displayName || 'there';
-                        const emailSubject = `Invitation: ${newMeeting.title} @ ${new Date(startTime).toLocaleString()}`;
+                        const emailSubject = `Invitation: ${meetingObj.title} @ ${new Date(startTime).toLocaleString()}`;
 
                         const htmlContent = getMeetingEmailHtml({
                             inviterName: senderName,
@@ -157,7 +154,7 @@ router.post('/schedule', verifyToken, async (req, res) => {
             }));
         })();
 
-        res.status(201).json(newMeeting);
+        res.status(201).json(meetingObj);
 
     } catch (error) {
         console.error('Error scheduling meeting:', error);
@@ -174,26 +171,24 @@ router.post('/invite', verifyToken, async (req, res) => {
     }
 
     try {
-
         const meetingUrl = await createInstantMeet();
-
 
         let projectName = null;
         if (projectId) {
-            const project = await prisma.project.update({
-                where: { id: projectId },
-                data: { meetLink: meetingUrl }
-            });
+            const project = await Project.findByIdAndUpdate(
+                projectId,
+                { $set: { meetLink: meetingUrl } },
+                { new: true, lean: true }
+            );
             projectName = project?.name || null;
         }
 
-        const sender = await prisma.user.findUnique({ where: { uid: senderId } });
+        const sender = await User.findOne({ uid: senderId }).lean();
         if (!sender) return res.status(404).json({ message: 'Sender not found' });
 
         const receivers = Array.isArray(receiverIds) && receiverIds.length > 0
-            ? await prisma.user.findMany({ where: { uid: { in: receiverIds } } })
+            ? await User.find({ uid: { $in: receiverIds } }).lean()
             : [];
-
 
         const participantData = receivers.map(u => ({
             uid: u.uid,
@@ -202,23 +197,21 @@ router.post('/invite', verifyToken, async (req, res) => {
             status: 'invited'
         }));
 
-        const newMeeting = await prisma.meeting.create({
-            data: {
-                title: projectName ? `Sync: ${projectName}` : 'Instant Meeting',
-                description: 'Instant meeting started from dashboard',
-                startTime: new Date(),
-                organizerId: senderId,
-                organizerName: sender.displayName,
-                meetLink: meetingUrl,
-                status: 'live',
-                projectId: projectId || null,
-                participants: participantData
-            }
+        const newMeeting = await Meeting.create({
+            title: projectName ? `Sync: ${projectName}` : 'Instant Meeting',
+            description: 'Instant meeting started from dashboard',
+            startTime: new Date(),
+            organizerId: senderId,
+            organizerName: sender.displayName,
+            meetLink: meetingUrl,
+            status: 'live',
+            projectId: projectId || null,
+            participants: participantData
         });
 
+        const meetingObj = normalizeDoc(newMeeting.toObject());
 
-        res.status(200).json({ message: 'Meeting created', meetingUrl, meetingId: newMeeting.id });
-
+        res.status(200).json({ message: 'Meeting created', meetingUrl, meetingId: meetingObj.id });
 
         (async () => {
             try {
@@ -231,7 +224,7 @@ router.post('/invite', verifyToken, async (req, res) => {
 
                             const htmlContent = getMeetingEmailHtml({
                                 inviterName: senderName,
-                                meetingTopic: newMeeting.title,
+                                meetingTopic: meetingObj.title,
                                 date: new Date().toLocaleDateString(),
                                 time: new Date().toLocaleTimeString(),
                                 meetingLink: meetingUrl,

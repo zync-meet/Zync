@@ -1,181 +1,133 @@
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto');
-const axios = require('axios');
-const prisma = require('../lib/prisma');
-const { getInstallationAccessToken } = require('../utils/githubAppAuth');
+const verifyGithub = require('../middleware/verifyGithub');
+const { analyzeCommit } = require('../utils/commitAnalysisService');
+const ProjectTask = require('../models/ProjectTask');
+const Project = require('../models/Project');
+const Step = require('../models/Step');
+const User = require('../models/User');
+const Repository = require('../models/Repository');
+const { normalizeDoc } = require('../utils/normalize');
+const { getProjectWithSteps } = require('../utils/projectHelper');
 
-const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
-
-
-const verifySignature = (req, res, next) => {
-    const signature = req.headers['x-hub-signature-256'];
-    const deliveryId = req.headers['x-github-delivery'];
-
-    if (!WEBHOOK_SECRET) {
-        console.warn("GITHUB_WEBHOOK_SECRET not set. Skipping verification.");
-        return next();
-    }
-
-    if (!signature) {
-        console.error(`[Webhook ${deliveryId}] No signature found on request.`);
-        return res.status(401).json({ error: 'No signature found' });
-    }
-
-    if (!req.rawBody) {
-        console.error(`[Webhook ${deliveryId}] req.rawBody is missing.`);
-        return res.status(500).json({ error: 'Internal Server Error: Raw body missing' });
-    }
-
-    const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
-    const digest = 'sha256=' + hmac.update(req.rawBody).digest('hex');
-
-    if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))) {
-        console.log(`[Webhook ${deliveryId}] Signature verified successfully.`);
-        req.deliveryId = deliveryId;
-        next();
-    } else {
-        console.error(`[Webhook ${deliveryId}] Invalid signature.`);
-        return res.status(401).json({ error: 'Invalid signature' });
-    }
-};
-
-router.post('/', verifySignature, async (req, res) => {
+// POST /api/github-app/webhook — GitHub App webhook handler
+router.post('/webhook', verifyGithub, async (req, res) => {
+  try {
     const event = req.headers['x-github-event'];
-    const payload = req.body;
+    console.log(`[GitHub App Webhook] Received event: ${event}`);
 
-    if (event === 'ping') return res.json({ message: 'Pong' });
-
-    if (event === 'push') {
-        const { commits, repository, installation } = payload;
-        const installationId = installation?.id;
-
-        console.log(`Received push event for ${repository.full_name} with ${commits.length} commits.`);
-
-        try {
-            let installToken = null;
-            try {
-                if (installationId) {
-                    installToken = await getInstallationAccessToken(installationId);
-                }
-            } catch (err) {
-                console.error("Failed to get installation token:", err.message);
-            }
-
-            for (const commit of commits) {
-                const message = commit.message;
-                const match = message.match(/\[ZYNC-COMPLETE #([a-zA-Z0-9_-]+)\]/i);
-
-                if (match) {
-                    const taskId = match[1];
-                    console.log(`Found completion tag for Task ID: ${taskId}`);
-
-
-                    const task = await prisma.projectTask.findFirst({
-                        where: {
-                            OR: [
-                                { id: taskId },
-                                { displayId: taskId },
-                                { displayId: `TASK-${taskId}` }
-                            ]
-                        },
-                        include: {
-                            step: {
-                                include: { project: true }
-                            }
-                        }
-                    });
-
-                    if (task) {
-                        const senderLogin = payload.sender.login;
-
-                        if (!task.assignedTo) {
-                            console.log(`Task ${taskId} is unassigned. Ignoring commit from ${senderLogin}.`);
-                        } else {
-
-                            const assignedUser = await prisma.user.findUnique({
-                                where: { uid: task.assignedTo }
-                            });
-                            const storedUsername = assignedUser?.githubIntegration?.username;
-
-                            if (storedUsername === senderLogin) {
-
-                                const updatedTask = await prisma.projectTask.update({
-                                    where: { id: task.id },
-                                    data: {
-                                        status: 'Completed',
-                                        commitMessage: commit.message,
-                                        commitUrl: commit.url,
-                                        commitAuthor: commit.author.name,
-                                        commitTimestamp: new Date(commit.timestamp)
-                                    }
-                                });
-
-                                console.log(`Task ${taskId} marked as Completed by ${senderLogin}.`);
-
-
-                                if (installToken) {
-                                    try {
-                                        await axios.post(
-                                            `https://api.github.com/repos/${repository.full_name}/commits/${commit.id}/comments`,
-                                            {
-                                                body: `🚀 **Zync Bot**: Task **#${taskId}** ("${task.title}") has been set to **Completed** by @${senderLogin}! Verified assignment. ✅`
-                                            },
-                                            {
-                                                headers: {
-                                                    'Authorization': `token ${installToken}`,
-                                                    'Accept': 'application/vnd.github.v3+json'
-                                                }
-                                            }
-                                        );
-                                        console.log(`Posted comment on commit ${commit.id}`);
-                                    } catch (commentErr) {
-                                        console.error("Failed to post GitHub comment:", commentErr.message);
-                                    }
-                                }
-
-
-                                const io = req.app.get('io');
-                                if (io) {
-                                    const projectId = task.step.project.id;
-                                    io.emit('taskUpdated', {
-                                        taskId: task.id,
-                                        projectId,
-                                        status: 'Completed',
-                                        message: `Task status updated via commit`
-                                    });
-
-
-                                    const fullProject = await prisma.project.findUnique({
-                                        where: { id: projectId },
-                                        include: {
-                                            steps: {
-                                                include: { tasks: true },
-                                                orderBy: { order: 'asc' }
-                                            }
-                                        }
-                                    });
-                                    io.emit('projectUpdate', {
-                                        projectId,
-                                        project: fullProject
-                                    });
-                                }
-                            } else {
-                                console.log(`Unauthorized commit attempt by ${senderLogin} for task ${taskId}`);
-                            }
-                        }
-                    } else {
-                        console.log(`Task ${taskId} not found in any project.`);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Error processing push webhook:", error);
-            return res.status(500).json({ error: 'Internal Server Error' });
-        }
+    // Handle installation events
+    if (event === 'installation' || event === 'installation_repositories') {
+      console.log(`[GitHub App Webhook] Installation event processed`);
+      return res.status(200).json({ message: 'Installation event acknowledged' });
     }
 
-    res.json({ success: true });
+    // Handle push events
+    if (event !== 'push') {
+      return res.status(200).json({ message: `Event ${event} ignored` });
+    }
+
+    const { commits, repository, sender, installation } = req.body;
+
+    if (!commits || commits.length === 0) {
+      return res.status(200).json({ message: 'No commits to process' });
+    }
+
+    console.log(`[GitHub App Webhook] Processing ${commits.length} commits from ${repository?.full_name}`);
+
+    // Try to find the project this repository is linked to
+    const repoFullName = repository?.full_name;
+    const repoId = repository?.id?.toString();
+    let linkedProject = null;
+
+    if (repoFullName) {
+      const [repoOwner, repoName] = repoFullName.split('/');
+      linkedProject = await Project.findOne({
+        githubRepoOwner: repoOwner,
+        githubRepoName: repoName,
+      }).lean();
+    }
+
+    if (!linkedProject && repoId) {
+      linkedProject = await Project.findOne({ githubRepoIds: repoId }).lean();
+    }
+
+    const results = [];
+
+    for (const commit of commits) {
+      const message = commit.message;
+      const analysis = await analyzeCommit(message);
+
+      if (!analysis.found || !analysis.id) {
+        results.push({ commit: commit.id?.substring(0, 7), status: 'no_task_found' });
+        continue;
+      }
+
+      const displayId = analysis.id;
+
+      // Find task by displayId
+      let task = await ProjectTask.findOne({ displayId }).lean();
+
+      if (!task) {
+        // Try case-insensitive
+        const allTasks = await ProjectTask.find({
+          displayId: { $regex: `^${displayId.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, $options: 'i' }
+        }).lean();
+        task = allTasks[0] || null;
+      }
+
+      if (!task) {
+        results.push({ commit: commit.id?.substring(0, 7), displayId, status: 'task_not_found' });
+        continue;
+      }
+
+      // Update task with commit info
+      const updateData = {
+        commitMessage: message,
+        commitUrl: commit.url,
+        commitAuthor: sender?.login || commit.author?.name || 'Unknown',
+        commitTimestamp: commit.timestamp || new Date().toISOString(),
+      };
+
+      if (analysis.action === 'Complete') {
+        updateData.status = 'Done';
+      } else if (analysis.action === 'In Progress') {
+        updateData.status = 'In Progress';
+      }
+
+      await ProjectTask.updateOne({ _id: task._id }, { $set: updateData });
+
+      // Emit socket event
+      const step = await Step.findById(task.stepId).lean();
+      if (step) {
+        const projectData = await getProjectWithSteps(step.projectId);
+        const io = req.app.get('io');
+        if (io) {
+          io.emit('taskUpdated', {
+            task: normalizeDoc({ ...task, ...updateData }),
+            projectId: step.projectId.toString(),
+          });
+          io.emit('projectUpdate', {
+            projectId: projectData.id,
+            project: projectData,
+          });
+        }
+      }
+
+      results.push({
+        commit: commit.id?.substring(0, 7),
+        displayId,
+        status: 'updated',
+        action: analysis.action,
+      });
+    }
+
+    console.log(`[GitHub App Webhook] Processed ${results.length} commits`);
+    res.json({ message: 'Webhook processed', results });
+  } catch (error) {
+    console.error('[GitHub App Webhook] Error:', error);
+    res.status(500).json({ message: 'Webhook processing failed', error: error.message });
+  }
 });
 
 module.exports = router;

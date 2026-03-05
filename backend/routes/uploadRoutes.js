@@ -3,144 +3,145 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const mime = require('mime-types');
+const crypto = require('crypto');
 const cloudinary = require('cloudinary').v2;
-const verifyToken = require('../middleware/authMiddleware');
-const prisma = require('../lib/prisma');
+const authMiddleware = require('../middleware/authMiddleware');
+const User = require('../models/User');
+const { normalizeDoc } = require('../utils/normalize');
+const mime = require('mime-types');
 
-
+// Configure Cloudinary
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-
-const profileUpload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (allowed.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed.'));
-        }
-    },
-});
-
-router.post('/profile-photo', verifyToken, (req, res) => {
-    profileUpload.single('file')(req, res, async (err) => {
-        if (err instanceof multer.MulterError) {
-            return res.status(400).json({ message: `Upload error: ${err.message}` });
-        } else if (err) {
-            return res.status(400).json({ message: err.message });
-        }
-
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
-        }
-
-        try {
-            const uid = req.user.uid;
-
-            const result = await new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream(
-                    {
-                        folder: 'zync_profiles',
-                        public_id: uid,
-                        overwrite: true,
-                        resource_type: 'image',
-                        transformation: [
-                            { width: 512, height: 512, crop: 'fill', gravity: 'face' },
-                            { quality: 'auto', fetch_format: 'auto' }
-                        ],
-                    },
-                    (error, uploadResult) => {
-                        if (error) reject(error);
-                        else resolve(uploadResult);
-                    }
-                );
-                stream.end(req.file.buffer);
-            });
-
-
-            const updatedUser = await prisma.user.update({
-                where: { uid },
-                data: { photoURL: result.secure_url }
-            });
-
-            res.status(200).json({
-                message: 'Profile photo updated successfully',
-                photoURL: result.secure_url,
-                user: updatedUser,
-            });
-        } catch (error) {
-            console.error('Cloudinary upload error:', error);
-            if (error.code === 'P2025') {
-                return res.status(404).json({ message: 'User not found' });
-            }
-            res.status(500).json({ message: 'Failed to upload profile photo' });
-        }
-    });
-});
-
-
+// Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const diskStorage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = mime.extension(file.mimetype) || 'bin';
-        cb(null, uniqueSuffix + '.' + ext);
-    },
+// Blocked MIME types (security)
+const BLOCKED_MIME_TYPES = [
+  'image/svg+xml',
+  'text/html',
+  'application/xhtml+xml',
+  'application/javascript',
+  'text/javascript',
+];
+
+// Safe extension mapping based on MIME type
+const SAFE_EXTENSIONS = {
+  'text/plain': '.txt',
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf',
+  'application/zip': '.zip',
+  'application/json': '.json',
+  'text/csv': '.csv',
+};
+
+// Multer storage config
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = crypto.randomBytes(16).toString('hex');
+    // Derive extension from content type for safety instead of original filename
+    const contentType = file.mimetype;
+    const safeExt = SAFE_EXTENSIONS[contentType] || mime.extension(contentType)
+      ? '.' + mime.extension(contentType)
+      : path.extname(file.originalname);
+    cb(null, `${uniqueSuffix}${safeExt}`);
+  },
 });
 
-const genericUpload = multer({
-    storage: diskStorage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowedMimeTypes = [
-            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain',
-            'application/zip',
-            'application/x-zip-compressed',
-        ];
-        if (allowedMimeTypes.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Invalid file type.'));
-        }
-    },
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    if (BLOCKED_MIME_TYPES.includes(file.mimetype)) {
+      return cb(new Error('File type not allowed'), false);
+    }
+    cb(null, true);
+  },
 });
 
-router.post('/', (req, res) => {
-    genericUpload.single('file')(req, res, (err) => {
-        if (err instanceof multer.MulterError) {
-            return res.status(400).json({ message: `Upload error: ${err.message}` });
-        } else if (err) {
-            return res.status(400).json({ message: err.message });
-        }
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
-        }
-        const fileUrl = `/uploads/${req.file.filename}`;
-        res.status(200).json({
-            message: 'File uploaded successfully',
-            fileUrl,
-            filename: req.file.filename,
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
-        });
+// POST /api/upload — general file upload (chat attachments, etc.)
+router.post('/', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({
+      fileUrl,
+      originalname: req.file.originalname,
+      size: req.file.size,
     });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ message: 'Upload failed', error: error.message });
+  }
+});
+
+// POST /api/upload/profile-photo — upload profile photo to Cloudinary
+router.post('/profile-photo', authMiddleware, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const uid = req.user.uid;
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'zync-profiles',
+      public_id: `profile_${uid}`,
+      overwrite: true,
+      transformation: [
+        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+      ],
+    });
+
+    // Remove local temp file
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (e) {
+      console.warn('Failed to remove temp file:', e.message);
+    }
+
+    const photoURL = result.secure_url;
+
+    // Update user record
+    await User.updateOne({ uid }, { $set: { photoURL } });
+
+    res.json({ photoURL });
+  } catch (error) {
+    console.error('Error uploading profile photo:', error);
+    // Clean up temp file on error
+    if (req.file?.path) {
+      try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+    }
+    res.status(500).json({ message: 'Upload failed', error: error.message });
+  }
+});
+
+// Error handler for multer errors
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ message: err.message });
+  }
+  if (err.message === 'File type not allowed') {
+    return res.status(400).json({ message: 'File type not allowed' });
+  }
+  next(err);
 });
 
 module.exports = router;

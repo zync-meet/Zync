@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
-const prisma = require('../lib/prisma');
+const User = require('../models/User');
 const verifyToken = require('../middleware/authMiddleware');
+const { normalizeDoc } = require('../utils/normalize');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
@@ -40,17 +41,24 @@ router.post('/connect', verifyToken, async (req, res) => {
     const githubUsername = githubResponse.data.login;
     const encryptedToken = encryptToken(accessToken);
 
-    const updatedUser = await prisma.user.update({
-      where: { uid },
-      data: {
-        githubIntegration: {
-          connected: true,
-          accessToken: encryptedToken,
-          username: githubUsername,
-          connectedAt: new Date().toISOString()
+    const updatedUser = await User.findOneAndUpdate(
+      { uid },
+      {
+        $set: {
+          githubIntegration: {
+            connected: true,
+            accessToken: encryptedToken,
+            username: githubUsername,
+            connectedAt: new Date().toISOString()
+          }
         }
-      }
-    });
+      },
+      { new: true, lean: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     res.json({
       message: 'GitHub connected successfully',
@@ -62,9 +70,6 @@ router.post('/connect', verifyToken, async (req, res) => {
     if (error.response && error.response.status === 401) {
       return res.status(401).json({ message: 'Invalid GitHub access token' });
     }
-    if (error.code === 'P2025') {
-      return res.status(404).json({ message: 'User not found' });
-    }
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
@@ -74,24 +79,28 @@ router.delete('/disconnect', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    await prisma.user.update({
-      where: { uid },
-      data: {
-        githubIntegration: {
-          connected: false,
-          accessToken: null,
-          username: null,
-          installationId: null
+    const updated = await User.findOneAndUpdate(
+      { uid },
+      {
+        $set: {
+          githubIntegration: {
+            connected: false,
+            accessToken: null,
+            username: null,
+            installationId: null
+          }
         }
-      }
-    });
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     res.json({ message: 'GitHub disconnected successfully' });
   } catch (error) {
     console.error('Error disconnecting GitHub:', error.message);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ message: 'User not found' });
-    }
     res.status(500).json({ message: 'Failed to disconnect GitHub' });
   }
 });
@@ -139,17 +148,19 @@ router.post('/callback', verifyToken, async (req, res) => {
     const githubUser = userResponse.data;
     const encryptedToken = encryptToken(access_token);
 
-    await prisma.user.update({
-      where: { uid },
-      data: {
-        githubIntegration: {
-          connected: true,
-          accessToken: encryptedToken,
-          username: githubUser.login,
-          connectedAt: new Date().toISOString()
+    await User.findOneAndUpdate(
+      { uid },
+      {
+        $set: {
+          githubIntegration: {
+            connected: true,
+            accessToken: encryptedToken,
+            username: githubUser.login,
+            connectedAt: new Date().toISOString()
+          }
         }
       }
-    });
+    );
 
     res.json({
       message: 'GitHub connected successfully',
@@ -167,7 +178,7 @@ router.get('/repos', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await prisma.user.findUnique({ where: { uid } });
+    const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
     if (!user || !github?.connected || !github?.accessToken) {
@@ -204,12 +215,15 @@ router.get('/repos', verifyToken, async (req, res) => {
     console.error('Error fetching GitHub repos:', error.message);
 
     if (error.response && error.response.status === 401) {
-      await prisma.user.update({
-        where: { uid },
-        data: {
-          githubIntegration: { ...(await prisma.user.findUnique({ where: { uid } }))?.githubIntegration, connected: false }
+      const user = await User.findOne({ uid }).lean();
+      await User.updateOne(
+        { uid },
+        {
+          $set: {
+            githubIntegration: { ...user?.githubIntegration, connected: false }
+          }
         }
-      });
+      );
       return res.status(401).json({ message: 'GitHub token expired. Please reconnect.' });
     }
 
@@ -227,22 +241,25 @@ router.post('/install', verifyToken, async (req, res) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { uid } });
+    const user = await User.findOne({ uid }).lean();
     const existingGithub = user?.githubIntegration || {};
 
-    const updatedUser = await prisma.user.update({
-      where: { uid },
-      data: {
-        githubIntegration: {
-          ...existingGithub,
-          installationId: installationId.toString(),
-          connected: true,
-          connectedAt: new Date().toISOString()
+    const updatedUser = await User.findOneAndUpdate(
+      { uid },
+      {
+        $set: {
+          githubIntegration: {
+            ...existingGithub,
+            installationId: installationId.toString(),
+            connected: true,
+            connectedAt: new Date().toISOString()
+          }
         }
-      }
-    });
+      },
+      { new: true, lean: true }
+    );
 
-    res.json({ message: 'GitHub App Installation Connected', user: updatedUser });
+    res.json({ message: 'GitHub App Installation Connected', user: normalizeDoc(updatedUser) });
   } catch (error) {
     console.error('Error saving installation ID:', error);
     res.status(500).json({ message: 'Server error' });
@@ -252,18 +269,20 @@ router.post('/install', verifyToken, async (req, res) => {
 
 const disconnectGithub = async (uid, extra = {}) => {
   try {
-    const user = await prisma.user.findUnique({ where: { uid } });
+    const user = await User.findOne({ uid }).lean();
     const existing = user?.githubIntegration || {};
-    await prisma.user.update({
-      where: { uid },
-      data: {
-        githubIntegration: {
-          ...existing,
-          connected: false,
-          ...extra
+    await User.updateOne(
+      { uid },
+      {
+        $set: {
+          githubIntegration: {
+            ...existing,
+            connected: false,
+            ...extra
+          }
         }
       }
-    });
+    );
   } catch (e) {
     console.error('Failed to disconnect github:', e);
   }
@@ -274,7 +293,7 @@ router.get('/user-repos', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await prisma.user.findUnique({ where: { uid } });
+    const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
     if (!user || !github?.installationId) {
@@ -372,7 +391,7 @@ router.get('/stats', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await prisma.user.findUnique({ where: { uid } });
+    const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
     if (!user || !github?.connected || !github?.accessToken) {
@@ -411,7 +430,7 @@ router.get('/events', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await prisma.user.findUnique({ where: { uid } });
+    const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
     if (!user || !github?.connected || !github?.accessToken) {
@@ -455,7 +474,7 @@ router.get('/contributions', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    const user = await prisma.user.findUnique({ where: { uid } });
+    const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
     if (!user || !github?.connected || !github?.accessToken) {
@@ -534,7 +553,7 @@ router.get('/readme', verifyToken, async (req, res) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { uid } });
+    const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
     if (!user || !github?.connected || !github?.installationId) {
