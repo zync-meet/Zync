@@ -1,76 +1,58 @@
 import { useEffect, useRef } from "react";
-import { collection, query, where, onSnapshot, Timestamp } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { onMessage, ChatMessage } from "@/services/chatSocketService";
+import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 export const useChatNotifications = () => {
     const navigate = useNavigate();
 
-    const startTimeRef = useRef(Timestamp.now());
-    const notifiedIds = useRef(new Set());
+    const startTimeRef = useRef(Date.now());
+    const notifiedIds = useRef(new Set<string>());
 
     useEffect(() => {
         const unsubscribeAuth = auth.onAuthStateChanged((user) => {
             if (!user) {return;}
 
+            const unsubscribeMessage = onMessage((msg: ChatMessage) => {
+                // Only notify for messages targeted at the current user
+                if (msg.receiverId !== user.uid) return;
 
-            const q = query(
-                collection(db, "messages"),
-                where("receiverId", "==", user.uid)
-            );
+                const messageTime = new Date(msg.createdAt).getTime();
+                if (messageTime <= startTimeRef.current) return;
 
-            const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === "added") {
-                        const message = change.doc.data();
+                if (notifiedIds.current.has(msg.id)) return;
+                notifiedIds.current.add(msg.id);
 
+                const activeSection = localStorage.getItem("ZYNC-active-section");
 
-                        const messageTime = message.timestamp instanceof Timestamp ? message.timestamp : null;
+                if (activeSection !== "Chat") {
+                    toast(msg.senderName || "New Message", {
+                        description: msg.text ? (msg.text.length > 50 ? msg.text.substring(0, 50) + "..." : msg.text) : "Sent a file/image",
+                        duration: 3000,
+                        action: {
+                            label: "Open Chat",
+                            onClick: () => {
+                                localStorage.setItem("ZYNC-active-section", "Chat");
 
-                        if (messageTime && messageTime.toMillis() > startTimeRef.current.toMillis()) {
-
-
-                            const msgId = change.doc.id;
-                            if (notifiedIds.current.has(msgId)) {return;}
-                            notifiedIds.current.add(msgId);
-
-
-                            const activeSection = localStorage.getItem("ZYNC-active-section");
-
-                            if (activeSection !== "Chat") {
-                                toast(message.senderName || "New Message", {
-                                    description: message.text ? (message.text.length > 50 ? message.text.substring(0, 50) + "..." : message.text) : "Sent a file/image",
-                                    duration: 3000,
-                                    action: {
-                                        label: "Open Chat",
-                                        onClick: () => {
-                                            localStorage.setItem("ZYNC-active-section", "Chat");
-
-
-                                            const event = new CustomEvent("ZYNC-open-chat", {
-                                                detail: {
-                                                    uid: message.senderId,
-                                                    displayName: message.senderName,
-                                                    photoURL: message.senderPhotoURL
-                                                }
-                                            });
-                                            window.dispatchEvent(event);
-
-                                            navigate("/dashboard");
-                                        },
-                                    },
+                                const event = new CustomEvent("ZYNC-open-chat", {
+                                    detail: {
+                                        uid: msg.senderId,
+                                        displayName: msg.senderName,
+                                        photoURL: msg.senderPhotoURL
+                                    }
                                 });
-                            }
-                        }
-                    }
-                });
-            }, (error) => {
-                console.error("Notification Error:", error);
+                                window.dispatchEvent(event);
+
+                                navigate("/dashboard");
+                            },
+                        },
+                    });
+                }
             });
 
             return () => {
-                unsubscribeSnapshot();
+                unsubscribeMessage();
             };
         });
 

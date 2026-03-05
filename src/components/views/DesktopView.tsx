@@ -43,7 +43,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import {
   DropdownMenu,
@@ -64,7 +64,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { Switch } from "@/components/ui/switch";
-import { collection, query, where, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
+import { connectChat, disconnectChat } from "@/services/chatSocketService";
 import ChatView from "./ChatView";
 import SettingsView from "./SettingsView";
 import DesignView from "./DesignView";
@@ -525,30 +525,15 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   };
 
 
+  // Connect to WebSocket chat when user is authenticated
   useEffect(() => {
     if (!currentUser || isPreview) { return; }
 
+    connectChat(currentUser.uid);
 
-    const q = query(
-      collection(db, "messages"),
-      where("receiverId", "==", currentUser.uid),
-      where("delivered", "==", false)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docs.forEach(async (doc) => {
-        try {
-          await updateDoc(doc.ref, {
-            delivered: true,
-            deliveredAt: serverTimestamp()
-          });
-        } catch (error) {
-          console.error("Error marking message as delivered:", error);
-        }
-      });
-    });
-
-    return () => unsubscribe();
+    return () => {
+      disconnectChat();
+    };
   }, [currentUser, isPreview]);
 
   useEffect(() => {

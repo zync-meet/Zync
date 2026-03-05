@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-  updateDoc,
-  doc,
-  getDocs,
-  writeBatch
-} from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+  sendMessage as socketSendMessage,
+  markSeen,
+  clearChat as socketClearChat,
+  onMessage,
+  onDelivered,
+  onSeen,
+  onCleared,
+  emitTyping,
+  onTyping,
+  ChatMessage,
+} from "@/services/chatSocketService";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,7 +45,7 @@ interface ChatViewProps {
 
 const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -54,34 +53,82 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentUser = auth.currentUser;
 
+  // ── Load history from REST API + subscribe to real-time via socket ──
   useEffect(() => {
     if (!currentUser || !selectedUser) {return;}
 
-
     const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-    const messagesRef = collection(db, "messages");
-    const q = query(messagesRef, where("chatId", "==", chatId), orderBy("timestamp", "asc"));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setMessages(msgs);
+    // 1. Load existing messages from DB
+    const loadHistory = async () => {
+      try {
+        const token = await currentUser.getIdToken();
+        const res = await fetch(`${API_BASE_URL}/api/chat/history/${chatId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data: ChatMessage[] = await res.json();
+          setMessages(data);
 
-
-      msgs.forEach(async (msg: any) => {
-        if (msg.receiverId === currentUser.uid && !msg.seen) {
-          const msgRef = doc(db, "messages", msg.id);
-          await updateDoc(msgRef, {
-            seen: true,
-            seenAt: serverTimestamp()
-          });
+          // Mark unseen messages as seen
+          const unseenIds = data
+            .filter(m => m.receiverId === currentUser.uid && !m.seen)
+            .map(m => m.id);
+          if (unseenIds.length > 0) {
+            const senderIds = [...new Set(data.filter(m => unseenIds.includes(m.id)).map(m => m.senderId))];
+            senderIds.forEach(sid => {
+              const idsForSender = data.filter(m => unseenIds.includes(m.id) && m.senderId === sid).map(m => m.id);
+              markSeen(idsForSender, sid);
+            });
+          }
         }
-      });
+      } catch (err) {
+        console.error("Error loading chat history:", err);
+      }
+    };
+    loadHistory();
+
+    // 2. Listen for new real-time messages
+    const unsubMessage = onMessage((msg) => {
+      if (msg.chatId === chatId) {
+        setMessages(prev => {
+          // Deduplicate
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+
+        // Auto-mark as seen if I'm the receiver
+        if (msg.receiverId === currentUser.uid && !msg.seen) {
+          markSeen([msg.id], msg.senderId);
+        }
+      }
     });
 
-    return () => unsubscribe();
+    const unsubDelivered = onDelivered((data) => {
+      const ids = data.messageIds || (data.messageId ? [data.messageId] : []);
+      setMessages(prev =>
+        prev.map(m => ids.includes(m.id) ? { ...m, delivered: true, deliveredAt: new Date().toISOString() } : m)
+      );
+    });
+
+    const unsubSeen = onSeen((data) => {
+      setMessages(prev =>
+        prev.map(m => data.messageIds.includes(m.id) ? { ...m, seen: true, seenAt: new Date().toISOString() } : m)
+      );
+    });
+
+    const unsubCleared = onCleared((data) => {
+      if (data.chatId === chatId) {
+        setMessages([]);
+      }
+    });
+
+    return () => {
+      unsubMessage();
+      unsubDelivered();
+      unsubSeen();
+      unsubCleared();
+    };
   }, [currentUser, selectedUser]);
 
   const prevMessagesLengthRef = useRef(messages.length);
@@ -173,23 +220,17 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
     }
 
     const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-    const messagesRef = collection(db, "messages");
 
-    await addDoc(messagesRef, {
+    socketSendMessage({
       chatId,
       text: newMessage,
-      senderId: currentUser.uid,
-      senderName: currentUser.displayName || "Unknown User",
       receiverId: selectedUser.uid,
-      timestamp: serverTimestamp(),
-      seen: false,
-      seenAt: null,
-      delivered: false,
-      deliveredAt: null,
+      senderName: currentUser.displayName || "Unknown User",
+      senderPhotoURL: currentUser.photoURL || undefined,
       type: messageType,
-      fileUrl: fileUrl,
-      fileName: originalName,
-      fileSize: fileSize
+      fileUrl: fileUrl || undefined,
+      fileName: originalName || undefined,
+      fileSize: fileSize ? parseInt(String(fileSize), 10) : undefined,
     });
 
     setNewMessage("");
@@ -204,28 +245,8 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
     if (confirm("Are you sure you want to clear this chat history? This cannot be undone.")) {
       try {
         const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-        const messagesRef = collection(db, "messages");
-        const q = query(messagesRef, where("chatId", "==", chatId));
-
-        const snapshot = await getDocs(q);
-
-
-        const CHUNK_SIZE = 400;
-        const chunks = [];
-
-        for (let i = 0; i < snapshot.docs.length; i += CHUNK_SIZE) {
-          chunks.push(snapshot.docs.slice(i, i + CHUNK_SIZE));
-        }
-
-        for (const chunk of chunks) {
-          const batch = writeBatch(db);
-          chunk.forEach((doc) => {
-            batch.delete(doc.ref);
-          });
-          await batch.commit();
-        }
-
-        toast({ title: "Success", description: "Chat history cleared from database." });
+        socketClearChat(chatId, selectedUser.uid);
+        toast({ title: "Success", description: "Chat history cleared." });
       } catch (error) {
         console.error("Error clearing chat:", error);
         alert("Failed to clear chat");
@@ -412,7 +433,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
 
                   <div className={`text-[10px] mt-1 flex items-center gap-1 ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"
                     }`}>
-                    {msg.timestamp?.seconds ? format(new Date(msg.timestamp.seconds * 1000), "hh:mm a") : "Sending..."}
+                    {msg.createdAt ? format(new Date(msg.createdAt), "hh:mm a") : "Sending..."}
                     {isMe && (
                       <span>
                         {msg.seen ? (

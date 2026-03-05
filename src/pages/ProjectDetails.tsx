@@ -11,8 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Loader2, CheckCircle2, Circle, Server, Layout, Database, Share2, Plus, GripVertical, GitCommit, ExternalLink, Kanban, Trash2, Github, Bot, MoreVertical, Settings, MessageSquare, Wrench } from "lucide-react";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
-import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { sendMessage as socketSendMessage } from "@/services/chatSocketService";
 import KanbanBoard from "@/components/workspace/KanbanBoard";
 import { ActivityGraph } from "@/components/views/ActivityGraph";
 import { io } from "socket.io-client";
@@ -160,19 +160,16 @@ const ProjectDetails = () => {
       if (!receiver) {throw new Error("User not found");}
 
       const chatId = [auth.currentUser.uid, receiver.uid].sort().join("_");
-      await addDoc(collection(db, "messages"), {
+      socketSendMessage({
         chatId,
-        senderId: auth.currentUser.uid,
-        senderName: auth.currentUser.displayName || "Unknown",
         receiverId: receiver.uid,
+        senderName: auth.currentUser.displayName || "Unknown",
+        senderPhotoURL: auth.currentUser.photoURL || undefined,
         text: `Start collaborating on project "${project.name}"`,
         type: 'project-invite',
         projectId: project._id,
         projectName: project.name,
         projectOwnerId: project.ownerId,
-        timestamp: serverTimestamp(),
-        seen: false,
-        delivered: false
       });
 
       setIsShareDialogOpen(false);

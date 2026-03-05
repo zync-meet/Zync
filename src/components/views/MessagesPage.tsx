@@ -6,8 +6,8 @@ import { Search, Phone, Video, MoreVertical, FileText, Link as LinkIcon, Image a
 import ChatView from "./ChatView";
 import { getFullUrl, getUserName, getUserInitials, API_BASE_URL } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { auth, db } from "@/lib/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { sendMessage as socketSendMessage } from "@/services/chatSocketService";
 
 interface MessagesPageProps {
     users: any[];
@@ -229,16 +229,13 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
 
 
             const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-            await addDoc(collection(db, "messages"), {
+            socketSendMessage({
                 chatId,
                 text: requestMessage,
-                senderId: currentUser.uid,
-                senderName: currentUser.displayName || "Unknown",
                 receiverId: selectedUser.uid,
-                timestamp: serverTimestamp(),
-                seen: false,
-                delivered: false,
-                type: 'request'
+                senderName: currentUser.displayName || "Unknown",
+                senderPhotoURL: currentUser.photoURL || undefined,
+                type: 'request',
             });
 
             toast({ title: "Request Sent", description: "User has been notified via email." });
