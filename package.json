@@ -151,7 +151,7 @@
     "cross-env": "^7.0.3",
     "cz-conventional-changelog": "^3.3.0",
     "electron": "^40.4.0",
-    "electron-builder": "^26.7.0",
+    "electron-builder": "^26.8.1",
     "electron-devtools-installer": "^4.0.0",
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -182,6 +182,10 @@
     "tmp": "^0.2.3",
     "minimatch": "^10.2.1",
     "ajv": "^8.18.0",
+    "@develar/schema-utils": {
+      "ajv": "6.12.6",
+      "ajv-keywords": "3.5.2"
+    },
     "cross-spawn": "^7.0.6"
   }
 }
