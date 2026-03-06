@@ -1,29 +1,5 @@
-/**
- * =============================================================================
- * Process Information Collector — ZYNC Desktop
- * =============================================================================
- *
- * Collects and formats system process and performance metrics for diagnostics,
- * crash reports, and the "About" dialog in settings.
- *
- * @module electron/utils/process-info
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
 import { app } from 'electron';
 import * as os from 'os';
-// =============================================================================
-// Utility Functions
-// =============================================================================
-/**
- * Format bytes into a human-readable string.
- *
- * @param {number} bytes - Number of bytes
- * @param {number} [decimals=2] - Number of decimal places
- * @returns {string} Formatted string (e.g., "256.12 MB")
- */
 function formatBytes(bytes, decimals = 2) {
     if (bytes === 0)
         return '0 B';
@@ -32,12 +8,6 @@ function formatBytes(bytes, decimals = 2) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(decimals))} ${sizes[i]}`;
 }
-/**
- * Format seconds into a human-readable duration string.
- *
- * @param {number} seconds - Duration in seconds
- * @returns {string} Formatted string (e.g., "2h 15m 30s")
- */
 function formatDuration(seconds) {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -50,14 +20,6 @@ function formatDuration(seconds) {
     parts.push(`${secs}s`);
     return parts.join(' ');
 }
-// =============================================================================
-// Process Info Functions
-// =============================================================================
-/**
- * Get the current process memory usage.
- *
- * @returns {MemoryInfo} Memory usage in bytes
- */
 export function getMemoryUsage() {
     const usage = process.memoryUsage();
     return {
@@ -68,11 +30,6 @@ export function getMemoryUsage() {
         arrayBuffers: usage.arrayBuffers || 0,
     };
 }
-/**
- * Get formatted memory usage for display.
- *
- * @returns {Record<string, string>} Formatted memory values
- */
 export function getFormattedMemoryUsage() {
     const mem = getMemoryUsage();
     return {
@@ -83,11 +40,6 @@ export function getFormattedMemoryUsage() {
         arrayBuffers: formatBytes(mem.arrayBuffers),
     };
 }
-/**
- * Get system memory information.
- *
- * @returns {{ total: string; free: string; used: string; usagePercent: number }}
- */
 export function getSystemMemory() {
     const total = os.totalmem();
     const free = os.freemem();
@@ -99,11 +51,6 @@ export function getSystemMemory() {
         usagePercent: Math.round((used / total) * 100),
     };
 }
-/**
- * Get CPU model and core count.
- *
- * @returns {{ model: string; cores: number; speed: number }}
- */
 export function getCPUInfo() {
     const cpus = os.cpus();
     return {
@@ -112,30 +59,12 @@ export function getCPUInfo() {
         speed: cpus.length > 0 ? cpus[0].speed : 0,
     };
 }
-/**
- * Get app uptime in a human-readable format.
- *
- * @returns {string} Formatted uptime (e.g., "1h 30m 15s")
- */
 export function getAppUptime() {
     return formatDuration(process.uptime());
 }
-/**
- * Get system uptime in a human-readable format.
- *
- * @returns {string} Formatted uptime
- */
 export function getSystemUptime() {
     return formatDuration(os.uptime());
 }
-/**
- * Generate a complete diagnostic report.
- *
- * This report is useful for crash reports, bug reports, and the
- * settings → About section.
- *
- * @returns {DiagnosticReport} Full diagnostic report
- */
 export function generateDiagnosticReport() {
     const cpuInfo = getCPUInfo();
     const sysMemory = getSystemMemory();
@@ -181,11 +110,6 @@ export function generateDiagnosticReport() {
         timestamp: new Date().toISOString(),
     };
 }
-/**
- * Generate a summary string for quick diagnostics.
- *
- * @returns {string} Multi-line summary string
- */
 export function getDiagnosticSummary() {
     const report = generateDiagnosticReport();
     const lines = [

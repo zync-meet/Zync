@@ -1,28 +1,6 @@
-/**
- * =============================================================================
- * Logger Service — ZYNC Desktop
- * =============================================================================
- *
- * Structured logging service wrapping electron-log with support for:
- * - Multiple log levels (error, warn, info, verbose, debug, silly)
- * - File rotation (max 5 files, 5MB each)
- * - Structured JSON output for file transport
- * - Console pretty-printing for development
- * - Scoped logger creation for per-module prefixing
- *
- * @module electron/services/logger
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
 import { app } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
-// =============================================================================
-// Constants
-// =============================================================================
-/** Log level hierarchy (lower number = higher priority) */
 const LOG_LEVEL_PRIORITY = {
     error: 0,
     warn: 1,
@@ -31,75 +9,36 @@ const LOG_LEVEL_PRIORITY = {
     debug: 4,
     silly: 5,
 };
-/** Default configuration */
 const DEFAULT_CONFIG = {
     minLevel: 'info',
     maxFiles: 5,
-    maxFileSize: 5 * 1024 * 1024, // 5 MB
+    maxFileSize: 5 * 1024 * 1024,
     logDir: '',
     console: true,
     file: true,
     jsonFormat: false,
 };
-/** ANSI color codes for console output */
 const LEVEL_COLORS = {
-    error: '\x1b[31m', // Red
-    warn: '\x1b[33m', // Yellow
-    info: '\x1b[36m', // Cyan
-    verbose: '\x1b[35m', // Magenta
-    debug: '\x1b[90m', // Gray
-    silly: '\x1b[90m', // Gray
+    error: '\x1b[31m',
+    warn: '\x1b[33m',
+    info: '\x1b[36m',
+    verbose: '\x1b[35m',
+    debug: '\x1b[90m',
+    silly: '\x1b[90m',
 };
 const RESET_COLOR = '\x1b[0m';
-// =============================================================================
-// Logger Class
-// =============================================================================
-/**
- * Structured logger with file rotation and scoped instances.
- *
- * @example
- * ```ts
- * const log = Logger.create('main');
- * log.info('Application starting');
- * log.error('Failed to load', { code: 'ERR_LOAD' });
- * ```
- */
 export class Logger {
-    // =========================================================================
-    // Static Members
-    // =========================================================================
-    /** Shared configuration */
     static config = { ...DEFAULT_CONFIG };
-    /** All created logger instances */
     static instances = new Map();
-    /** Current log file write stream */
     static fileStream = null;
-    /** Current log file path */
     static currentLogFile = '';
-    /** Bytes written to current log file */
     static bytesWritten = 0;
-    // =========================================================================
-    // Instance Members
-    // =========================================================================
-    /** Scope name for this logger instance */
     scope;
-    // =========================================================================
-    // Constructor
-    // =========================================================================
     constructor(scope) {
         this.scope = scope;
     }
-    // =========================================================================
-    // Static: Configuration
-    // =========================================================================
-    /**
-     * Initialize the logger system with configuration.
-     *
-     * @param config — Partial configuration to merge with defaults
-     */
     static initialize(config = {}) {
         Logger.config = { ...DEFAULT_CONFIG, ...config };
-        // Resolve log directory
         if (!Logger.config.logDir) {
             try {
                 Logger.config.logDir = path.join(app.getPath('userData'), 'logs');
@@ -108,7 +47,6 @@ export class Logger {
                 Logger.config.logDir = path.join(process.cwd(), 'logs');
             }
         }
-        // Ensure log directory exists
         if (Logger.config.file) {
             try {
                 fs.mkdirSync(Logger.config.logDir, { recursive: true });
@@ -118,17 +56,10 @@ export class Logger {
                 Logger.config.file = false;
             }
         }
-        // Open initial log file
         if (Logger.config.file) {
             Logger.openLogFile();
         }
     }
-    /**
-     * Create or retrieve a scoped logger instance.
-     *
-     * @param scope — Module/component name for log prefixing
-     * @returns Logger instance
-     */
     static create(scope) {
         let instance = Logger.instances.get(scope);
         if (!instance) {
@@ -137,41 +68,25 @@ export class Logger {
         }
         return instance;
     }
-    // =========================================================================
-    // Log Methods
-    // =========================================================================
-    /** Log an error message */
     error(message, data) {
         this.log('error', message, data);
     }
-    /** Log a warning message */
     warn(message, data) {
         this.log('warn', message, data);
     }
-    /** Log an informational message */
     info(message, data) {
         this.log('info', message, data);
     }
-    /** Log a verbose message */
     verbose(message, data) {
         this.log('verbose', message, data);
     }
-    /** Log a debug message */
     debug(message, data) {
         this.log('debug', message, data);
     }
-    /** Log a silly (trace) message */
     silly(message, data) {
         this.log('silly', message, data);
     }
-    // =========================================================================
-    // Core Log Method
-    // =========================================================================
-    /**
-     * Core log method. Checks level, formats entry, writes to outputs.
-     */
     log(level, message, data) {
-        // Check if this level should be logged
         if (LOG_LEVEL_PRIORITY[level] > LOG_LEVEL_PRIORITY[Logger.config.minLevel]) {
             return;
         }
@@ -190,21 +105,13 @@ export class Logger {
                 entry.data = data;
             }
         }
-        // Write to console
         if (Logger.config.console) {
             Logger.writeToConsole(entry);
         }
-        // Write to file
         if (Logger.config.file) {
             Logger.writeToFile(entry);
         }
     }
-    // =========================================================================
-    // Output Writers
-    // =========================================================================
-    /**
-     * Write a log entry to the console with colors.
-     */
     static writeToConsole(entry) {
         const color = LEVEL_COLORS[entry.level];
         const levelPad = entry.level.toUpperCase().padEnd(7);
@@ -218,7 +125,6 @@ export class Logger {
         if (entry.stack) {
             line += `\n${entry.stack}`;
         }
-        // Use appropriate console method
         switch (entry.level) {
             case 'error':
                 console.error(line);
@@ -230,9 +136,6 @@ export class Logger {
                 console.log(line);
         }
     }
-    /**
-     * Write a log entry to the current log file.
-     */
     static writeToFile(entry) {
         if (!Logger.fileStream)
             return;
@@ -254,33 +157,24 @@ export class Logger {
         const bytes = Buffer.byteLength(line, 'utf-8');
         Logger.bytesWritten += bytes;
         Logger.fileStream.write(line);
-        // Rotate if size exceeded
         if (Logger.bytesWritten >= Logger.config.maxFileSize) {
             Logger.rotateLogFile();
         }
     }
-    // =========================================================================
-    // File Management
-    // =========================================================================
-    /**
-     * Open a new log file for writing.
-     */
     static openLogFile() {
         const filename = `zync-${new Date().toISOString().split('T')[0]}.log`;
         Logger.currentLogFile = path.join(Logger.config.logDir, filename);
         try {
             Logger.fileStream = fs.createWriteStream(Logger.currentLogFile, {
-                flags: 'a', // Append mode
+                flags: 'a',
                 encoding: 'utf-8',
             });
             Logger.bytesWritten = 0;
-            // Check existing file size
             try {
                 const stats = fs.statSync(Logger.currentLogFile);
                 Logger.bytesWritten = stats.size;
             }
             catch {
-                // File doesn't exist yet, that's fine
             }
         }
         catch (err) {
@@ -288,23 +182,17 @@ export class Logger {
             Logger.fileStream = null;
         }
     }
-    /**
-     * Rotate log files when the current file exceeds maxFileSize.
-     */
     static rotateLogFile() {
-        // Close current stream
         if (Logger.fileStream) {
             Logger.fileStream.end();
             Logger.fileStream = null;
         }
-        // Rename old log files
         try {
             const files = fs
                 .readdirSync(Logger.config.logDir)
                 .filter((f) => f.startsWith('zync-') && f.endsWith('.log'))
                 .sort()
                 .reverse();
-            // Remove excess files
             while (files.length >= Logger.config.maxFiles) {
                 const oldest = files.pop();
                 if (oldest) {
@@ -315,15 +203,8 @@ export class Logger {
         catch (err) {
             console.error('[LOGGER] Failed to rotate log files:', err);
         }
-        // Open new file
         Logger.openLogFile();
     }
-    // =========================================================================
-    // Cleanup
-    // =========================================================================
-    /**
-     * Close the logger and flush all buffers.
-     */
     static dispose() {
         if (Logger.fileStream) {
             Logger.fileStream.end();

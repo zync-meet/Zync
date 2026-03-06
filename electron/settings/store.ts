@@ -187,7 +187,7 @@ export function initSettingsStore(): void {
         migrations: {
             '>=1.0.0': (migrationStore) => {
 
-                const current = migrationStore.store as Record<string, unknown>;
+                const current = migrationStore.store as unknown as Record<string, unknown>;
                 for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
                     if (!(key in current)) {
                         migrationStore.set(key, value);

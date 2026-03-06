@@ -7,6 +7,7 @@ const ALLOWED_NAVIGATION_ORIGINS: string[] = [
     new URL(DEV_SERVER_URL).origin,
     'https://accounts.google.com',
     'https://github.com',
+    'https://zync-7c9b0.firebaseapp.com',
     'https://zync-it.vercel.app',
 ];
 
@@ -14,7 +15,8 @@ const ALLOWED_NAVIGATION_ORIGINS: string[] = [
 const ALLOWED_POPUP_ORIGINS: string[] = [
     'https://accounts.google.com',
     'https://github.com',
-    'https://zync-it.firebaseapp.com',
+    'https://zync-7c9b0.firebaseapp.com',
+    new URL(DEV_SERVER_URL).origin,
 ];
 
 
@@ -138,7 +140,7 @@ export function applyGlobalSecurity(): void {
             try {
                 const parsed = new URL(url);
                 if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-                    shell.openExternal(url).catch(() => {});
+                    shell.openExternal(url).catch(() => { });
                 }
             } catch {
 

@@ -1,41 +1,7 @@
-/**
- * =============================================================================
- * File System Helpers — ZYNC Desktop Application
- * =============================================================================
- *
- * Higher-level file system utilities built on top of Node.js `fs/promises`.
- * Provides atomic writes, safe reads, directory scanning, temp file management,
- * and size formatting for the ZYNC desktop application.
- *
- * All functions are async and use proper error handling to prevent crashes.
- * File operations that could fail due to permissions or missing directories
- * create parent directories automatically when needed.
- *
- * @module electron/utils/fs-helpers
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
 import { promises as fs, constants as fsConstants } from 'fs';
 import { join, dirname, extname, basename } from 'path';
 import { app } from 'electron';
 import { randomBytes } from 'crypto';
-// =============================================================================
-// Directory Operations
-// =============================================================================
-/**
- * Ensures a directory exists. Creates it (and all parent directories)
- * if it doesn't exist.
- *
- * @param {string} dirPath - Absolute path to the directory
- * @returns {Promise<FileOperationResult>} Result of the operation
- *
- * @example
- * ```typescript
- * await ensureDirectory('/home/user/.config/zync/data');
- * ```
- */
 export async function ensureDirectory(dirPath) {
     try {
         await fs.mkdir(dirPath, { recursive: true });
@@ -47,16 +13,6 @@ export async function ensureDirectory(dirPath) {
         return { success: false, error: message };
     }
 }
-/**
- * Lists contents of a directory.
- *
- * @param {string} dirPath - Absolute path to the directory
- * @param {object} [options] - Listing options
- * @param {boolean} [options.filesOnly=false] - Only return files
- * @param {boolean} [options.directoriesOnly=false] - Only return directories
- * @param {string[]} [options.extensions] - Filter by file extensions (e.g., ['.ts', '.js'])
- * @returns {Promise<FileOperationResult<FileInfo[]>>} Array of file info objects
- */
 export async function listDirectory(dirPath, options) {
     try {
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -74,7 +30,6 @@ export async function listDirectory(dirPath, options) {
                 modifiedAt: stats.mtime,
                 createdAt: stats.birthtime,
             };
-            // Apply filters
             if (options?.filesOnly && !info.isFile)
                 continue;
             if (options?.directoriesOnly && !info.isDirectory)
@@ -93,12 +48,6 @@ export async function listDirectory(dirPath, options) {
         return { success: false, error: message };
     }
 }
-/**
- * Recursively calculates the total size of a directory in bytes.
- *
- * @param {string} dirPath - Path to the directory
- * @returns {Promise<number>} Total size in bytes, or 0 on error
- */
 export async function getDirectorySize(dirPath) {
     let totalSize = 0;
     try {
@@ -120,15 +69,6 @@ export async function getDirectorySize(dirPath) {
     }
     return totalSize;
 }
-// =============================================================================
-// File Operations
-// =============================================================================
-/**
- * Reads a file as a UTF-8 string.
- *
- * @param {string} filePath - Absolute path to the file
- * @returns {Promise<FileOperationResult<string>>} The file content
- */
 export async function readTextFile(filePath) {
     try {
         const data = await fs.readFile(filePath, 'utf-8');
@@ -140,12 +80,6 @@ export async function readTextFile(filePath) {
         return { success: false, error: message };
     }
 }
-/**
- * Reads a file as a Buffer (binary).
- *
- * @param {string} filePath - Absolute path to the file
- * @returns {Promise<FileOperationResult<Buffer>>} The raw file buffer
- */
 export async function readBinaryFile(filePath) {
     try {
         const data = await fs.readFile(filePath);
@@ -157,47 +91,25 @@ export async function readBinaryFile(filePath) {
         return { success: false, error: message };
     }
 }
-/**
- * Writes a string to a file atomically.
- *
- * Writes to a temporary file first, then renames it to the target. This
- * prevents data corruption if the process crashes during the write.
- *
- * @param {string} filePath - Absolute path to write to
- * @param {string} content - The content to write
- * @returns {Promise<FileOperationResult>} Result of the operation
- */
 export async function writeTextFileAtomic(filePath, content) {
     const tmpPath = `${filePath}.${randomBytes(6).toString('hex')}.tmp`;
     try {
-        // Ensure parent directory exists
         await fs.mkdir(dirname(filePath), { recursive: true });
-        // Write to temporary file
         await fs.writeFile(tmpPath, content, 'utf-8');
-        // Atomic rename
         await fs.rename(tmpPath, filePath);
         return { success: true };
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         console.error(`[FS] Failed to write file atomically ${filePath}: ${message}`);
-        // Clean up temp file if it exists
         try {
             await fs.unlink(tmpPath);
         }
         catch {
-            // Ignore cleanup errors
         }
         return { success: false, error: message };
     }
 }
-/**
- * Writes binary data to a file, ensuring parent directories exist.
- *
- * @param {string} filePath - Absolute path to write to
- * @param {Buffer | Uint8Array} data - The binary data to write
- * @returns {Promise<FileOperationResult>} Result of the operation
- */
 export async function writeBinaryFile(filePath, data) {
     try {
         await fs.mkdir(dirname(filePath), { recursive: true });
@@ -210,13 +122,6 @@ export async function writeBinaryFile(filePath, data) {
         return { success: false, error: message };
     }
 }
-/**
- * Reads a JSON file and parses it.
- *
- * @template T - Expected type of the parsed JSON
- * @param {string} filePath - Path to the JSON file
- * @returns {Promise<FileOperationResult<T>>} The parsed data
- */
 export async function readJSONFile(filePath) {
     try {
         const raw = await fs.readFile(filePath, 'utf-8');
@@ -229,15 +134,6 @@ export async function readJSONFile(filePath) {
         return { success: false, error: message };
     }
 }
-/**
- * Writes data as a JSON file atomically.
- *
- * @template T - Type of the data to serialize
- * @param {string} filePath - Path to write the JSON file
- * @param {T} data - The data to serialize
- * @param {boolean} [pretty=true] - Whether to pretty-print the JSON
- * @returns {Promise<FileOperationResult>} Result of the operation
- */
 export async function writeJSONFile(filePath, data, pretty = true) {
     try {
         const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
@@ -249,15 +145,6 @@ export async function writeJSONFile(filePath, data, pretty = true) {
         return { success: false, error: message };
     }
 }
-// =============================================================================
-// File Checks
-// =============================================================================
-/**
- * Checks if a file or directory exists.
- *
- * @param {string} path - Absolute path to check
- * @returns {Promise<boolean>} True if exists
- */
 export async function pathExists(path) {
     try {
         await fs.access(path, fsConstants.F_OK);
@@ -267,12 +154,6 @@ export async function pathExists(path) {
         return false;
     }
 }
-/**
- * Checks if a file is readable.
- *
- * @param {string} filePath - Path to the file
- * @returns {Promise<boolean>} True if readable
- */
 export async function isReadable(filePath) {
     try {
         await fs.access(filePath, fsConstants.R_OK);
@@ -282,12 +163,6 @@ export async function isReadable(filePath) {
         return false;
     }
 }
-/**
- * Checks if a path is writable.
- *
- * @param {string} filePath - Path to check
- * @returns {Promise<boolean>} True if writable
- */
 export async function isWritable(filePath) {
     try {
         await fs.access(filePath, fsConstants.W_OK);
@@ -297,12 +172,6 @@ export async function isWritable(filePath) {
         return false;
     }
 }
-/**
- * Gets detailed information about a file.
- *
- * @param {string} filePath - Path to the file
- * @returns {Promise<FileOperationResult<FileInfo>>} File information
- */
 export async function getFileInfo(filePath) {
     try {
         const stats = await fs.stat(filePath);
@@ -326,15 +195,6 @@ export async function getFileInfo(filePath) {
         return { success: false, error: message };
     }
 }
-// =============================================================================
-// File Management
-// =============================================================================
-/**
- * Safely deletes a file. Does nothing if the file doesn't exist.
- *
- * @param {string} filePath - Path to the file
- * @returns {Promise<FileOperationResult>} Result of the operation
- */
 export async function safeDelete(filePath) {
     try {
         await fs.unlink(filePath);
@@ -342,7 +202,6 @@ export async function safeDelete(filePath) {
     }
     catch (err) {
         if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
-            // File doesn't exist, that's fine
             return { success: true };
         }
         const message = err instanceof Error ? err.message : String(err);
@@ -350,13 +209,6 @@ export async function safeDelete(filePath) {
         return { success: false, error: message };
     }
 }
-/**
- * Copies a file to a new location, creating parent directories as needed.
- *
- * @param {string} source - Source file path
- * @param {string} destination - Destination file path
- * @returns {Promise<FileOperationResult>} Result of the operation
- */
 export async function copyFile(source, destination) {
     try {
         await fs.mkdir(dirname(destination), { recursive: true });
@@ -369,16 +221,6 @@ export async function copyFile(source, destination) {
         return { success: false, error: message };
     }
 }
-/**
- * Moves a file to a new location.
- *
- * Attempts rename first (fast, same filesystem). Falls back to copy+delete
- * if rename fails (cross-filesystem move).
- *
- * @param {string} source - Source file path
- * @param {string} destination - Destination file path
- * @returns {Promise<FileOperationResult>} Result of the operation
- */
 export async function moveFile(source, destination) {
     try {
         await fs.mkdir(dirname(destination), { recursive: true });
@@ -386,7 +228,6 @@ export async function moveFile(source, destination) {
         return { success: true };
     }
     catch (err) {
-        // Cross-filesystem move: copy then delete
         if (err instanceof Error && 'code' in err && err.code === 'EXDEV') {
             const copyResult = await copyFile(source, destination);
             if (!copyResult.success)
@@ -398,24 +239,9 @@ export async function moveFile(source, destination) {
         return { success: false, error: message };
     }
 }
-// =============================================================================
-// Temporary Files
-// =============================================================================
-/**
- * Gets the ZYNC temporary directory path.
- *
- * @returns {string} Absolute path to the temp directory
- */
 export function getTempDir() {
     return join(app.getPath('temp'), 'zync');
 }
-/**
- * Creates a temporary file with the given content.
- *
- * @param {string} content - Content to write
- * @param {string} [extension='.tmp'] - File extension
- * @returns {Promise<FileOperationResult<string>>} Path to the temp file
- */
 export async function createTempFile(content, extension = '.tmp') {
     const tempDir = getTempDir();
     const fileName = `zync_${Date.now()}_${randomBytes(4).toString('hex')}${extension}`;
@@ -431,12 +257,6 @@ export async function createTempFile(content, extension = '.tmp') {
         return { success: false, error: message };
     }
 }
-/**
- * Cleans up ZYNC temporary files older than the specified age.
- *
- * @param {number} [maxAgeMs=86400000] - Max age in milliseconds (default: 24 hours)
- * @returns {Promise<number>} Number of files deleted
- */
 export async function cleanupTempFiles(maxAgeMs = 86400000) {
     const tempDir = getTempDir();
     let deleted = 0;
@@ -458,7 +278,6 @@ export async function cleanupTempFiles(maxAgeMs = 86400000) {
                 }
             }
             catch {
-                // Skip files that can't be stat'd or deleted
             }
         }
         console.info(`[FS] Cleaned up ${deleted} temporary files`);
@@ -469,23 +288,6 @@ export async function cleanupTempFiles(maxAgeMs = 86400000) {
     }
     return deleted;
 }
-// =============================================================================
-// Size Formatting
-// =============================================================================
-/**
- * Formats a byte count into a human-readable string.
- *
- * @param {number} bytes - Number of bytes
- * @param {number} [decimals=2] - Number of decimal places
- * @returns {string} Formatted string (e.g., "1.23 MB")
- *
- * @example
- * ```typescript
- * formatBytes(1024);       // '1.00 KB'
- * formatBytes(1048576);    // '1.00 MB'
- * formatBytes(0);          // '0 Bytes'
- * ```
- */
 export function formatBytes(bytes, decimals = 2) {
     if (bytes === 0)
         return '0 Bytes';

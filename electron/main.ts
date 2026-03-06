@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, nativeImage } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -52,6 +52,13 @@ const isDev = !app.isPackaged;
 
 
 const log = logger;
+
+
+// On Linux, set WM_CLASS to match the .desktop file for proper taskbar icon
+if (process.platform === 'linux') {
+    app.commandLine.appendSwitch('class', 'zync');
+    app.name = 'zync';
+}
 
 
 initializeDeepLinks();
@@ -139,6 +146,9 @@ function createMainWindow(): void {
     updateSplashStatus('Creating main window…');
     const state = loadWindowState();
 
+    const iconPath = path.join(app.getAppPath(), 'electron', 'assets', 'icon.png');
+    const appIcon = nativeImage.createFromPath(iconPath);
+
     mainWindow = new BrowserWindow({
         x: state.x,
         y: state.y,
@@ -147,7 +157,7 @@ function createMainWindow(): void {
         minWidth: MIN_WINDOW_WIDTH,
         minHeight: MIN_WINDOW_HEIGHT,
         title: APP_NAME,
-        icon: path.join(app.getAppPath(), 'electron', 'assets', 'icon.png'),
+        icon: appIcon,
         show: false,
         backgroundColor: '#0f0f1a',
         webPreferences: {
@@ -167,7 +177,7 @@ function createMainWindow(): void {
     hardenWindow(mainWindow);
 
 
-    setupPermissionHandlers(mainWindow.webContents.session);
+    setupPermissionHandlers();
 
 
     attachRendererCrashHandler(mainWindow, 'main-window');

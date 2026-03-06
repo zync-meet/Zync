@@ -1,42 +1,3 @@
-/**
- * =============================================================================
- * Throttle & Debounce Utilities — ZYNC Desktop
- * =============================================================================
- *
- * Provides throttle and debounce functions for rate-limiting event handlers
- * in the main process. Useful for window resize/move events, search input,
- * and other high-frequency operations.
- *
- * @module electron/utils/throttle
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-// =============================================================================
-// Throttle
-// =============================================================================
-/**
- * Creates a throttled version of a function that only invokes the original
- * function at most once per every `wait` milliseconds.
- *
- * Useful for rate-limiting window resize/move events and periodic auto-saves.
- *
- * @template T - The function type
- * @param {T} func - The function to throttle
- * @param {number} wait - Minimum milliseconds between invocations
- * @param {ThrottleOptions} [options] - Throttle options
- * @returns {ThrottledFunction<T>} The throttled function
- *
- * @example
- * ```typescript
- * const throttledResize = throttle(() => {
- *   saveWindowBounds();
- * }, 250);
- *
- * mainWindow.on('resize', throttledResize);
- * ```
- */
 export function throttle(func, wait, options = {}) {
     const { leading = true, trailing = true } = options;
     let timeout = null;
@@ -101,31 +62,6 @@ export function throttle(func, wait, options = {}) {
     });
     return throttled;
 }
-// =============================================================================
-// Debounce
-// =============================================================================
-/**
- * Creates a debounced version of a function that delays invocation until
- * after `wait` milliseconds have elapsed since the last invocation.
- *
- * Useful for search input handlers, auto-save after editing, and similar
- * patterns where you want to wait for the user to stop an action.
- *
- * @template T - The function type
- * @param {T} func - The function to debounce
- * @param {number} wait - Milliseconds to wait after last invocation
- * @param {DebounceOptions} [options] - Debounce options
- * @returns {ThrottledFunction<T>} The debounced function
- *
- * @example
- * ```typescript
- * const debouncedSave = debounce(async () => {
- *   await saveSettings();
- * }, 500);
- *
- * settingsStore.onDidChange('*', debouncedSave);
- * ```
- */
 export function debounce(func, wait, options = {}) {
     const { leading = false, maxWait } = options;
     let timeout = null;
@@ -148,18 +84,15 @@ export function debounce(func, wait, options = {}) {
         if (timeout) {
             clearTimeout(timeout);
         }
-        // Leading edge invocation
         if (leading && !timeout) {
             invokeFunc(args);
         }
-        // Set the trailing edge timer
         timeout = setTimeout(() => {
             timeout = null;
             if (!leading && lastArgs) {
                 invokeFunc(lastArgs);
             }
         }, wait);
-        // Set maxWait timer if configured and not already running
         if (maxWait !== undefined && !maxTimeout && !leading) {
             maxTimeout = setTimeout(() => {
                 maxTimeout = null;
@@ -204,13 +137,6 @@ export function debounce(func, wait, options = {}) {
     });
     return debounced;
 }
-/**
- * Creates a rate limiter.
- *
- * @param {number} maxCalls - Maximum number of calls allowed
- * @param {number} windowMs - Time window in milliseconds
- * @returns {RateLimiter} Rate limiter instance
- */
 export function createRateLimiter(maxCalls, windowMs) {
     let calls = [];
     function cleanup() {

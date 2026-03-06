@@ -1,41 +1,11 @@
-/**
- * =============================================================================
- * Window Interfaces — ZYNC Desktop Application
- * =============================================================================
- *
- * TypeScript interfaces for window management, state persistence, and
- * multi-window coordination in the Electron main process.
- *
- * @module electron/interfaces/window
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-/**
- * Window type identifiers used to distinguish between different
- * application windows.
- *
- * @enum WindowType
- */
 export var WindowType;
 (function (WindowType) {
-    /** The main application window */
     WindowType["MAIN"] = "main";
-    /** The native settings window */
     WindowType["SETTINGS"] = "settings";
-    /** The about dialog window */
     WindowType["ABOUT"] = "about";
-    /** The keyboard shortcuts reference window */
     WindowType["SHORTCUTS"] = "shortcuts";
-    /** The splash screen shown during startup */
     WindowType["SPLASH"] = "splash";
 })(WindowType || (WindowType = {}));
-/**
- * Default window state values.
- *
- * @const DEFAULT_WINDOW_STATE
- */
 export const DEFAULT_WINDOW_STATE = {
     x: 0,
     y: 0,
@@ -44,11 +14,6 @@ export const DEFAULT_WINDOW_STATE = {
     isMaximized: false,
     isFullScreen: false,
 };
-/**
- * Window event names for internal event handling.
- *
- * @enum WindowEvent
- */
 export var WindowEvent;
 (function (WindowEvent) {
     WindowEvent["CREATED"] = "window:created";

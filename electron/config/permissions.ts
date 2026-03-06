@@ -101,7 +101,7 @@ function handlePermissionRequest(
 
 
 function handlePermissionCheck(
-    _webContents: WebContents,
+    _webContents: WebContents | null,
     permission: string,
     requestingOrigin: string,
 ): boolean {

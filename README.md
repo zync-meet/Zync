@@ -61,6 +61,10 @@
   - [Preload Scripts](#preload-scripts)
   - [IPC Communication](#ipc-communication)
   - [Security Model](#security-model)
+- [User Profile Data Storage](#user-profile-data-storage)
+  - [Profile Information (MongoDB)](#profile-information-mongodb)
+  - [Profile Photo (Cloudinary)](#profile-photo-cloudinary)
+  - [New User Notifications](#new-user-notifications)
 - [Configuration](#configuration)
   - [Application Settings](#application-settings)
   - [Keyboard Shortcuts](#keyboard-shortcuts)
@@ -820,6 +824,48 @@ channel whitelisting:
 
 6. **HTTPS Only**: The application only loads content over HTTPS in
    production mode.
+
+---
+
+## User Profile Data Storage
+
+When a user creates an account or updates their profile, the data is stored across the following services:
+
+### Profile Information (MongoDB)
+
+All user profile fields are stored in the **MongoDB** database (`ZYNC_USER` → `users` collection). This includes:
+
+| Field | Description | Updated When |
+|-------|-------------|--------------|
+| `displayName` | User's display name | Account creation / profile edit |
+| `firstName`, `lastName` | First and last name | Account creation / profile edit |
+| `email` | Email address | Account creation |
+| `photoURL` | Cloudinary URL to profile photo | Profile photo upload |
+| `phoneNumber` | Phone number | Profile edit |
+| `status`, `lastSeen` | Online presence | Every login / disconnect |
+| `githubIntegration` | Linked GitHub account details | GitHub OAuth sync |
+
+**Backend route**: `POST /api/users/sync` (`backend/routes/userRoutes.js`) — called automatically on every login via the `useUserSync` hook (`src/hooks/use-user-sync.ts`). If the user already exists, only `status`, `lastSeen`, and missing fields are updated. If the user is new, a full record is created.
+
+**Profile updates**: `PUT /api/users/:uid` (`backend/routes/userRoutes.js`) — called when a user edits their profile from the Settings page.
+
+### Profile Photo (Cloudinary)
+
+Profile photos are uploaded to **Cloudinary** under the `zync-profiles` folder.
+
+- **Backend route**: `POST /api/upload/profile-photo` (`backend/routes/uploadRoutes.js`)
+- The image is cropped to **400×400** with face detection (`gravity: face`)
+- Stored as `profile_{uid}` in Cloudinary (overwrites on re-upload)
+- The resulting Cloudinary URL is saved back to the `photoURL` field in MongoDB
+
+### New User Notifications
+
+When a **new** user creates an account (first-time sync only):
+
+1. **Admin Email** — A notification email is sent to `consolemaster.app@gmail.com` with the new user's name, email, and UID
+2. **Google Sheets** — A new row is appended to the tracking spreadsheet with the user's name, email, and registration date (`backend/services/sheetLogger.js`)
+
+> **Note:** These notifications are triggered only once per user — on their very first login when their record is created in the database. Subsequent logins do not trigger any email or sheet logging.
 
 ---
 

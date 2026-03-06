@@ -1,28 +1,4 @@
-/**
- * =============================================================================
- * Keyboard Shortcut Definitions — ZYNC Desktop
- * =============================================================================
- *
- * Centralized definitions for all keyboard shortcuts used in menus,
- * global shortcuts, and in-app key bindings. Provides platform-aware
- * accelerator strings.
- *
- * @module electron/config/shortcuts
- * @author ZYNC Team
- * @version 1.0.0
- * @license MIT
- * =============================================================================
- */
-// =============================================================================
-// Platform Helpers
-// =============================================================================
 const isMac = process.platform === 'darwin';
-/**
- * Get the platform-appropriate modifier key name.
- *
- * @param {'cmd' | 'ctrl' | 'alt' | 'shift'} modifier - Modifier key
- * @returns {string} Platform key name
- */
 export function getModifierKey(modifier) {
     switch (modifier) {
         case 'cmd':
@@ -35,12 +11,6 @@ export function getModifierKey(modifier) {
             return isMac ? '⇧' : 'Shift';
     }
 }
-/**
- * Convert an Electron accelerator to a human-readable format.
- *
- * @param {string} accelerator - Electron accelerator string
- * @returns {string} Human-readable shortcut
- */
 export function formatAccelerator(accelerator) {
     return accelerator
         .replace('CommandOrControl', isMac ? '⌘' : 'Ctrl')
@@ -59,14 +29,7 @@ export function formatAccelerator(accelerator) {
         .replace('ArrowRight', '→')
         .replace(/\+/g, isMac ? '' : ' + ');
 }
-// =============================================================================
-// Shortcut Definitions
-// =============================================================================
-/**
- * All keyboard shortcuts used in the application.
- */
 export const SHORTCUTS = {
-    // ─── General ───────────────────────────────────────────────────────
     OPEN_SETTINGS: {
         id: 'open-settings',
         label: 'Open Settings',
@@ -94,7 +57,6 @@ export const SHORTCUTS = {
         customizable: true,
         description: 'Open the command palette / search',
     },
-    // ─── Navigation ────────────────────────────────────────────────────
     GO_BACK: {
         id: 'go-back',
         label: 'Go Back',
@@ -124,7 +86,6 @@ export const SHORTCUTS = {
         customizable: true,
         description: 'Navigate to the home page',
     },
-    // ─── Editing ───────────────────────────────────────────────────────
     UNDO: {
         id: 'undo',
         label: 'Undo',
@@ -179,7 +140,6 @@ export const SHORTCUTS = {
         customizable: false,
         description: 'Select all content',
     },
-    // ─── View ──────────────────────────────────────────────────────────
     ZOOM_IN: {
         id: 'zoom-in',
         label: 'Zoom In',
@@ -226,7 +186,6 @@ export const SHORTCUTS = {
         customizable: true,
         description: 'Show/hide the sidebar',
     },
-    // ─── Window ────────────────────────────────────────────────────────
     NEW_WINDOW: {
         id: 'new-window',
         label: 'New Window',
@@ -254,7 +213,6 @@ export const SHORTCUTS = {
         customizable: false,
         description: 'Minimize the window',
     },
-    // ─── Tools ─────────────────────────────────────────────────────────
     QUICK_NOTE: {
         id: 'quick-note',
         label: 'Quick Note',
@@ -282,7 +240,6 @@ export const SHORTCUTS = {
         customizable: true,
         description: 'Toggle focus mode',
     },
-    // ─── Development ───────────────────────────────────────────────────
     TOGGLE_DEV_TOOLS: {
         id: 'toggle-dev-tools',
         label: 'Toggle DevTools',
@@ -311,40 +268,15 @@ export const SHORTCUTS = {
         description: 'Reload ignoring cache',
     },
 };
-// =============================================================================
-// Query Functions
-// =============================================================================
-/**
- * Get all shortcuts in a specific category.
- *
- * @param {ShortcutCategory} category - Category to filter by
- * @returns {ShortcutDefinition[]} Shortcuts in the category
- */
 export function getShortcutsByCategory(category) {
     return Object.values(SHORTCUTS).filter((s) => s.category === category);
 }
-/**
- * Get all global shortcuts (work when app is not focused).
- *
- * @returns {ShortcutDefinition[]} Global shortcuts
- */
 export function getGlobalShortcuts() {
     return Object.values(SHORTCUTS).filter((s) => s.global);
 }
-/**
- * Get all customizable shortcuts.
- *
- * @returns {ShortcutDefinition[]} Customizable shortcuts
- */
 export function getCustomizableShortcuts() {
     return Object.values(SHORTCUTS).filter((s) => s.customizable);
 }
-/**
- * Get the platform-appropriate accelerator for a shortcut.
- *
- * @param {string} id - Shortcut ID
- * @returns {string | undefined} Accelerator string
- */
 export function getAccelerator(id) {
     const shortcut = Object.values(SHORTCUTS).find((s) => s.id === id);
     if (!shortcut)
