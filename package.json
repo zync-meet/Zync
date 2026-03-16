@@ -129,7 +129,7 @@
     "winston": "^3.17.0",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.29",
-    "zod": "^3.25.76"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
