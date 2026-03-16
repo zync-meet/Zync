@@ -1,169 +1,225 @@
 import { Link } from "react-router-dom";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/landing/Footer";
+import { Separator } from "@/components/ui/separator";
 
 const Privacy = () => {
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: "#0B0E14", color: "#A4ADB3" }}
-    >
-      <div className="mx-auto max-w-3xl px-6 py-12">
-        {/* Header */}
-        <header className="mb-12 flex items-center justify-between">
-          <span className="text-xl font-semibold" style={{ color: "#FFFFFF" }}>
-            ServX
-          </span>
-          <Link
-            to="/dashboard"
-            className="text-sm"
-            style={{ color: "#00C2CB" }}
-          >
-            Back to Dashboard
-          </Link>
-        </header>
-
-        {/* Content */}
-        <main className="space-y-8">
-          <h1
-            className="text-3xl font-bold"
-            style={{ color: "#FFFFFF" }}
-          >
-            Privacy Policy
-          </h1>
-          <p className="text-sm" style={{ color: "#A4ADB3" }}>
-            Last updated:{" "}
-            {new Date().toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-
-          <section className="space-y-4">
-            <h2
-              className="text-xl font-semibold"
-              style={{ color: "#FFFFFF" }}
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+      <main className="flex-1 container mx-auto px-6 pt-32 pb-20 max-w-3xl">
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <Link
+              to="/"
+              className="text-sm text-primary hover:text-primary/90 transition-colors"
             >
-              Introduction
-            </h2>
-            <p className="leading-relaxed" style={{ color: "#A4ADB3" }}>
-              ServX (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to
-              protecting your privacy. This Privacy Policy explains how we collect,
-              use, disclose, and safeguard your information when you use our
-              open-source infrastructure command center. By using ServX, you consent
-              to the practices described in this policy.
+              ← Back to Home
+            </Link>
+            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-foreground">
+              Privacy Policy
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Last updated:{" "}
+              {new Date().toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </p>
-          </section>
+          </div>
 
-          <section className="space-y-4">
-            <h2
-              className="text-xl font-semibold"
-              style={{ color: "#FFFFFF" }}
-            >
-              Information We Collect
-            </h2>
-            <p className="leading-relaxed" style={{ color: "#A4ADB3" }}>
-              We collect information you provide directly, including account
-              credentials, email addresses, and configuration data necessary to
-              operate the dashboard. We also collect usage data to improve our
-              services and ensure security.
-            </p>
-          </section>
+          <Separator className="my-8" />
 
-          <section className="space-y-4">
-            <h2
-              className="text-xl font-semibold"
-              style={{ color: "#FFFFFF" }}
-            >
-              Google Workspace API Usage
-            </h2>
-            <p className="leading-relaxed" style={{ color: "#A4ADB3" }}>
-              ServX uses Google OAuth to authenticate users. We request the
-              https://www.googleapis.com/auth/gmail.send scope solely to allow the
-              ServX platform to dispatch automated system alerts (such as server
-              crash notifications) from your email address. ServX does not request,
-              and does not have the ability to read, store, delete, or share your
-              personal inbox data or existing emails.
-            </p>
-          </section>
+          <div className="space-y-8 leading-relaxed text-muted-foreground">
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Introduction
+              </h2>
+              <p>
+                ZYNC (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is a real-time
+                collaboration desktop application designed to streamline team
+                workflows. This Privacy Policy explains our practices regarding
+                the collection, use, and disclosure of your information,
+                including data received from Google APIs.
+              </p>
+            </section>
 
-          <section className="space-y-4">
-            <h2
-              className="text-xl font-semibold"
-              style={{ color: "#FFFFFF" }}
-            >
-              Third-Party API Key Storage
-            </h2>
-            <p className="leading-relaxed" style={{ color: "#A4ADB3" }}>
-              Third-party API keys (including but not limited to Vercel, Render, and
-              other service providers) that you provide to ServX are encrypted and
-              stored solely for your own dashboard functionality. These keys are used
-              exclusively to enable features you have configured. We never share,
-              sell, or disclose your API keys to third parties. Your keys remain
-              under your control and are used only to perform actions you authorize
-              through the dashboard.
-            </p>
-          </section>
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Information We Collect
+              </h2>
+              <p>
+                To provide our core collaboration features, ZYNC collects the
+                following information:
+              </p>
+              <div className="space-y-3 pl-4 border-l-2 border-border">
+                <div>
+                  <h3 className="font-medium text-foreground">
+                    Google User Data
+                  </h3>
+                  <p className="mt-1">
+                    When you connect your Google Account to ZYNC, we request
+                    access to your <strong>Google Calendar</strong> data via
+                    OAuth 2.0. The specific information we collect includes:
+                    calendar event summaries, start/end times, descriptions of
+                    team meetings, and names/identifiers of calendars you choose
+                    to synchronize.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">
+                    Local Application Data
+                  </h3>
+                  <p className="mt-1">
+                    Application settings (theme, notification preferences) and
+                    technical logs stored locally on your device for debugging.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">
+                    Profile Information
+                  </h3>
+                  <p className="mt-1">
+                    User profile data (display name, email, photo) is stored in
+                    our database and Cloudinary for profile photos. This data is
+                    used solely for authentication, workspace management, and
+                    collaboration features.
+                  </p>
+                </div>
+              </div>
+            </section>
 
-          <section className="space-y-4">
-            <h2
-              className="text-xl font-semibold"
-              style={{ color: "#FFFFFF" }}
-            >
-              Data Security
-            </h2>
-            <p className="leading-relaxed" style={{ color: "#A4ADB3" }}>
-              We implement industry-standard security measures to protect your data,
-              including encryption of sensitive credentials and secure transmission
-              protocols. However, no method of transmission over the Internet is
-              completely secure, and we cannot guarantee absolute security.
-            </p>
-          </section>
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Google Workspace API Usage
+              </h2>
+              <p>
+                ZYNC uses Google OAuth to authenticate users and integrate with
+                Google Calendar. We request the{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-sm">
+                  https://www.googleapis.com/auth/calendar
+                </code>{" "}
+                scope solely to display your team meetings, synchronize
+                schedules, and provide desktop notifications for upcoming
+                meetings. ZYNC does not request, and does not have the ability
+                to read, store, delete, or share your personal inbox data or
+                existing emails. All calendar data is processed and cached
+                locally on your device. We do not store your calendar data on
+                centralized external servers, nor do we share or sell this
+                information to third parties.
+              </p>
+            </section>
 
-          <section className="space-y-4">
-            <h2
-              className="text-xl font-semibold"
-              style={{ color: "#FFFFFF" }}
-            >
-              Data Sharing
-            </h2>
-            <p className="leading-relaxed" style={{ color: "#A4ADB3" }}>
-              We do not sell, trade, or rent your personal information to third
-              parties. We may share information only when required by law, to
-              protect our rights, or with your explicit consent.
-            </p>
-          </section>
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Google API &quot;Limited Use&quot; Disclosure
+              </h2>
+              <p>
+                ZYNC&apos;s use and transfer to any other app of information
+                received from Google APIs will adhere to the{" "}
+                <a
+                  href="https://developers.google.com/terms/api-services-user-data-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Google API Services User Data Policy
+                </a>
+                , including the Limited Use requirements.
+              </p>
+            </section>
 
-          <section className="space-y-4">
-            <h2
-              className="text-xl font-semibold"
-              style={{ color: "#FFFFFF" }}
-            >
-              Contact
-            </h2>
-            <p className="leading-relaxed" style={{ color: "#A4ADB3" }}>
-              If you have questions about this Privacy Policy, please contact us at{" "}
-              <a
-                href="mailto:servx.lab@gmail.com"
-                style={{ color: "#00C2CB" }}
-              >
-                servx.lab@gmail.com
-              </a>
-              .
-            </p>
-          </section>
-        </main>
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                How We Use Your Information
+              </h2>
+              <p>
+                We use Google Calendar data exclusively to: (1) display team
+                meetings in the ZYNC dashboard, (2) synchronize schedules so
+                meeting changes in Google Calendar are reflected in ZYNC in
+                real-time, and (3) provide desktop notifications for upcoming
+                meetings. We do not use your Google Calendar data for marketing,
+                profiling, or selling to third parties.
+              </p>
+            </section>
 
-        {/* Footer */}
-        <footer className="mt-16 pt-8 border-t" style={{ borderColor: "#2a2f3a" }}>
-          <Link
-            to="/dashboard"
-            className="text-sm"
-            style={{ color: "#00C2CB" }}
-          >
-            Back to Dashboard
-          </Link>
-        </footer>
-      </div>
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Data Retention and Deletion
+              </h2>
+              <p>
+                Google Calendar data is cached locally and cleared when you log
+                out or disconnect the integration. OAuth tokens are stored
+                securely in your system&apos;s credentials manager. You can
+                revoke ZYNC&apos;s access at any time via your{" "}
+                <a
+                  href="https://myaccount.google.com/permissions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Google Security Settings
+                </a>
+                .
+              </p>
+            </section>
+
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Third-Party Disclosure
+              </h2>
+              <p>
+                We do not share your personal information or Google Calendar
+                data with third-party services, except as required to provide
+                core functionality (e.g., Firebase for real-time
+                synchronization, Cloudinary for profile photos) or as required
+                by law.
+              </p>
+            </section>
+
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Security
+              </h2>
+              <p>
+                We implement industry-standard security measures including
+                encryption in transit (HTTPS/TLS) and Electron&apos;s context
+                isolation and sandboxing to protect your local data.
+              </p>
+            </section>
+
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Changes to This Policy
+              </h2>
+              <p>
+                We may update this Privacy Policy from time to time. We will
+                notify you of significant changes via the application or our
+                official website.
+              </p>
+            </section>
+
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                Contact
+              </h2>
+              <p>
+                If you have questions about this Privacy Policy or our data
+                practices, please contact us at{" "}
+                <a
+                  href="mailto:lakshya@zync.io"
+                  className="text-primary hover:underline"
+                >
+                  lakshya@zync.io
+                </a>
+                .
+              </p>
+            </section>
+          </div>
+        </div>
+      </main>
+      <Footer />
     </div>
   );
 };

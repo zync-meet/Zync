@@ -16,8 +16,8 @@ const Footer = () => {
       { name: "Get Started", action: () => scrollToSection('cta') },
     ],
     Legal: [
-      { name: "Privacy Policy", href: "/privacy-policy" },
-      { name: "Terms of Service", href: "/privacy-policy" },
+      { name: "Privacy Policy", href: "/privacy" },
+      { name: "Terms of Service", href: "/terms" },
     ],
   };
 
@@ -100,7 +100,7 @@ const Footer = () => {
             © 2026 Zync · Public Beta 1.0
           </p>
           <div className="flex gap-5">
-            <Link to="/privacy-policy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
               Privacy
             </Link>
           </div>
