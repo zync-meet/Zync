@@ -35,7 +35,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@google/generative-ai": "^0.24.1",
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "^5.2.2",
     "@mantine/core": "^8.3.14",
     "@mantine/hooks": "^8.3.14",
     "@octokit/app": "^16.1.2",
