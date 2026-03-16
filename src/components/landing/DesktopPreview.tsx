@@ -42,7 +42,7 @@ const DesktopPreview = () => {
     const mockProjects = [
         {
             id: 1,
-            name: "Lakshya GitConnect Dashboard",
+            name: "Zync Dashboard",
             description: "Main dashboard application with GitHub integration and team collaboration features.",
             created: "Jan 15, 2026",
             owner: true,
@@ -108,7 +108,7 @@ const DesktopPreview = () => {
                     <div className="flex items-center px-1">
                         <img
                             src="/zync-dark.webp"
-                            alt="Lakshya GitConnect"
+                            alt="Zync"
                             className="h-9 w-auto rounded-lg"
                         />
                     </div>
@@ -390,7 +390,7 @@ const DesktopPreview = () => {
                                 )}
                             </div>
                             <h3 className="text-xs font-semibold text-foreground">{activeSection}</h3>
-                            <p className="text-[10px] text-muted-foreground mt-1">This module is part of the Lakshya GitConnect ecosystem.</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">This module is part of the Zync ecosystem.</p>
                         </div>
                     )}
                 </div>

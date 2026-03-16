@@ -26,7 +26,7 @@ const CTASection = () => {
             Be an early builder
           </h2>
           <p className="text-lg text-sidebar-foreground/70 mb-10 leading-relaxed">
-            Lakshya GitConnect is in active development. Join the beta to help shape how teams
+            Zync is in active development. Join the beta to help shape how teams
             build software—and get free access while we grow.
           </p>
 

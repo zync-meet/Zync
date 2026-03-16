@@ -91,9 +91,9 @@ interface Step {
 
 
 const MOCK_USERS = [
-  { uid: "admin1", name: "Admin User", email: "admin@example.com" },
-  { uid: "dev1", name: "Frontend Dev", email: "frontend@example.com" },
-  { uid: "dev2", name: "Backend Dev", email: "backend@example.com" },
+  { uid: "admin1", name: "Admin User", email: "admin@zync.com" },
+  { uid: "dev1", name: "Frontend Dev", email: "frontend@zync.com" },
+  { uid: "dev2", name: "Backend Dev", email: "backend@zync.com" },
   { uid: auth.currentUser?.uid || "current", name: auth.currentUser?.displayName || "You", email: auth.currentUser?.email },
 ].filter((v, i, a) => a.findIndex(t => (t.uid === v.uid)) === i);
 

@@ -25,7 +25,7 @@ const MobilePreview = () => {
     const mockProjects = [
         {
             id: 1,
-            name: "Lakshya GitConnect Dashboard",
+            name: "Zync Dashboard",
             description: "Main dashboard with GitHub integration.",
             created: "Jan 15",
             owner: true,
@@ -73,7 +73,7 @@ const MobilePreview = () => {
                     <div className="flex items-center">
                         <img
                             src="/zync-dark.webp"
-                            alt="Lakshya GitConnect"
+                            alt="Zync"
                             className="h-8 w-auto rounded-lg"
                         />
                     </div>

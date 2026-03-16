@@ -37,7 +37,7 @@ const Terms = () => {
                 Agreement to Terms
               </h2>
               <p>
-                By accessing or using Lakshya GitConnect, you agree to be bound by these Terms
+                By accessing or using Zync, you agree to be bound by these Terms
                 of Service. If you do not agree to these terms, you may not use
                 the service.
               </p>
@@ -48,13 +48,13 @@ const Terms = () => {
                 Description of Service
               </h2>
               <p>
-                Lakshya GitConnect is a real-time collaboration platform built for development
+                Zync is a real-time collaboration platform built for development
                 teams, providing a unified interface for communication, project
                 management, and code collaboration. Features include Dashboard,
                 Workspace (Kanban boards), Calendar, Notes, Tasks, Chat, Meet
                 (video conferencing), and Activity Log. The service is provided
                 &quot;as is&quot; without warranties of any kind, express or
-                implied. Lakshya GitConnect is available as both a web application and a
+                implied. Zync is available as both a web application and a
                 cross-platform desktop application (Electron). Its availability,
                 features, and functionality may change over time.
               </p>
@@ -65,7 +65,7 @@ const Terms = () => {
                 User Responsibility
               </h2>
               <p>
-                You are fully responsible for all actions you take through Lakshya GitConnect.
+                You are fully responsible for all actions you take through Zync.
                 This includes, but is not limited to: content you create or
                 share in notes, tasks, and chat; data you upload or sync (e.g.,
                 via GitHub integration or Google Calendar); invitations you send
@@ -83,11 +83,11 @@ const Terms = () => {
               </h2>
               <p>
                 To the maximum extent permitted by law, the creators,
-                contributors, and maintainers of Lakshya GitConnect shall not be liable for
+                contributors, and maintainers of Zync shall not be liable for
                 any direct, indirect, incidental, special, consequential, or
                 punitive damages, including but not limited to: data loss,
                 service interruptions, loss of revenue, or any other damages
-                arising from your use of the platform. You use Lakshya GitConnect at your own
+                arising from your use of the platform. You use Zync at your own
                 risk. We are not liable for harm caused by user-initiated
                 actions, third-party integrations (e.g., GitHub, Google
                 Calendar), or circumstances beyond our control.
@@ -99,7 +99,7 @@ const Terms = () => {
                 Acceptable Use
               </h2>
               <p>
-                You agree not to use Lakshya GitConnect for any unlawful purpose or in any way
+                You agree not to use Zync for any unlawful purpose or in any way
                 that could harm, disable, or overburden the service. You will
                 not attempt to gain unauthorized access to any systems or
                 accounts, distribute malware, or use the platform to harass or
@@ -112,7 +112,7 @@ const Terms = () => {
                 Third-Party Services
               </h2>
               <p>
-                Lakshya GitConnect integrates with third-party services such as Firebase,
+                Zync integrates with third-party services such as Firebase,
                 GitHub, and Google. Your use of these integrations is subject to
                 their respective terms and policies. We are not responsible for
                 the availability or conduct of third-party services.
@@ -125,7 +125,7 @@ const Terms = () => {
               </h2>
               <p>
                 We reserve the right to modify these Terms of Service at any
-                time. Continued use of Lakshya GitConnect after changes constitutes acceptance
+                time. Continued use of Zync after changes constitutes acceptance
                 of the updated terms. We encourage you to review this page
                 periodically.
               </p>
@@ -136,7 +136,7 @@ const Terms = () => {
                 License
               </h2>
               <p>
-                Lakshya GitConnect is licensed under the MIT License. You may use, modify, and
+                Zync is licensed under the MIT License. You may use, modify, and
                 distribute it in accordance with the license. Contributions to
                 the project are welcome and subject to our contribution
                 guidelines.

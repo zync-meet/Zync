@@ -55,7 +55,7 @@ export const linkGithubAccount = async (currentUser: User) => {
 
 
     if (error.code === 'auth/credential-already-in-use') {
-      alert("This GitHub account is already connected to another Lakshya GitConnect account. Please sign in with that account or disconnect it first.");
+      alert("This GitHub account is already connected to another Zync account. Please sign in with that account or disconnect it first.");
     } else {
       alert(`Error linking GitHub: ${error.message}`);
     }

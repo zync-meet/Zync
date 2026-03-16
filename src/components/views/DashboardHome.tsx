@@ -12,7 +12,7 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (section: string) => void }
                 <div className="space-y-6">
                     {}
                     <div className="flex items-center justify-center gap-2 mb-8 opacity-0 animate-fade-in" style={{ animationDelay: "0ms", animationFillMode: "forwards" }}>
-                        <span className="text-xl font-bold tracking-widest uppercase">Lakshya GitConnect</span>
+                        <span className="text-xl font-bold tracking-widest uppercase">Zync</span>
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent pb-2 opacity-0 animate-fade-in-up" style={{ animationDelay: "150ms", animationFillMode: "forwards" }}>
@@ -21,7 +21,7 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (section: string) => void }
                     </h1>
 
                     <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed opacity-0 animate-fade-in-up" style={{ animationDelay: "300ms", animationFillMode: "forwards" }}>
-                        Connect, Collaborate, and Conquer projects with Lakshya GitConnect's all-in-one platform.
+                        Connect, Collaborate, and Conquer projects with Zync's all-in-one platform.
                         Chat, Video, Tasks, and Calendar in a single interface.
                     </p>
 
