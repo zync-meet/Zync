@@ -161,7 +161,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
       if (repos.length === 0) {
         toast({
           title: "Error",
-          description: "Failed to fetch repositories. Please ensure ZYNC is installed on your GitHub.",
+          description: "Failed to fetch repositories. Please ensure Lakshya GitConnect is installed on your GitHub.",
           variant: "destructive"
         });
       }
@@ -655,7 +655,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
                 <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
                   <p>No repositories found.</p>
                   <a href="https://github.com/apps/ZYNC-meet/installations/new" target="_blank" rel="noreferrer" className="text-primary hover:underline mt-2 block">
-                    Install ZYNC App on GitHub
+                    Install Lakshya GitConnect App on GitHub
                   </a>
                 </div>
               ) : (
@@ -708,7 +708,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
                 <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
                   <p>No repositories found.</p>
                   <a href="https://github.com/apps/ZYNC-meet/installations/new" target="_blank" rel="noreferrer" className="text-primary hover:underline mt-2 block">
-                    Install ZYNC App on GitHub
+                    Install Lakshya GitConnect App on GitHub
                   </a>
                 </div>
               ) : (

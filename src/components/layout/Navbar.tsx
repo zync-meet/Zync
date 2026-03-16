@@ -38,16 +38,16 @@ const Navbar = () => {
             {mounted ? (
               <img
                 src="/zync-dark.webp"
-                alt="Zync Logo"
+                alt="Lakshya GitConnect Logo"
                 className="h-8 w-auto object-contain"
               />
             ) : (
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">Z</span>
+                <span className="text-primary-foreground font-bold text-lg">L</span>
               </div>
             )}
             <span className="font-serif-elegant font-bold text-xl tracking-tight text-foreground">
-              Zync
+              Lakshya GitConnect
             </span>
             <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
               Beta

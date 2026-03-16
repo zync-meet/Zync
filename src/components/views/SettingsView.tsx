@@ -707,7 +707,7 @@ export default function SettingsView() {
                       <p className="text-sm text-muted-foreground">
                         {userData?.githubIntegration?.connected
                           ? `Connected as ${userData.githubIntegration.username}`
-                          : "Connect repositories to ZYNC."}
+                          : "Connect repositories to Lakshya GitConnect."}
                       </p>
                     </div>
                   </div>
@@ -776,7 +776,7 @@ export default function SettingsView() {
                   <div>
                     <h3 className="text-2xl font-bold tracking-tight">Contact Us</h3>
                     <p className="text-muted-foreground mt-2">
-                      Email, call, or complete the form to learn how Zync can solve your collaboration needs.
+                      Email, call, or complete the form to learn how Lakshya GitConnect can solve your collaboration needs.
                     </p>
                   </div>
                 </div>
@@ -874,7 +874,7 @@ export default function SettingsView() {
                       </div>
                       <h4 className="font-semibold">Feedback and Suggestions</h4>
                       <p className="text-sm text-muted-foreground">
-                        We value your feedback and are continuously working to improve Zync. Your input is crucial in shaping our future.
+                        We value your feedback and are continuously working to improve Lakshya GitConnect. Your input is crucial in shaping our future.
                       </p>
                     </div>
                   </CardContent>
@@ -903,7 +903,7 @@ export default function SettingsView() {
               <CardHeader>
                 <CardTitle className="text-destructive flex items-center gap-2">Danger Zone</CardTitle>
                 <CardDescription>
-                  Permanently remove your Personal Account and all of its contents from the ZYNC platform. This action is not reversible, so please continue with caution.
+                  Permanently remove your Personal Account and all of its contents from the Lakshya GitConnect platform. This action is not reversible, so please continue with caution.
                 </CardDescription>
               </CardHeader>
               <CardContent>

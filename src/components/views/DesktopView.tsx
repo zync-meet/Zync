@@ -664,10 +664,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
 
   const mockUsers = [
-    { _id: 1, displayName: "Oliver Campbell", email: "oliver@ZYNC.io", status: "online", avatar: "OC" },
-    { _id: 2, displayName: "Sarah Chen", email: "sarah@ZYNC.io", status: "online", avatar: "SC" },
-    { _id: 3, displayName: "Mike Wilson", email: "mike@ZYNC.io", status: "offline", avatar: "MW" },
-    { _id: 4, displayName: "Emily Davis", email: "emily@ZYNC.io", status: "away", avatar: "ED" },
+    { _id: 1, displayName: "Oliver Campbell", email: "oliver@example.com", status: "online", avatar: "OC" },
+    { _id: 2, displayName: "Sarah Chen", email: "sarah@example.com", status: "online", avatar: "SC" },
+    { _id: 3, displayName: "Mike Wilson", email: "mike@example.com", status: "offline", avatar: "MW" },
+    { _id: 4, displayName: "Emily Davis", email: "emily@example.com", status: "away", avatar: "ED" },
   ];
 
   const displayUsers = isPreview
@@ -855,7 +855,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
               {mounted ? (
                 <img src="/zync-dark.webp" alt="Logo" className="h-8 w-8 object-contain rounded-lg" />
               ) : <div className="w-8 h-8 bg-primary rounded-lg" />}
-              {!isCollapsed && <span className="font-bold text-lg text-white tracking-wide">ZYNC</span>}
+              {!isCollapsed && <span className="font-bold text-lg text-white tracking-wide">Lakshya GitConnect</span>}
             </div>
 
             <div className="flex-1 overflow-y-auto px-2 space-y-1">

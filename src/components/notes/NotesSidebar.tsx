@@ -287,7 +287,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
         }}
       >
         <div className={cn("p-4 border-b flex items-center sticky top-0 backdrop-blur-sm z-10 bg-secondary/30 border-border/50", effectiveCollapsed ? "justify-center" : "justify-between")}>
-          {!effectiveCollapsed && <span className="font-semibold text-sm tracking-wide font-serif-elegant text-foreground truncate">Zync Notes</span>}
+          {!effectiveCollapsed && <span className="font-semibold text-sm tracking-wide font-serif-elegant text-foreground truncate">Lakshya GitConnect Notes</span>}
 
           <div className="flex items-center gap-1">
             {!effectiveCollapsed && (

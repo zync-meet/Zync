@@ -22,7 +22,7 @@ interface MobileLayoutProps {
 
 export const MobileLayout = ({
     children,
-    headerTitle = "Zync",
+    headerTitle = "Lakshya GitConnect",
     activeTab,
     onTabChange,
     drawerContent,

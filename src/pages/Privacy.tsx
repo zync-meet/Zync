@@ -37,7 +37,7 @@ const Privacy = () => {
                 Introduction
               </h2>
               <p>
-                ZYNC (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is a real-time
+                Lakshya GitConnect (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is a real-time
                 collaboration desktop application designed to streamline team
                 workflows. This Privacy Policy explains our practices regarding
                 the collection, use, and disclosure of your information,
@@ -50,7 +50,7 @@ const Privacy = () => {
                 Information We Collect
               </h2>
               <p>
-                To provide our core collaboration features, ZYNC collects the
+                To provide our core collaboration features, Lakshya GitConnect collects the
                 following information:
               </p>
               <div className="space-y-3 pl-4 border-l-2 border-border">
@@ -59,7 +59,7 @@ const Privacy = () => {
                     Google User Data
                   </h3>
                   <p className="mt-1">
-                    When you connect your Google Account to ZYNC, we request
+                    When you connect your Google Account to Lakshya GitConnect, we request
                     access to your <strong>Google Calendar</strong> data via
                     OAuth 2.0. The specific information we collect includes:
                     calendar event summaries, start/end times, descriptions of
@@ -95,14 +95,14 @@ const Privacy = () => {
                 Google Workspace API Usage
               </h2>
               <p>
-                ZYNC uses Google OAuth to authenticate users and integrate with
+                Lakshya GitConnect uses Google OAuth to authenticate users and integrate with
                 Google Calendar. We request the{" "}
                 <code className="rounded bg-muted px-1.5 py-0.5 text-sm">
                   https://www.googleapis.com/auth/calendar
                 </code>{" "}
                 scope solely to display your team meetings, synchronize
                 schedules, and provide desktop notifications for upcoming
-                meetings. ZYNC does not request, and does not have the ability
+                meetings. Lakshya GitConnect does not request, and does not have the ability
                 to read, store, delete, or share your personal inbox data or
                 existing emails. All calendar data is processed and cached
                 locally on your device. We do not store your calendar data on
@@ -116,7 +116,7 @@ const Privacy = () => {
                 Google API &quot;Limited Use&quot; Disclosure
               </h2>
               <p>
-                ZYNC&apos;s use and transfer to any other app of information
+                Lakshya GitConnect&apos;s use and transfer to any other app of information
                 received from Google APIs will adhere to the{" "}
                 <a
                   href="https://developers.google.com/terms/api-services-user-data-policy"
@@ -136,8 +136,8 @@ const Privacy = () => {
               </h2>
               <p>
                 We use Google Calendar data exclusively to: (1) display team
-                meetings in the ZYNC dashboard, (2) synchronize schedules so
-                meeting changes in Google Calendar are reflected in ZYNC in
+                meetings in the Lakshya GitConnect dashboard, (2) synchronize schedules so
+                meeting changes in Google Calendar are reflected in Lakshya GitConnect in
                 real-time, and (3) provide desktop notifications for upcoming
                 meetings. We do not use your Google Calendar data for marketing,
                 profiling, or selling to third parties.
@@ -152,7 +152,7 @@ const Privacy = () => {
                 Google Calendar data is cached locally and cleared when you log
                 out or disconnect the integration. OAuth tokens are stored
                 securely in your system&apos;s credentials manager. You can
-                revoke ZYNC&apos;s access at any time via your{" "}
+                revoke Lakshya GitConnect&apos;s access at any time via your{" "}
                 <a
                   href="https://myaccount.google.com/permissions"
                   target="_blank"

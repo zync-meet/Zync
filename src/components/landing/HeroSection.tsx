@@ -37,7 +37,7 @@ const HeroSection = () => {
 
           {}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Zync brings your team's planning, tasks, and communication into one focused workspace.
+            Lakshya GitConnect brings your team's planning, tasks, and communication into one focused workspace.
             AI-powered project setup. GitHub integration. Real-time collaboration.
           </p>
 

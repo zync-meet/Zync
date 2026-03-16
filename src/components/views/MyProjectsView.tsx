@@ -203,7 +203,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
         <div className="max-w-md space-y-2">
           <h2 className="text-2xl font-bold">Link your GitHub Projects</h2>
           <p className="text-muted-foreground">
-            Connect your GitHub account to access and manage your repositories directly within ZYNC.
+            Connect your GitHub account to access and manage your repositories directly within Lakshya GitConnect.
           </p>
         </div>
         <Button size="lg" onClick={handleConnect} disabled={connecting} className="gap-2">

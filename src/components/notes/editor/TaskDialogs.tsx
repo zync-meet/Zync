@@ -76,7 +76,7 @@ export const TaskDialogs: React.FC<TaskDialogsProps> = ({
                     <DialogHeader>
                         <DialogTitle>Convert to Task</DialogTitle>
                         <DialogDescription>
-                            Create a new task in ZYNC Project Management from this line.
+                            Create a new task in Lakshya GitConnect Project Management from this line.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">

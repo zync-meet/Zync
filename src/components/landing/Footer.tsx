@@ -35,9 +35,9 @@ const Footer = () => {
           <div className="col-span-2 md:col-span-1 lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-7 w-7 bg-foreground rounded-lg flex items-center justify-center">
-                <span className="text-background font-bold text-sm">Z</span>
+                <span className="text-background font-bold text-sm">L</span>
               </div>
-              <span className="text-lg font-bold font-serif-elegant text-foreground">Zync</span>
+              <span className="text-lg font-bold font-serif-elegant text-foreground">Lakshya GitConnect</span>
               <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded uppercase tracking-wider">Beta</span>
             </div>
             <p className="text-muted-foreground text-sm mb-5 max-w-xs leading-relaxed">
@@ -97,7 +97,7 @@ const Footer = () => {
         {}
         <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-muted-foreground">
-            © 2026 Zync · Public Beta 1.0
+            © 2026 Lakshya GitConnect · Public Beta 1.0
           </p>
           <div className="flex gap-5">
             <Link to="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">

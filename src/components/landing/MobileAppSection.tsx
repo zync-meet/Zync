@@ -26,7 +26,7 @@ const MobileAppSection = () => {
             </h2>
 
             <p className="text-muted-foreground mb-8 leading-relaxed">
-              The Zync mobile app is in development. Check task progress, respond to messages,
+              The Lakshya GitConnect mobile app is in development. Check task progress, respond to messages,
               and stay connected with your team—wherever you are.
             </p>
 
