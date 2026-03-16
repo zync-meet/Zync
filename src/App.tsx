@@ -14,6 +14,8 @@ import NewProject from "./pages/NewProject";
 import ProjectDetails from "./pages/ProjectDetails";
 
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import { useActivityTracker } from "./hooks/use-activity-tracker";
 import { useChatNotifications } from "./hooks/use-chat-notifications";
 import { useUserSync } from "./hooks/use-user-sync";
@@ -71,6 +73,8 @@ const AppContent = () => {
             <Route path="/projects/:id" element={<ProjectDetails />} />
 
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
