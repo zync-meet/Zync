@@ -49,31 +49,14 @@ interface PeopleViewProps {
     isPreview?: boolean;
 }
 
+import { useMe } from "@/hooks/useMe";
+
 const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: PeopleViewProps) => {
     const currentUser = auth.currentUser;
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-
-    const { data: userData } = useQuery({
-        queryKey: ['me', currentUser?.uid],
-        queryFn: async () => {
-            if (!currentUser) { return null; }
-            const token = await currentUser.getIdToken();
-            const res = await fetch(`${API_BASE_URL}/api/users/me`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (!res.ok) { throw new Error('Failed to fetch user'); }
-            const data = await res.json();
-
-            if (data.teamId && typeof data.teamId === 'object') {
-                data.teamId = data.teamId.id;
-            }
-            return data;
-        },
-        enabled: !!currentUser && !isPreview,
-        staleTime: 300000
-    });
+    const { data: userData } = useMe();
 
     const { data: myTeamsData, isLoading: myTeamsLoading } = useQuery({
         queryKey: ['myTeams', currentUser?.uid],

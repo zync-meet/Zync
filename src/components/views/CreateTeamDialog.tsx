@@ -9,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 interface CreateTeamDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSuccess: () => void;
+    onSuccess?: () => void;
 }
 
 const TEAM_TYPES = [
@@ -30,7 +32,48 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
     const [teamType, setTeamType] = useState("Product");
     const [invites, setInvites] = useState<{ email: string }[]>([]);
     const [currentInvite, setCurrentInvite] = useState("");
-    const [loading, setLoading] = useState(false);
+    
+    const queryClient = useQueryClient();
+
+    const createTeamMutation = useMutation({
+        mutationFn: async () => {
+            const token = await auth.currentUser?.getIdToken();
+            const response = await fetch(`${API_BASE_URL}/api/teams/create`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    name: teamName,
+                    type: teamType,
+                    initialInvites: invites.map(i => i.email)
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to create team");
+            }
+            return data;
+        },
+        onSuccess: () => {
+            toast.success("Team created successfully!");
+            
+            // Invalidate queries to refresh UI
+            queryClient.invalidateQueries({ queryKey: ['me', auth.currentUser?.uid] });
+            queryClient.invalidateQueries({ queryKey: ['myTeams', auth.currentUser?.uid] });
+            
+            if (onSuccess) onSuccess();
+            onOpenChange(false);
+            setTeamName("");
+            setInvites([]);
+        },
+        onError: (error: any) => {
+            console.error("Error creating team:", error);
+            toast.error(error.message);
+        }
+    });
 
     const handleAddInvite = (e: React.KeyboardEvent | React.MouseEvent) => {
         if ((e.type === 'keydown' && (e as React.KeyboardEvent).key !== 'Enter') || !currentInvite.trim()) {return;}
@@ -49,47 +92,13 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
         setInvites(invites.filter(i => i.email !== email));
     };
 
-    const handleCreateTeam = async (e: React.FormEvent) => {
+    const handleCreateTeam = (e: React.FormEvent) => {
         e.preventDefault();
         if (!teamName.trim()) {
             toast.error("Please enter a team name");
             return;
         }
-
-        setLoading(true);
-        try {
-            const token = await auth.currentUser?.getIdToken();
-            const response = await fetch(`${API_BASE_URL}/api/teams/create`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    name: teamName,
-                    type: teamType,
-                    initialInvites: invites.map(i => i.email)
-                }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || "Failed to create team");
-            }
-
-            toast.success("Team created successfully!");
-            onSuccess();
-            onOpenChange(false);
-
-            setTeamName("");
-            setInvites([]);
-        } catch (error: any) {
-            console.error("Error creating team:", error);
-            toast.error(error.message);
-        } finally {
-            setLoading(false);
-        }
+        createTeamMutation.mutate();
     };
 
     return (
@@ -156,8 +165,8 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
 
                 <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleCreateTeam} disabled={loading}>
-                        {loading ? "Creating..." : "Create Team"}
+                    <Button onClick={handleCreateTeam} disabled={createTeamMutation.isPending}>
+                        {createTeamMutation.isPending ? "Creating..." : "Create Team"}
                     </Button>
                 </div>
             </DialogContent>

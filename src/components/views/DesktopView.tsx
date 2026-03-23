@@ -87,10 +87,14 @@ import {
 } from "react-resizable-panels";
 import { cn } from "@/lib/utils";
 
+import { useMe } from "@/hooks/useMe";
+
 const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+
+  const { data: userData, isLoading: userLoading } = useMe();
 
   useEffect(() => {
     setMounted(true);
@@ -101,10 +105,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     return localStorage.getItem("ZYNC-active-section") || "Dashboard";
   });
 
-
   const sidebarRef = useRef<ImperativePanelHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLocked, setIsLocked] = useState(true);
+  const [usersList, setUsersList] = useState<any[]>([]);
 
   const toggleSidebar = () => {
     const panel = sidebarRef.current;
@@ -262,9 +266,6 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       connectGitHub();
     }
   }, [location.search, currentUser, navigate, toast]);
-
-  const [loading, setLoading] = useState(true);
-  const [usersList, setUsersList] = useState<any[]>([]);
 
   const userStatuses = usePresence(currentUser?.uid);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -547,8 +548,6 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
         }
       }
 
-      setLoading(false);
-
       if (user && !isPreview) {
 
         try {
@@ -576,38 +575,18 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   }, [isPreview]);
 
 
-  const [userData, setUserData] = useState<any>(null);
   const [githubProfile, setGithubProfile] = useState<any>(null);
 
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (currentUser?.uid) {
-        try {
-          const token = await currentUser.getIdToken();
-          const res = await fetch(`${API_BASE_URL}/api/users/${currentUser.uid}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          const data = await res.json();
-          setUserData(data);
-
-
-          if (data?.githubIntegration?.connected && data?.githubIntegration?.username) {
-            const username = data.githubIntegration.username;
-            fetch(`https://api.github.com/users/${username}`)
-              .then(ghRes => ghRes.json())
-              .then(ghData => setGithubProfile(ghData))
-              .catch(err => console.error("Failed to fetch GitHub profile:", err));
-          }
-        } catch (err) {
-          console.error("Error fetching user details:", err);
-        }
-      }
-    };
-    fetchUserData();
-  }, [currentUser, activeSection]);
+    if (userData?.githubIntegration?.connected && userData?.githubIntegration?.username) {
+      const username = userData.githubIntegration.username;
+      fetch(`https://api.github.com/users/${username}`)
+        .then(ghRes => ghRes.json())
+        .then(ghData => setGithubProfile(ghData))
+        .catch(err => console.error("Failed to fetch GitHub profile:", err));
+    }
+  }, [userData]);
 
 
   useEffect(() => {
@@ -760,7 +739,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             tasks={leaderTasks}
             users={usersList}
             teamSessions={teamSessions}
-            currentTeamId={userData?.teamId}
+            currentTeamId={typeof userData?.teamId === 'object' ? userData?.teamId?.id : userData?.teamId}
             ownedTeams={ownedTeams}
             currentUserId={currentUser?.uid}
           />
@@ -798,7 +777,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }
   };
 
-  if (loading) {
+  if (userLoading && !isPreview) {
     return (
       <div className="h-screen w-full bg-black flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-white" />

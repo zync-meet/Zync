@@ -7,27 +7,20 @@ import { API_BASE_URL } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 interface JoinTeamDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSuccess: () => void;
+    onSuccess?: () => void;
 }
 
 export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialogProps) => {
     const [inviteCode, setInviteCode] = useState("");
-    const [loading, setLoading] = useState(false);
+    const queryClient = useQueryClient();
 
-    const handleJoinTeam = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-
-        if (!inviteCode.trim() || inviteCode.length !== 6) {
-            toast.error("Please enter a valid 6-digit invite code");
-            return;
-        }
-
-        setLoading(true);
-        try {
+    const joinTeamMutation = useMutation({
+        mutationFn: async () => {
             const token = await auth.currentUser?.getIdToken();
             const response = await fetch(`${API_BASE_URL}/api/teams/join`, {
                 method: "POST",
@@ -39,21 +32,37 @@ export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialog
             });
 
             const data = await response.json();
-
             if (!response.ok) {
                 throw new Error(data.message || "Failed to join team");
             }
-
+            return data;
+        },
+        onSuccess: () => {
             toast.success("Joined team successfully!");
-            onSuccess();
+            
+            // Invalidate queries to refresh UI
+            queryClient.invalidateQueries({ queryKey: ['me', auth.currentUser?.uid] });
+            queryClient.invalidateQueries({ queryKey: ['myTeams', auth.currentUser?.uid] });
+            
+            if (onSuccess) onSuccess();
             onOpenChange(false);
             setInviteCode("");
-        } catch (error: any) {
+        },
+        onError: (error: any) => {
             console.error("Error joining team:", error);
             toast.error(error.message);
-        } finally {
-            setLoading(false);
         }
+    });
+
+    const handleJoinTeam = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!inviteCode.trim() || inviteCode.length !== 6) {
+            toast.error("Please enter a valid 6-digit invite code");
+            return;
+        }
+
+        joinTeamMutation.mutate();
     };
 
     return (
@@ -75,7 +84,7 @@ export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialog
                             value={inviteCode}
                             onChange={(e) => setInviteCode(e.target.value)}
                             maxLength={6}
-                            disabled={loading}
+                            disabled={joinTeamMutation.isPending}
                             className="h-12 text-center tracking-[0.5em] text-lg font-mono uppercase"
                         />
                         <p className="text-xs text-muted-foreground text-center">
@@ -85,8 +94,8 @@ export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialog
 
                     <div className="flex justify-end gap-2 pt-2">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? "Joining..." : "Join Team"}
+                        <Button type="submit" disabled={joinTeamMutation.isPending}>
+                            {joinTeamMutation.isPending ? "Joining..." : "Join Team"}
                         </Button>
                     </div>
                 </form>

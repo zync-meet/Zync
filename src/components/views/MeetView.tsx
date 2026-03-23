@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { User } from "firebase/auth";
 import {
     Video,
@@ -68,41 +69,32 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
     });
 
 
-    const [teams, setTeams] = useState<Team[]>([]);
-    const [isLoadingTeams, setIsLoadingTeams] = useState(false);
     const [isTeamSelectDialogOpen, setIsTeamSelectDialogOpen] = useState(false);
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
-
-    const fetchTeams = async () => {
-        if (!currentUser?.uid) {return;}
-        setIsLoadingTeams(true);
-        try {
+    const { data: teams = [], isLoading: isLoadingTeams } = useQuery<Team[]>({
+        queryKey: ['myTeams', currentUser?.uid],
+        queryFn: async () => {
+            if (!currentUser?.uid) return [];
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/teams/mine`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (res.ok) {
-                const data = await res.json();
-                setTeams(data);
-            }
-        } catch (err) {
-            console.error("Failed to fetch teams", err);
-        } finally {
-            setIsLoadingTeams(false);
-        }
-    };
+            if (!res.ok) throw new Error('Failed to fetch teams');
+            return res.json();
+        },
+        enabled: !!currentUser?.uid,
+    });
 
 
     useEffect(() => {
         if (currentUser?.uid) {
             fetchMeetings();
-            fetchTeams();
 
             const interval = setInterval(fetchMeetings, 30000);
             return () => clearInterval(interval);
         }
-    }, [currentUser]);
+    }, [currentUser?.uid]);
 
     const fetchMeetings = async () => {
         if (!currentUser?.uid) {return;}
@@ -164,7 +156,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
             if (customReceiverIds && customReceiverIds.length > 0) {
                 receiverIds = customReceiverIds;
             } else if (teamId) {
-                const selectedTeam = teams.find(t => t._id === teamId);
+                const selectedTeam = teams.find(t => t.id === teamId);
                 if (selectedTeam) {
                     receiverIds = selectedTeam.members.filter(uid => uid !== currentUser?.uid);
                 }
@@ -207,7 +199,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                 if (newWindow) {newWindow.location.href = data.meetingUrl;}
                 else {window.open(data.meetingUrl, "_blank");}
 
-                const teamName = teamId ? teams.find(t => t._id === teamId)?.name : null;
+                const teamName = teamId ? teams.find(t => t.id === teamId)?.name : null;
                 toast({
                     title: "Meeting Started",
                     description: teamName ? `Invites sent to ${teamName} team members.` : "Instant meeting ready."
