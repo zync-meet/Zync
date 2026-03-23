@@ -161,8 +161,20 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         }
     }
 
-    const totalHours = Math.floor(totalSeconds / 3600);
-    const totalMinutes = Math.floor((totalSeconds % 3600) / 60);
+    const formatTotalTime = (seconds: number) => {
+        const d = Math.floor(seconds / (3600 * 24));
+        const h = Math.floor((seconds % (3600 * 24)) / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+
+        const parts = [];
+        if (d > 0) parts.push(`${d}d`);
+        if (h > 0 || d > 0) parts.push(`${h}h`);
+        parts.push(`${m}m`);
+
+        return parts.join(' ');
+    };
+
+    const formattedTotalTime = formatTotalTime(totalSeconds);
 
 
     const dailyActiveTimeData = useMemo(() => {
@@ -435,7 +447,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total Time Spent</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalHours}h {totalMinutes}m</div>
+                        <div className="text-2xl font-bold">{formattedTotalTime}</div>
                         <p className="text-xs text-muted-foreground">Lifetime usage</p>
                     </CardContent>
                 </Card>
@@ -667,12 +679,7 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
                                     const start = new Date(log.startTime);
                                     const end = new Date(log.endTime);
                                     const durationSeconds = log.duration || Math.round((end.getTime() - start.getTime()) / 1000);
-                                    const hours = Math.floor(durationSeconds / 3600);
-                                    const minutes = Math.floor((durationSeconds % 3600) / 60);
-
-                                    const formattedDuration = hours > 0
-                                        ? `${hours} hr ${minutes} min`
-                                        : `${minutes} min`;
+                                    const formattedDuration = formatTotalTime(durationSeconds);
 
                                     return (
                                         <div key={log._id} className="grid grid-cols-5 p-4 border-b last:border-0 hover:bg-muted/20 items-center">
