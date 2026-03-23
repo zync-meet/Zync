@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
+    "lint": "eslint . --report-unused-disable-directives",
     "preview": "vite preview",
     "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run dev --prefix backend\" \"tsc -p tsconfig.electron.json -w\" \"wait-on tcp:8081 && electron . --no-sandbox\"",
     "electron:build": "tsc -p tsconfig.electron.json && vite build && electron-builder",
@@ -181,7 +181,6 @@
     "lodash": "^4.17.21",
     "tmp": "^0.2.3",
     "minimatch": "^10.2.1",
-    "ajv": "^8.18.0",
     "@develar/schema-utils": {
       "ajv": "6.12.6",
       "ajv-keywords": "3.5.2"

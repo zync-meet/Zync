@@ -896,12 +896,6 @@ Available settings include:
 
 ### Keyboard Shortcuts
 
-<!--
-  These keyboard shortcuts are available throughout the application.
-  Platform-specific modifier keys are used automatically based on the
-  operating system (Ctrl for Windows/Linux, Cmd for macOS).
--->
-
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl/Cmd + N` | Create new note |
