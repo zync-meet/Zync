@@ -7,6 +7,7 @@ const { encrypt } = require('../utils/encryption');
 const { sendZyncEmail } = require('../services/mailer');
 const { appendRow } = require('../services/sheetLogger');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
+const { getNewUserRegistrationTemplate } = require('../utils/emailTemplates');
 
 
 const sendVerificationEmail = async (email, code) => {
@@ -85,12 +86,11 @@ router.post('/sync', verifyToken, async (req, res) => {
         await sendZyncEmail(
           'consolemaster.app@gmail.com',
           '🚀 New User Joined ZYNC!',
-          `
-            <h1>New User Alert!</h1>
-            <p><strong>Name:</strong> ${displayName || 'N/A'}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>UID:</strong> ${uid}</p>
-          `,
+          getNewUserRegistrationTemplate({
+            name: displayName || 'N/A',
+            email: email,
+            uid: uid
+          }),
           `New User Alert! Name: ${displayName || 'N/A'}, Email: ${email}`
         );
         console.log(`Notification email sent for new user: ${email}`);
