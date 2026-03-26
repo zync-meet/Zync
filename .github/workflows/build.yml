@@ -71,8 +71,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Backend is a separate package (not npm workspaces). Jest runs backend/tests/*.test.js
+      # and resolves backend-only deps (mongoose, supertest, etc.) from backend/node_modules.
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
       - name: Run tests
-        run: npm test -- --passWithNoTests
+        run: npm test
 
   # ===========================================================================
   # Build Electron App
