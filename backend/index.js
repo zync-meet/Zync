@@ -6,6 +6,7 @@ const path = require('path');
 const http = require('http');
 const helmet = require('helmet');
 const { Server } = require("socket.io");
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
@@ -87,6 +88,20 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: {
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+    status: 429
+  }
+});
+
+// Apply rate limiting to all requests
+app.use('/api/', limiter);
 
 app.use(express.json({
   verify: (req, res, buf) => {
