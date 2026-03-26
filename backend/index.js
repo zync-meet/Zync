@@ -14,17 +14,34 @@ const app = express();
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'https://zync-meet.vercel.app',
+  'https://ZYNC-meet.vercel.app',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {return callback(null, true);}
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:8080',
-      'https://zync-meet.vercel.app',
-      'https://ZYNC-meet.vercel.app',
-      'http://localhost:3000',
-      process.env.FRONTEND_URL
-    ].filter(Boolean),
+    origin: allowedOrigins,
     methods: ["GET", "POST"]
   }
 });
@@ -76,18 +93,7 @@ app.use(
   })
 );
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:8080',
-    'https://zync-meet.vercel.app',
-    'https://ZYNC-meet.vercel.app',
-    'http://localhost:3000',
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true
-}));
+app.use(cors(corsOptions));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
