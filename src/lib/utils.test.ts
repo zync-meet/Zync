@@ -1,9 +1,8 @@
-import { mock, describe, expect, test } from "bun:test";
+import { describe, expect, test, vi } from "vitest";
 
 
-mock.module("clsx", () => ({
+vi.mock("clsx", () => ({
   clsx: (...inputs: any[]) => {
-
     return inputs
       .flat()
       .map(input => {
@@ -21,7 +20,7 @@ mock.module("clsx", () => ({
   },
 }));
 
-mock.module("tailwind-merge", () => ({
+vi.mock("tailwind-merge", () => ({
   twMerge: (input: string) => input,
 }));
 

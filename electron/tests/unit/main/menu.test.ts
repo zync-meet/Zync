@@ -51,15 +51,7 @@ import { app, Menu, shell, dialog } from 'electron';
 
 
 interface MenuItemLike {
-  label?: string;
-  type?: string;
-  role?: string;
-  accelerator?: string;
-  enabled?: boolean;
-  visible?: boolean;
-  click?: (...args: unknown[]) => void;
-  submenu?: MenuItemLike[] | { items: MenuItemLike[] };
-  id?: string;
+  [key: string]: any;
 }
 
 
@@ -401,7 +393,7 @@ describe('Application Menu', () => {
       let redoIndex = -1;
       let cutIndex = -1;
 
-      submenu?.forEach((item, index) => {
+      submenu?.forEach((item: any, index: number) => {
         if (item.label === 'Redo') {redoIndex = index;}
         if (item.label === 'Cut') {cutIndex = index;}
       });

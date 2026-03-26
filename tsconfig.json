@@ -26,4 +26,6 @@
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true
   },
+  "include": ["src/**/*", "electron/**/*", "vite.config.ts", "tailwind.config.ts"],
+  "exclude": ["node_modules", "dist", "dist-electron", "release"]
 }

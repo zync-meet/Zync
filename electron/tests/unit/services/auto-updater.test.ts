@@ -204,7 +204,7 @@ describe('AutoUpdaterService', () => {
       (app.isPackaged as unknown) = true;
 
 
-      service.isDownloading = true;
+      (service as any).isDownloading = true;
 
       await service.checkForUpdates();
 
@@ -338,7 +338,7 @@ describe('AutoUpdaterService', () => {
       it('should show dialog when update is available', async () => {
 
 
-        const onUpdateAvailable = service.onUpdateAvailable.bind(service);
+        const onUpdateAvailable = (service as any).onUpdateAvailable.bind(service);
 
         const updateInfo: UpdateInfo = {
           version: '2.0.0',
@@ -361,31 +361,31 @@ describe('AutoUpdaterService', () => {
         mockDialogResponse = { response: 0 };
 
 
-        const onUpdateAvailable = service.onUpdateAvailable.bind(service);
+        const onUpdateAvailable = (service as any).onUpdateAvailable.bind(service);
 
         await onUpdateAvailable({ version: '2.0.0' });
 
 
-        expect(service.isDownloading).toBe(true);
+        expect((service as any).isDownloading).toBe(true);
       });
 
       it('should not start download when user clicks Later', async () => {
         mockDialogResponse = { response: 1 };
 
 
-        const onUpdateAvailable = service.onUpdateAvailable.bind(service);
+        const onUpdateAvailable = (service as any).onUpdateAvailable.bind(service);
 
         await onUpdateAvailable({ version: '2.0.0' });
 
 
-        expect(service.isDownloading).toBe(false);
+        expect((service as any).isDownloading).toBe(false);
       });
 
       it('should handle destroyed window gracefully', async () => {
         service.setMainWindow(null);
 
 
-        const onUpdateAvailable = service.onUpdateAvailable.bind(service);
+        const onUpdateAvailable = (service as any).onUpdateAvailable.bind(service);
 
 
         await expect(
@@ -400,7 +400,7 @@ describe('AutoUpdaterService', () => {
     describe('onDownloadProgress (simulated)', () => {
       it('should send progress to renderer', () => {
 
-        const onDownloadProgress = service.onDownloadProgress.bind(service);
+        const onDownloadProgress = (service as any).onDownloadProgress.bind(service);
 
         const progress: UpdateProgress = {
           bytesPerSecond: 1000000,
@@ -419,7 +419,7 @@ describe('AutoUpdaterService', () => {
 
       it('should round progress percentage', () => {
 
-        const onDownloadProgress = service.onDownloadProgress.bind(service);
+        const onDownloadProgress = (service as any).onDownloadProgress.bind(service);
 
         onDownloadProgress({
           bytesPerSecond: 1000,
@@ -438,7 +438,7 @@ describe('AutoUpdaterService', () => {
         mockWindow.isDestroyed = vi.fn().mockReturnValue(true);
 
 
-        const onDownloadProgress = service.onDownloadProgress.bind(service);
+        const onDownloadProgress = (service as any).onDownloadProgress.bind(service);
 
 
         expect(() =>
@@ -455,7 +455,7 @@ describe('AutoUpdaterService', () => {
     describe('onUpdateDownloaded (simulated)', () => {
       it('should show install dialog when download completes', async () => {
 
-        const onUpdateDownloaded = service.onUpdateDownloaded.bind(service);
+        const onUpdateDownloaded = (service as any).onUpdateDownloaded.bind(service);
 
         await onUpdateDownloaded({ version: '2.0.0' });
 
@@ -471,22 +471,22 @@ describe('AutoUpdaterService', () => {
 
       it('should reset downloading flag', async () => {
 
-        service.isDownloading = true;
+        (service as any).isDownloading = true;
 
 
-        const onUpdateDownloaded = service.onUpdateDownloaded.bind(service);
+        const onUpdateDownloaded = (service as any).onUpdateDownloaded.bind(service);
 
         await onUpdateDownloaded({ version: '2.0.0' });
 
 
-        expect(service.isDownloading).toBe(false);
+        expect((service as any).isDownloading).toBe(false);
       });
 
       it('should handle destroyed window gracefully', async () => {
         service.setMainWindow(null);
 
 
-        const onUpdateDownloaded = service.onUpdateDownloaded.bind(service);
+        const onUpdateDownloaded = (service as any).onUpdateDownloaded.bind(service);
 
         await expect(
           onUpdateDownloaded({ version: '2.0.0' }),
@@ -537,7 +537,7 @@ describe('AutoUpdaterService', () => {
       mockWindow.isDestroyed = vi.fn().mockReturnValue(true);
 
 
-      const onUpdateAvailable = service.onUpdateAvailable.bind(service);
+      const onUpdateAvailable = (service as any).onUpdateAvailable.bind(service);
 
 
       await expect(

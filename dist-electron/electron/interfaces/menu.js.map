@@ -1,1 +1,0 @@
-{"version":3,"file":"menu.js","sourceRoot":"","sources":["../../../electron/interfaces/menu.ts"],"names":[],"mappings":"AAqHA,MAAM,CAAC,MAAM,kBAAkB,GAAc;IACzC,WAAW,EAAE,KAAK;IAClB,SAAS,EAAE,KAAK;IAChB,cAAc,EAAE,IAAI;IACpB,SAAS,EAAE,GAAG;IACd,YAAY,EAAE,KAAK;CACtB,CAAC"}

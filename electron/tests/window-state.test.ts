@@ -28,7 +28,7 @@ interface WindowState {
 }
 
 
-function isValidWindowState(state: Record<string, unknown>): state is WindowState {
+function isValidWindowState(state: any): state is WindowState {
     return (
         typeof state.x === 'number' &&
         typeof state.y === 'number' &&

@@ -179,8 +179,8 @@ describe('Settings Change Events', () => {
     });
 
     it('should emit event when value changes', () => {
-        const oldValue = 'light';
-        const newValue = 'dark';
+        const oldValue: any = 'light';
+        const newValue: any = 'dark';
         const shouldEmit = oldValue !== newValue;
         expect(shouldEmit).toBe(true);
     });

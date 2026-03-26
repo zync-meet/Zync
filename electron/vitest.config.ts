@@ -40,11 +40,7 @@ export default defineConfig({
     globals: true,
 
 
-    watchExclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/dist-electron/**',
-    ],
+
 
 
     reporters: ['verbose'],
@@ -91,7 +87,7 @@ export default defineConfig({
       reportsDirectory: './coverage/electron',
 
 
-      all: true,
+
 
 
       clean: true,
@@ -116,12 +112,7 @@ export default defineConfig({
 
 
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        isolate: true,
-      },
-    },
+
 
 
     sequence: {
@@ -134,14 +125,6 @@ export default defineConfig({
 
 
     bail: process.env.CI ? 1 : 0,
-
-
-    deps: {
-
-      inline: [
-
-      ],
-    },
   },
 
 

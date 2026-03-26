@@ -97,7 +97,7 @@ describe('Window State Manager', () => {
     });
 
 
-    const mockScreen = screen as {
+    const mockScreen = screen as unknown as {
       getPrimaryDisplay: Mock;
       getAllDisplays: Mock;
     };
@@ -294,7 +294,7 @@ describe('Window State Manager', () => {
     describe('With Multiple Displays', () => {
       beforeEach(() => {
 
-        const mockScreen = screen as { getAllDisplays: Mock };
+        const mockScreen = screen as unknown as { getAllDisplays: Mock };
         mockScreen.getAllDisplays.mockReturnValue([
           {
             id: 1,

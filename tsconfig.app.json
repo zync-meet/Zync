@@ -16,6 +16,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "composite": false,
+    "types": ["vite/client"],
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

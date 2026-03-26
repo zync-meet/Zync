@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 
 interface ThemeProviderProps {
   children: ReactNode;
-  attribute?: string;
+  attribute?: any;
   defaultTheme?: string;
   enableSystem?: boolean;
 }

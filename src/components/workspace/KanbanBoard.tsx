@@ -27,6 +27,9 @@ interface KanbanBoardProps {
   onUpdateTask: (stepId: string, taskId: string, updates: any) => void;
   users: any[];
   isOwner?: boolean;
+  currentUser?: any;
+  readOnly?: boolean;
+  onDeleteTask?: (stepId: string, taskId: string) => void;
 }
 
 const COLUMN_MAPPING: Record<string, string> = {
@@ -42,7 +45,7 @@ const COLUMN_MAPPING: Record<string, string> = {
 
 const COLUMNS = ['Ready', 'Active', 'In Progress', 'Done'];
 
-const KanbanBoard = ({ steps, onUpdateTask, users, isOwner }: KanbanBoardProps) => {
+const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnly, onDeleteTask }: KanbanBoardProps) => {
   const [draggedTask, setDraggedTask] = useState<{ task: Task, stepId: string } | null>(null);
 
   const allTasks = useMemo(() => {

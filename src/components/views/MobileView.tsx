@@ -104,7 +104,7 @@ const MobileView = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "Home":
-        return currentUser ? <DashboardView /> : null;
+        return currentUser ? <DashboardView currentUser={currentUser} /> : null;
       case "Projects":
         return currentUser ? (
           <div className="p-4">

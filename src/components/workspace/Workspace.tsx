@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
@@ -45,7 +46,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const { data: pinnedNotes = [], isLoading: notesLoading } = usePinnedNotes();
-  const { deleteProject, linkGitHub, createProject } = useProjectMutations();
+  const { deleteProject, linkGitHub, createProject, isCreating: creatingProject } = useProjectMutations();
 
   const loading = projectsLoading || notesLoading;
 
@@ -381,7 +382,10 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={(e) => deleteProject(e, project._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteProject(project._id);
+                    }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

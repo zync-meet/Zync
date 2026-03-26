@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { reducer, TOAST_LIMIT } from "./use-toast";
 import type { Action, State, ToasterToast } from "./use-toast";
 

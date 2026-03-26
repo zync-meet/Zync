@@ -1,0 +1,371 @@
+﻿backend/prisma/generated/client/wasm.d 2.ts(1,15): error TS7016: Could not find a declaration file for module './index'. 'C:/VS/Zync/backend/prisma/generated/client/index.js' implicitly has an 'any' type.
+electron/tests/settings.test.ts(184,28): error TS2367: This comparison appears to be unintentional because the types '"light"' and '"dark"' have no overlap.
+electron/tests/unit/main/menu.test.ts(210,40): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(218,40): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(229,43): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(237,39): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(238,45): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(242,42): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(252,39): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(276,39): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(285,45): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(299,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(306,42): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(317,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(325,42): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(342,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(359,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(375,35): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(384,42): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(395,37): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(420,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(427,39): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(435,44): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(446,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(457,39): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(458,40): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(459,42): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(472,43): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(486,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(493,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(504,38): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(519,39): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(527,40): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(542,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(549,37): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(557,37): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(569,38): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(580,38): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(591,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(592,42): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(608,38): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(621,42): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(635,41): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(646,42): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(679,23): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(688,44): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/menu.test.ts(712,29): error TS2345: Argument of type 'MenuItemConstructorOptions[]' is not assignable to parameter of type 'MenuItemLike[]'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'MenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/tray.test.ts(85,3): error TS2322: Type 'MenuItemConstructorOptions | undefined' is not assignable to type 'ContextMenuItemLike | undefined'.
+  Type 'MenuItemConstructorOptions' is not assignable to type 'ContextMenuItemLike'.
+    Types of property 'click' are incompatible.
+      Type '((menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void) | undefined' is not assignable to type '((...args: unknown[]) => void) | undefined'.
+        Type '(menuItem: MenuItem, window: BaseWindow | undefined, event: KeyboardEvent) => void' is not assignable to type '(...args: unknown[]) => void'.
+          Types of parameters 'menuItem' and 'args' are incompatible.
+            Type 'unknown' is not assignable to type 'MenuItem'.
+electron/tests/unit/main/window-state.test.ts(100,24): error TS2352: Conversion of type 'Screen' to type '{ getPrimaryDisplay: Mock; getAllDisplays: Mock; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'getPrimaryDisplay' are incompatible.
+    Type '() => Display' is not comparable to type 'Mock'.
+      Type '() => Display' is not comparable to type 'MockInstance<Procedure>'.
+electron/tests/unit/main/window-state.test.ts(297,28): error TS2352: Conversion of type 'Screen' to type '{ getAllDisplays: Mock; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'getAllDisplays' are incompatible.
+    Type '() => Display[]' is not comparable to type 'Mock'.
+      Type '() => Display[]' is not comparable to type 'MockInstance<Procedure>'.
+electron/tests/unit/services/auto-updater.test.ts(207,15): error TS2341: Property 'isDownloading' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(341,43): error TS2341: Property 'onUpdateAvailable' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(364,43): error TS2341: Property 'onUpdateAvailable' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(369,24): error TS2341: Property 'isDownloading' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(376,43): error TS2341: Property 'onUpdateAvailable' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(381,24): error TS2341: Property 'isDownloading' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(388,43): error TS2341: Property 'onUpdateAvailable' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(403,44): error TS2341: Property 'onDownloadProgress' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(422,44): error TS2341: Property 'onDownloadProgress' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(441,44): error TS2341: Property 'onDownloadProgress' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(458,44): error TS2341: Property 'onUpdateDownloaded' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(474,17): error TS2341: Property 'isDownloading' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(477,44): error TS2341: Property 'onUpdateDownloaded' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(482,24): error TS2341: Property 'isDownloading' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(489,44): error TS2341: Property 'onUpdateDownloaded' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/unit/services/auto-updater.test.ts(540,41): error TS2341: Property 'onUpdateAvailable' is private and only accessible within class 'AutoUpdaterService'.
+electron/tests/window-state.test.ts(31,71): error TS2677: A type predicate's type must be assignable to its parameter's type.
+  Type 'WindowState' is not assignable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'WindowState'.
+electron/vitest.config.ts(94,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'all' does not exist in type '{ provider: "v8"; } & CoverageV8Options'.
+      Object literal may only specify known properties, and 'inline' does not exist in type 'DepsOptions'.
+electron/vitest.config.ts(141,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'all' does not exist in type '{ provider: "v8"; } & CoverageV8Options'.
+      Object literal may only specify known properties, and 'inline' does not exist in type 'DepsOptions'.
+src/components/ThemeProvider.tsx(12,11): error TS2322: Type '{ children: ReactNode; attribute?: string | undefined; defaultTheme?: string | undefined; enableSystem?: boolean | undefined; }' is not assignable to type 'ThemeProviderProps'.
+  Types of property 'attribute' are incompatible.
+    Type 'string | undefined' is not assignable to type 'Attribute | Attribute[] | undefined'.
+      Type 'string' is not assignable to type 'Attribute | Attribute[] | undefined'.
+src/components/ui/calendar.tsx(45,9): error TS2353: Object literal may only specify known properties, and 'IconLeft' does not exist in type 'Partial<CustomComponents>'.
+src/components/views/MobileView.tsx(107,31): error TS2741: Property 'currentUser' is missing in type '{}' but required in type '{ currentUser: any; }'.
+src/components/workspace/Workspace.tsx(44,23): error TS2552: Cannot find name 'useQueryClient'. Did you mean 'queryClient'?
+src/components/workspace/Workspace.tsx(384,53): error TS2345: Argument of type 'MouseEvent<HTMLButtonElement, MouseEvent>' is not assignable to parameter of type 'string'.
+src/components/workspace/Workspace.tsx(493,65): error TS2552: Cannot find name 'creatingProject'. Did you mean 'createProject'?
+src/components/workspace/Workspace.tsx(494,24): error TS2552: Cannot find name 'creatingProject'. Did you mean 'createProject'?
+src/hooks/use-toast.test.ts(1,40): error TS2307: Cannot find module 'bun:test' or its corresponding type declarations.
+src/lib/utils.test.ts(1,46): error TS2307: Cannot find module 'bun:test' or its corresponding type declarations.

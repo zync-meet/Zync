@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, CheckCircle2, Circle, Server, Layout, Database, Share2, Plus, GripVertical, GitCommit, ExternalLink, Kanban, Trash2, Github, Bot, MoreVertical, Settings, MessageSquare, Wrench } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2, Circle, Server, Layout, Database, Share2, Plus, GripVertical, GitCommit, ExternalLink, Kanban, Trash2, Github, Bot, MoreVertical, Settings, MessageSquare, Wrench, FolderKanban } from "lucide-react";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { sendMessage as socketSendMessage } from "@/services/chatSocketService";
@@ -75,6 +75,7 @@ interface Task {
     author: string;
     timestamp: string;
   };
+  createdBy?: string;
 }
 
 interface Step {

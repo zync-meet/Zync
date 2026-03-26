@@ -74,10 +74,7 @@ import { app, Tray, Menu, nativeImage } from 'electron';
 
 
 interface ContextMenuItemLike {
-  label?: string;
-  type?: string;
-  enabled?: boolean;
-  click?: (...args: unknown[]) => void;
+  [key: string]: any;
 }
 
 
@@ -86,7 +83,7 @@ function findContextMenuItem(label: string): ContextMenuItemLike | undefined {
 }
 
 
-function getTrayClickHandler(): ((...args: unknown[]) => void) | undefined {
+function getTrayClickHandler(): ((...args: any[]) => void) | undefined {
   if (!mockTrayInstance) {return undefined;}
 
 
@@ -94,18 +91,18 @@ function getTrayClickHandler(): ((...args: unknown[]) => void) | undefined {
   const clickCall = onCalls.find(
     (call: unknown[]) => call[0] === 'click',
   );
-  return clickCall?.[1] as ((...args: unknown[]) => void) | undefined;
+  return clickCall?.[1] as ((...args: any[]) => void) | undefined;
 }
 
 
-function getTrayDoubleClickHandler(): ((...args: unknown[]) => void) | undefined {
+function getTrayDoubleClickHandler(): ((...args: any[]) => void) | undefined {
   if (!mockTrayInstance) {return undefined;}
 
   const onCalls = mockTrayInstance.on.mock.calls;
   const dblClickCall = onCalls.find(
     (call: unknown[]) => call[0] === 'double-click',
   );
-  return dblClickCall?.[1] as ((...args: unknown[]) => void) | undefined;
+  return dblClickCall?.[1] as ((...args: any[]) => void) | undefined;
 }
 
 

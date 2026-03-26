@@ -1,1 +1,0 @@
-{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../electron/interfaces/index.ts"],"names":[],"mappings":"AA0CA,MAAM,CAAC,MAAM,gBAAgB,GAAgB;IACzC,KAAK,EAAE,QAAQ;IACf,eAAe,EAAE,KAAK;IACtB,cAAc,EAAE,IAAI;IACpB,UAAU,EAAE,IAAI;IAChB,aAAa,EAAE,IAAI;IACnB,QAAQ,EAAE,IAAI;IACd,SAAS,EAAE,GAAG;CACjB,CAAC"}
