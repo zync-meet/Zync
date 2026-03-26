@@ -103,7 +103,9 @@ dist
 # FuseBox cache
 .fusebox/
 
-# DynamoDB Local files
+# Double check if these files contain any actual secrets before just ignoring them.
+# The SSH key is most likely a secret.
+# backend-deploy.tar.gz might contain a .env file or other secrets.
 .dynamodb/
 
 # TernJS port file
@@ -160,5 +162,17 @@ backend/debug_*.png
 # Google Service Account Key
 google.sheets.json
 google-credentials.json
+
+# Sensitive Keys and Archives
+ssh-key-2026-03-05.key
+backend-deploy.tar.gz
+
+# Logs and Build Artifacts
+*.log
+lint_output.txt
+lint_output_utf8.txt
+tsc_error.log
+vite_build_clean.log
+vite_build_debug.log
 
 .vscode
