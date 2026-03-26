@@ -3,19 +3,11 @@ import {
   sendMessage as socketSendMessage,
   markSeen,
   clearChat as socketClearChat,
-  onMessage,
-  onDelivered,
-  onSeen,
-  onCleared,
-  emitTyping,
-  onTyping,
-  ChatMessage,
 } from "@/services/chatSocketService";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import {
   Send,
@@ -28,14 +20,15 @@ import {
   Image as ImageIcon,
   Trash2,
   FolderKanban,
-  Plus
+  Plus,
+  Star
 } from "lucide-react";
 import { format } from "date-fns";
 import EmojiPicker from 'emoji-picker-react';
 import { API_BASE_URL, getFullUrl, getUserName, getUserInitials } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Star } from "lucide-react";
+import { useChatHistory } from "@/hooks/useChatHistory";
 
 interface ChatViewProps {
   selectedUser: any;
@@ -45,91 +38,39 @@ interface ChatViewProps {
 
 const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const currentUser = auth.currentUser;
+  
+  const chatId = currentUser && selectedUser 
+    ? [currentUser.uid, selectedUser.uid].sort().join("_") 
+    : null;
+
+  const { 
+    data: messages = [], 
+  } = useChatHistory(chatId);
+
   const [newMessage, setNewMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const currentUser = auth.currentUser;
 
-  // ── Load history from REST API + subscribe to real-time via socket ──
+  // Mark unseen messages as seen when the chat is loaded/viewed
   useEffect(() => {
-    if (!currentUser || !selectedUser) {return;}
-
-    const chatId = [currentUser.uid, selectedUser.uid].sort().join("_");
-
-    // 1. Load existing messages from DB
-    const loadHistory = async () => {
-      try {
-        const token = await currentUser.getIdToken();
-        const res = await fetch(`${API_BASE_URL}/api/chat/history/${chatId}`, {
-          headers: { Authorization: `Bearer ${token}` }
+    if (messages.length > 0 && currentUser) {
+      const unseenIds = messages
+        .filter(m => m.receiverId === currentUser.uid && !m.seen)
+        .map(m => m.id);
+      
+      if (unseenIds.length > 0) {
+        // Simple grouped approach
+        const senderIds = [...new Set(messages.filter(m => unseenIds.includes(m.id)).map(m => m.senderId))];
+        senderIds.forEach(sid => {
+          const idsForSender = messages.filter(m => unseenIds.includes(m.id) && m.senderId === sid).map(m => m.id);
+          markSeen(idsForSender, sid);
         });
-        if (res.ok) {
-          const data: ChatMessage[] = await res.json();
-          setMessages(data);
-
-          // Mark unseen messages as seen
-          const unseenIds = data
-            .filter(m => m.receiverId === currentUser.uid && !m.seen)
-            .map(m => m.id);
-          if (unseenIds.length > 0) {
-            const senderIds = [...new Set(data.filter(m => unseenIds.includes(m.id)).map(m => m.senderId))];
-            senderIds.forEach(sid => {
-              const idsForSender = data.filter(m => unseenIds.includes(m.id) && m.senderId === sid).map(m => m.id);
-              markSeen(idsForSender, sid);
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Error loading chat history:", err);
       }
-    };
-    loadHistory();
-
-    // 2. Listen for new real-time messages
-    const unsubMessage = onMessage((msg) => {
-      if (msg.chatId === chatId) {
-        setMessages(prev => {
-          // Deduplicate
-          if (prev.some(m => m.id === msg.id)) return prev;
-          return [...prev, msg];
-        });
-
-        // Auto-mark as seen if I'm the receiver
-        if (msg.receiverId === currentUser.uid && !msg.seen) {
-          markSeen([msg.id], msg.senderId);
-        }
-      }
-    });
-
-    const unsubDelivered = onDelivered((data) => {
-      const ids = data.messageIds || (data.messageId ? [data.messageId] : []);
-      setMessages(prev =>
-        prev.map(m => ids.includes(m.id) ? { ...m, delivered: true, deliveredAt: new Date().toISOString() } : m)
-      );
-    });
-
-    const unsubSeen = onSeen((data) => {
-      setMessages(prev =>
-        prev.map(m => data.messageIds.includes(m.id) ? { ...m, seen: true, seenAt: new Date().toISOString() } : m)
-      );
-    });
-
-    const unsubCleared = onCleared((data) => {
-      if (data.chatId === chatId) {
-        setMessages([]);
-      }
-    });
-
-    return () => {
-      unsubMessage();
-      unsubDelivered();
-      unsubSeen();
-      unsubCleared();
-    };
-  }, [currentUser, selectedUser]);
+    }
+  }, [messages.length, currentUser]);
 
   const prevMessagesLengthRef = useRef(messages.length);
   const isNearBottomRef = useRef(true);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer
 } from 'recharts';
@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,11 +17,10 @@ import {
     ContributionGraph,
     ContributionGraphBlock,
     ContributionGraphCalendar,
-    ContributionGraphFooter,
     ContributionGraphLegend,
     ContributionGraphTotalCount,
 } from "@/components/kibo-ui/contribution-graph";
-import { eachDayOfInterval, subDays, formatISO } from "date-fns";
+import { eachDayOfInterval, formatISO } from "date-fns";
 import {
     Github,
     Users,
@@ -39,109 +37,33 @@ import {
     Loader2
 } from "lucide-react";
 
-interface GitHubStats {
-    login: string;
-    name: string;
-    avatar_url: string;
-    bio: string;
-    public_repos: number;
-    followers: number;
-    following: number;
-    html_url: string;
-    created_at: string;
-}
-
-interface GitHubEvent {
-    id: string;
-    type: string;
-    repo: string;
-    created_at: string;
-    payload: {
-        action?: string;
-        ref?: string;
-        commits?: { sha: string; message: string }[];
-    };
-}
-
-interface Contribution {
-    date: string;
-    count: number;
-}
+import { useGitHubStats, useGitHubEvents, useGitHubContributions } from "@/hooks/useGitHubData";
+import { useQueryClient } from "@tanstack/react-query";
 
 const DashboardView = ({ currentUser }: { currentUser: any }) => {
-    const [stats, setStats] = useState<GitHubStats | null>(null);
-    const [events, setEvents] = useState<GitHubEvent[]>([]);
-    const [contributions, setContributions] = useState<Contribution[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    useEffect(() => {
-        const fetchGitHubData = async () => {
-            if (!currentUser) { return; }
+    const { 
+        data: stats, 
+        isLoading: statsLoading, 
+        error: statsError, 
+        isRefetching: statsRefetching 
+    } = useGitHubStats(!!currentUser);
 
-            if (stats) {
-                setIsRefreshing(true);
-            } else {
-                setLoading(true);
-            }
-            setError(null);
+    const { 
+        data: events = [], 
+        isLoading: eventsLoading 
+    } = useGitHubEvents(!!currentUser);
 
-            try {
-                const token = await currentUser.getIdToken();
-                const headers = {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                };
+    const { 
+        data: contributions = [], 
+        isLoading: contribLoading 
+    } = useGitHubContributions(selectedYear, !!currentUser);
 
-
-                const promises: Promise<Response>[] = [
-                    fetch(`${API_BASE_URL}/api/github/contributions?year=${selectedYear}`, { headers })
-                ];
-
-                if (!stats) { promises.push(fetch(`${API_BASE_URL}/api/github/stats`, { headers })); }
-                if (events.length === 0) { promises.push(fetch(`${API_BASE_URL}/api/github/events`, { headers })); }
-
-                const results = await Promise.all(promises);
-                const contribRes = results[0];
-                const statsRes = stats ? null : results[1];
-                const eventsRes = events.length > 0 ? null : results[stats ? 1 : 2];
-
-                if (statsRes && statsRes.ok) {
-                    const statsData = await statsRes.json();
-                    if (statsData.connected === false) {
-                        setError("GitHub not connected. Sign in with GitHub to see your activity.");
-                        setStats(null);
-                    } else {
-                        setStats(statsData);
-                    }
-                }
-
-                if (eventsRes && eventsRes.ok) {
-                    const eventsData = await eventsRes.json();
-                    if (eventsData.connected !== false) {
-                        setEvents(eventsData);
-                    }
-                }
-
-                if (contribRes.ok) {
-                    const contribData = await contribRes.json();
-                    if (contribData.connected !== false) {
-                        setContributions(contribData);
-                    }
-                }
-            } catch (err) {
-                console.error("Error fetching GitHub data:", err);
-                setError("Failed to load GitHub data");
-            } finally {
-                setLoading(false);
-                setIsRefreshing(false);
-            }
-        };
-
-        fetchGitHubData();
-    }, [currentUser, selectedYear]);
+    const loading = statsLoading || eventsLoading || contribLoading;
+    const isRefreshing = statsRefetching;
+    const error = statsError ? (statsError as Error).message : (stats?.connected === false ? "GitHub not connected. Sign in with GitHub to see your activity." : null);
 
     const formatEventType = (type: string) => {
         const typeMap: Record<string, { label: string; icon: JSX.Element }> = {
@@ -180,10 +102,8 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                 }
             });
 
-            setStats(null);
-            setEvents([]);
-            setContributions([]);
-            setError("GitHub disconnected.");
+            // Invalidate GitHub queries to reflect the disconnected state
+            queryClient.invalidateQueries({ queryKey: ['github'] });
         } catch (err) {
             console.error("Error unlinking:", err);
         }

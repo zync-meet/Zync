@@ -5,22 +5,20 @@ import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FolderGit2, Plus, ArrowRight, Loader2, Calendar, User, Trash2, Pin, FileText, Unlink } from "lucide-react";
+import { FolderGit2, Plus, ArrowRight, Loader2, Calendar, User, Trash2, Pin, FileText, Unlink, Search, Github } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { fetchNotes, Note } from '../../api/notes';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter
+  DialogTitle
 } from "@/components/ui/dialog";
-import { Github, Loader2 as Spinner, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useProjects, useProjectMutations } from "@/hooks/useProjects";
+import { usePinnedNotes } from "@/hooks/useNotes";
 
 interface Project {
   _id: string;
@@ -41,272 +39,111 @@ interface WorkspaceProps {
   usersList?: any[];
 }
 
-const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, usersList = [] }: WorkspaceProps) => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [pinnedNotes, setPinnedNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
+const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }: WorkspaceProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
+  const { data: pinnedNotes = [], isLoading: notesLoading } = usePinnedNotes();
+  const { deleteProject, linkGitHub, createProject } = useProjectMutations();
 
+  const loading = projectsLoading || notesLoading;
 
   const [repoModalOpen, setRepoModalOpen] = useState(false);
-  const [selectedProjectForLink, setSelectedProjectForLink] = useState<Project | null>(null);
+  const [selectedProjectForLink, setSelectedProjectForLink] = useState<any>(null);
   const [repos, setRepos] = useState<any[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [linkingRepo, setLinkingRepo] = useState(false);
-
-
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [creatingProject, setCreatingProject] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
-
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const installationId = params.get('installation_id');
-
-    if (installationId && currentUser) {
-      const connectGitHub = async () => {
-        try {
-          const user = auth.currentUser;
-          const token = user ? await user.getIdToken() : null;
-
-          await fetch(`${API_BASE_URL}/api/github/install`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ installationId })
-          });
-
-          toast({
-            title: "GitHub Connected",
-            description: "App installation verified successfully."
-          });
-
-
-          navigate(location.pathname, { replace: true });
-        } catch (error) {
-          console.error("Failed to save installation ID", error);
-        }
-      };
-      connectGitHub();
-    }
-  }, [location.search, currentUser, navigate]);
-
-
-  const refreshReposInBackground = async () => {
-    try {
-      const user = auth.currentUser;
-      const token = user ? await user.getIdToken() : null;
-      if (!token) { return; }
-
-      const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRepos(data);
-      }
-    } catch (error) {
-      console.error("Background repo refresh failed:", error);
-    }
-  };
 
   const handleOpenLinkModal = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
     setSelectedProjectForLink(project);
     setRepoModalOpen(true);
     setSearchTerm("");
-
-
+    
     if (repos.length === 0) {
       setLoadingRepos(true);
-    }
-
-    try {
-      const user = auth.currentUser;
-      const token = user ? await user.getIdToken() : null;
-
-      if (!token) {
-        toast({ title: "Authentication Error", description: "You are not signed in.", variant: "destructive" });
-        setLoadingRepos(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.status === 400) {
-        const data = await response.json();
-        if (data.notInstalled) {
-          window.location.href = `https://github.com/apps/ZYNC-meet/installations/new`;
-          return;
+      try {
+        const user = auth.currentUser;
+        const token = user ? await user.getIdToken() : null;
+        if (token) {
+          const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setRepos(data);
+          }
         }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingRepos(false);
       }
-
-      if (response.ok) {
-        const data = await response.json();
-        setRepos(data);
-      } else {
-        throw new Error("Failed to fetch repos");
-      }
-    } catch (error) {
-      console.error(error);
-      if (repos.length === 0) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch repositories. Please ensure Zync is installed on your GitHub.",
-          variant: "destructive"
-        });
-      }
-    } finally {
-      setLoadingRepos(false);
     }
   };
 
   const handleLinkRepo = async (repo: any) => {
-    if (!selectedProjectForLink) { return; }
-    setLinkingRepo(true);
+    if (!selectedProjectForLink) return;
     try {
-      const user = auth.currentUser;
-      const token = user ? await user.getIdToken() : null;
-
-      const response = await fetch(`${API_BASE_URL}/api/projects/${selectedProjectForLink._id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
+      await linkGitHub({
+        projectId: selectedProjectForLink._id,
+        repoData: {
           githubRepoName: repo.name,
-          githubRepoOwner: repo.owner,
-          isTrackingActive: true
-        })
+          githubRepoOwner: repo.owner.login
+        }
       });
-
-      if (response.ok) {
-        const updatedProject = await response.json();
-        setProjects(projects.map(p => p._id === updatedProject._id ? updatedProject : p));
-        setRepoModalOpen(false);
-        toast({
-          title: "Success",
-          description: `Linked ${repo.full_name} to project.`
-        });
-      } else {
-        throw new Error("Failed to link");
-      }
+      setRepoModalOpen(false);
+      toast({ title: "Success", description: `Linked ${repo.full_name} to project.` });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to link repository.",
-        variant: "destructive"
-      });
-    } finally {
-      setLinkingRepo(false);
+      toast({ title: "Error", description: "Failed to link repository.", variant: "destructive" });
     }
   };
 
   const handleOpenCreateModal = async () => {
     setCreateModalOpen(true);
     setSearchTerm("");
-
-
     if (repos.length === 0) {
       setLoadingRepos(true);
-    }
-
-
-    try {
-      const user = auth.currentUser;
-      const token = user ? await user.getIdToken() : null;
-
-      if (!token) {
-        toast({ title: "Authentication Error", description: "You are not signed in.", variant: "destructive" });
-        setLoadingRepos(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.status === 400) {
-        const data = await response.json();
-        if (data.notInstalled) {
-          window.location.href = `https://github.com/apps/ZYNC-meet/installations/new`;
-          return;
+      try {
+        const user = auth.currentUser;
+        const token = user ? await user.getIdToken() : null;
+        if (token) {
+          const response = await fetch(`${API_BASE_URL}/api/github/user-repos`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setRepos(data);
+          }
         }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingRepos(false);
       }
-
-      if (response.ok) {
-        const data = await response.json();
-        setRepos(data);
-      } else {
-        throw new Error("Failed to fetch repos");
-      }
-    } catch (error) {
-      console.error(error);
-      if (repos.length === 0) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch repositories.",
-          variant: "destructive"
-        });
-      }
-    } finally {
-      setLoadingRepos(false);
     }
   };
 
   const handleCreateProjectFromRepo = async (repo: any) => {
-    setCreatingProject(true);
     try {
-      const user = auth.currentUser;
-      const token = user ? await user.getIdToken() : null;
-
-      const response = await fetch(`${API_BASE_URL}/api/projects`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: repo.name,
-          description: repo.description,
-          ownerId: user?.uid,
-          githubRepoName: repo.name,
-          githubRepoOwner: repo.owner
-        })
+      await createProject({
+        name: repo.name,
+        description: repo.description,
+        ownerId: currentUser?.uid,
+        githubRepoName: repo.name,
+        githubRepoOwner: repo.owner.login
       });
-
-      if (response.ok) {
-        const newProject = await response.json();
-        setProjects([newProject, ...projects]);
-        setCreateModalOpen(false);
-        toast({
-          title: "Success",
-          description: `Project ${repo.name} created successfully.`
-        });
-      } else {
-        throw new Error("Failed to create project");
-      }
+      setCreateModalOpen(false);
+      toast({ title: "Success", description: `Project ${repo.name} created successfully.` });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create project.",
-        variant: "destructive"
-      });
-    } finally {
-      setCreatingProject(false);
+      toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
     }
   };
-
 
   const handleUnlinkRepo = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
@@ -330,9 +167,8 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
       });
 
       if (response.ok) {
-        const updatedProject = await response.json();
-        setProjects(projects.map(p => p._id === updatedProject._id ? updatedProject : p));
         toast({ title: "Success", description: "Repository unlinked." });
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
       } else {
         throw new Error("Failed to unlink");
       }
@@ -341,118 +177,50 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
     }
   };
 
-  const filteredRepos = repos.filter(repo =>
-    repo.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const deleteProject = async (e: React.MouseEvent, projectId: string) => {
+  const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
     if (!confirm("Are you sure you want to delete this project?")) { return; }
 
     try {
-      let headers: HeadersInit = {};
-      if (currentUser && typeof currentUser.getIdToken === 'function') {
-        const token = await currentUser.getIdToken();
-        headers = { 'Authorization': `Bearer ${token}` };
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
-        method: 'DELETE',
-        headers
-      });
-
-      if (response.ok) {
-        setProjects(projects.filter(p => p._id !== projectId));
-        toast({
-          title: "Project deleted",
-          description: " The project has been successfully removed.",
-        });
-      } else {
-        throw new Error("Failed to delete");
-      }
+      await deleteProject(projectId);
+      toast({ title: "Project deleted", description: "The project has been successfully removed." });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete project.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to delete project.", variant: "destructive" });
     }
   };
 
-
   useEffect(() => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort('timeout'), 10000);
+    const params = new URLSearchParams(location.search);
+    const installationId = params.get('installation_id');
 
-    const loadData = async () => {
-      try {
-        let headers: HeadersInit = {};
-        if (currentUser && typeof currentUser.getIdToken === 'function') {
-          const token = await currentUser.getIdToken();
-          headers = { 'Authorization': `Bearer ${token}` };
+    if (installationId && currentUser) {
+      const connectGitHub = async () => {
+        try {
+          const user = auth.currentUser;
+          const token = user ? await user.getIdToken() : null;
+
+          await fetch(`${API_BASE_URL}/api/github/install`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ installationId })
+          });
+
+          toast({ title: "GitHub Connected", description: "App installation verified successfully." });
+          navigate(location.pathname, { replace: true });
+        } catch (error) {
+          console.error("Failed to save installation ID", error);
         }
+      };
+      connectGitHub();
+    }
+  }, [location.search, currentUser, navigate]);
 
-        const ownerQuery = currentUser ? `?ownerId=${currentUser.uid}` : '';
-        const [projectsRes, notesRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/projects${ownerQuery}`, {
-            headers,
-            signal: controller.signal
-          }),
-          currentUser ? fetch(`${API_BASE_URL}/api/notes?userId=${currentUser.uid}`, { headers, signal: controller.signal }) : Promise.resolve(null)
-        ]);
-
-        if (projectsRes.ok) {
-          const data = await projectsRes.json();
-          setProjects(data);
-        } else if (projectsRes.status === 401) {
-          console.warn("Unauthorized fetch (likely token expired or missing)");
-        } else {
-          console.error("Projects fetch failed:", projectsRes.status);
-          toast({ title: "Connection Error", description: "Could not fetch projects. Server might be down.", variant: "destructive" });
-        }
-
-        let notes = [];
-        if (notesRes && notesRes.ok) {
-          notes = await notesRes.json();
-        } else if (notesRes) {
-          console.warn("Notes fetch failed:", notesRes.status);
-        }
-
-        if (notes && Array.isArray(notes)) {
-          setPinnedNotes(notes.filter((n: any) => n.isPinned));
-        }
-
-
-        refreshReposInBackground();
-
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-
-          if (controller.signal.reason === 'timeout') {
-            toast({ title: "Timeout", description: "Server is taking too long to respond.", variant: "destructive" });
-          }
-          return;
-        }
-        console.error("Failed to fetch data:", error);
-      } finally {
-        clearTimeout(timeoutId);
-
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        } else if (controller.signal.reason === 'timeout') {
-
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      controller.abort();
-      clearTimeout(timeoutId);
-    };
-  }, [currentUser]);
+  const filteredRepos = repos.filter(repo =>
+    repo.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -649,7 +417,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
             <div className="h-[200px] overflow-y-auto border rounded-md p-2 space-y-1">
               {loadingRepos ? (
                 <div className="flex h-full items-center justify-center">
-                  <Spinner className="w-6 h-6 animate-spin text-primary" />
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : repos.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
@@ -702,7 +470,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
             <div className="h-[200px] overflow-y-auto border rounded-md p-2 space-y-1">
               {loadingRepos ? (
                 <div className="flex h-full items-center justify-center">
-                  <Spinner className="w-6 h-6 animate-spin text-primary" />
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : repos.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
@@ -723,7 +491,7 @@ const Workspace = ({ onNavigate, onSelectProject, onOpenNote, currentUser, users
                       <span className="text-xs text-muted-foreground truncate">{repo.full_name}</span>
                     </div>
                     <Button variant="ghost" size="sm" disabled={creatingProject}>
-                      {creatingProject ? <Spinner className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      {creatingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                     </Button>
                   </div>
                 ))

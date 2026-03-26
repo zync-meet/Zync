@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,109 +17,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface MongoUser {
-  uid: string;
-  githubIntegration?: {
-    connected: boolean;
-    username?: string;
-  };
-}
-
-interface Repository {
-  id: number;
-  name: string;
-  full_name: string;
-  html_url: string;
-  description: string;
-  stargazers_count: number;
-  forks_count: number;
-  language: string;
-  visibility: string;
-  updated_at: string;
-  owner: {
-    login: string;
-    avatar_url: string;
-  };
-}
+import { useQueryClient } from "@tanstack/react-query";
+import { useMe } from "@/hooks/useMe";
+import { useGitHubRepos } from "@/hooks/useGitHubData";
 
 const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
-  const [loading, setLoading] = useState(false);
-  const [repos, setRepos] = useState<Repository[]>([]);
-  const [userData, setUserData] = useState<MongoUser | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const { data: userData, isLoading: userLoading } = useMe();
+  const isConnected = userData?.githubIntegration?.connected;
+
+  const { 
+    data: repos = [], 
+    isLoading: reposLoading 
+  } = useGitHubRepos(!!isConnected);
+
+  const loading = userLoading || reposLoading;
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("updated");
-
-  const { toast } = useToast();
-
-
-  const fetchUserData = async () => {
-    try {
-      if (!currentUser?.uid) { return; }
-      const token = await currentUser.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUserData(data);
-      } else {
-
-        console.warn("Failed to fetch user data for GitHub check");
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchUserData();
-    }
-  }, [currentUser]);
-
-
-  useEffect(() => {
-    const fetchRepos = async () => {
-      if (userData?.githubIntegration?.connected) {
-        setLoading(true);
-        try {
-          const token = await currentUser.getIdToken();
-          const response = await fetch(`${API_BASE_URL}/api/github/repos`, {
-            headers: {
-              "Authorization": `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setRepos(data.repos || data);
-          } else {
-            toast({
-              title: "Error",
-              description: "Failed to fetch repositories. Please try again.",
-              variant: "destructive"
-            });
-          }
-        } catch (error) {
-          console.error("Error fetching repos:", error);
-          toast({
-            title: "Network Error",
-            description: "Could not connect to GitHub API.",
-            variant: "destructive"
-          });
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    if (userData) {
-      fetchRepos();
-    }
-  }, [userData, currentUser, toast]);
 
   const [connecting, setConnecting] = useState(false);
 
@@ -144,7 +60,9 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
 
         toast({ title: "GitHub Connected!", description: "Your repositories are now linked." });
 
-        await fetchUserData();
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['me'] });
+        queryClient.invalidateQueries({ queryKey: ['github'] });
       }
     } catch (error: any) {
       console.error("GitHub connect error:", error);
@@ -192,7 +110,6 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
     );
   }
 
-  const isConnected = userData?.githubIntegration?.connected;
 
   if (!isConnected) {
     return (

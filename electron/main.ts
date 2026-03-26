@@ -1,8 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell, nativeImage } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-
-
 import { buildApplicationMenu } from './main/menu.js';
 import { registerIpcHandlers } from './main/ipc-handlers.js';
 import { createSystemTray } from './main/tray.js';
