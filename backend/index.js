@@ -17,9 +17,8 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:8080',
-  'https://zync-meet.vercel.app',
-  'https://ZYNC-meet.vercel.app',
   'http://localhost:3000',
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
