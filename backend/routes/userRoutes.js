@@ -8,6 +8,7 @@ const { sendZyncEmail } = require('../services/mailer');
 const { appendRow } = require('../services/sheetLogger');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 const { getNewUserRegistrationTemplate } = require('../utils/emailTemplates');
+const { deleteCloudinaryAsset } = require('../services/cloudinaryService');
 
 
 const sendVerificationEmail = async (email, code) => {
@@ -480,6 +481,16 @@ router.post('/delete/confirm', verifyToken, async (req, res) => {
       );
     }
     console.log(`[DELETE] Removed user ${uid} from teams`);
+
+    // Delete profile photo from Cloudinary if it exists
+    if (user.photoURL) {
+      try {
+        await deleteCloudinaryAsset(user.photoURL);
+        console.log(`[DELETE] Deleted profile photo for user: ${uid}`);
+      } catch (deleteError) {
+        console.warn(`[DELETE] Failed to delete profile photo for user ${uid}:`, deleteError.message);
+      }
+    }
 
     await User.deleteOne({ uid });
     console.log(`[DELETE] User ${uid} deleted from database`);

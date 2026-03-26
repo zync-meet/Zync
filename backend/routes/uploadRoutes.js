@@ -4,18 +4,11 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const cloudinary = require('cloudinary').v2;
+const { deleteCloudinaryAsset, uploadProfilePhoto } = require('../services/cloudinaryService');
 const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const { normalizeDoc } = require('../utils/normalize');
 const mime = require('mime-types');
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../uploads');
@@ -100,15 +93,20 @@ router.post('/profile-photo', authMiddleware, upload.single('file'), async (req,
 
     const uid = req.user.uid;
 
-    // Upload to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'zync-profiles',
-      public_id: `profile_${uid}`,
-      overwrite: true,
-      transformation: [
-        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
-      ],
-    });
+    // Fetch existing user to check for old photo
+    const currentUser = await User.findOne({ uid }).lean();
+    if (currentUser?.photoURL) {
+      try {
+        await deleteCloudinaryAsset(currentUser.photoURL);
+        console.log(`Deleted old profile photo for user: ${uid}`);
+      } catch (deleteError) {
+        console.warn('Failed to delete old photo from Cloudinary:', deleteError.message);
+        // We continue anyway even if deletion fails
+      }
+    }
+
+    // Upload to Cloudinary with unique ID via service
+    const result = await uploadProfilePhoto(req.file.path, uid);
 
     // Remove local temp file
     try {
