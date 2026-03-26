@@ -146,7 +146,7 @@
     "@types/node": "^22.19.11",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitejs/plugin-react-swc": "^4.3.0",
     "autoprefixer": "^10.4.24",
     "commitizen": "^4.3.1",
     "concurrently": "^9.1.0",
