@@ -14,10 +14,8 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": false,
-    "emitDeclarationOnly": true,
-    "jsx": "react-jsx",
-    "composite": true,
+    "noEmit": true,
+    "composite": false,
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
