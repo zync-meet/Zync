@@ -23,7 +23,9 @@ const sendVerificationEmail = async (email, code) => {
 
 router.get('/me', verifyToken, async (req, res) => {
   try {
-    const user = await User.findOne({ uid: req.user.uid }).lean();
+    const user = await User.findOne({ uid: req.user.uid })
+      .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
+      .lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     let teamInfo = null;
@@ -45,7 +47,9 @@ router.post('/sync', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    let user = await User.findOne({ uid }).lean();
+    let user = await User.findOne({ uid })
+      .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
+      .lean();
 
     let finalDisplayName = displayName;
     if (!finalDisplayName && email) {
@@ -148,7 +152,7 @@ router.post('/sync-github', verifyToken, async (req, res) => {
           }
         }
       },
-      { returnDocument: 'after', lean: true }
+      { returnDocument: 'after', lean: true, select: '-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires' }
     );
 
     if (!user) {
@@ -335,6 +339,7 @@ router.get('/', verifyToken, async (req, res) => {
       if (!team) return res.status(404).json({ message: 'Team not found' });
       const users = await User.find({ uid: { $in: team.members } })
         .sort({ lastSeen: -1 })
+        .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
         .lean();
       return res.status(200).json(normalizeDocs(users));
     }
@@ -352,6 +357,7 @@ router.get('/', verifyToken, async (req, res) => {
     relatedUids.add(req.user.uid);
 
     const users = await User.find({ uid: { $in: Array.from(relatedUids) } })
+      .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
       .sort({ lastSeen: -1 })
       .lean();
     res.status(200).json(normalizeDocs(users));
@@ -365,7 +371,9 @@ router.get('/', verifyToken, async (req, res) => {
 
 router.get('/:uid', async (req, res) => {
   try {
-    const user = await User.findOne({ uid: req.params.uid }).lean();
+    const user = await User.findOne({ uid: req.params.uid })
+      .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
+      .lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json(normalizeDoc(user));
   } catch (error) {
