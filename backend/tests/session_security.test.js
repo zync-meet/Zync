@@ -1,31 +1,24 @@
-import { describe, it, expect, mock, beforeAll } from "bun:test";
+// import { describe, it, expect, mock, beforeAll } from "bun:test";
 import express from 'express';
 import request from 'supertest';
 import path from 'path';
 
 
-mock.module('../lib/prisma', () => {
-    return {
-        session: {
-            create: mock(() => Promise.resolve({ id: 'mock-id' })),
-            findMany: mock(() => Promise.resolve([])),
-            findUnique: mock(() => Promise.resolve({})),
-            delete: mock(() => Promise.resolve({})),
-            deleteMany: mock(() => Promise.resolve({}))
-        },
-        $disconnect: mock(() => Promise.resolve())
-    };
-});
-
-
-const authMiddlewarePath = path.resolve(__dirname, "../middleware/authMiddleware.js");
-const authMiddlewareMock = (req, res, next) => {
-
-
+const mockPrisma = {
+    session: {
+        create: jest.fn(() => Promise.resolve({ id: 'mock-id' })),
+        findMany: jest.fn(() => Promise.resolve([])),
+        findUnique: jest.fn(() => Promise.resolve({})),
+        delete: jest.fn(() => Promise.resolve({})),
+        deleteMany: jest.fn(() => Promise.resolve({}))
+    },
+    $disconnect: jest.fn(() => Promise.resolve())
 };
 
+jest.mock('../lib/prisma', () => mockPrisma);
 
-const sessionRoutes = require('../routes/sessionRoutes');
+
+import sessionRoutes from '../routes/sessionRoutes';
 
 const app = express();
 app.use(express.json());

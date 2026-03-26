@@ -1,53 +1,49 @@
-import { describe, it, expect, mock } from "bun:test";
+// import { describe, it, expect, mock } from "bun:test";
 import request from "supertest";
 import express from "express";
 
 
 const mockPrisma = {
   user: {
-    findUnique: mock((args) => {
+    findUnique: jest.fn((args) => {
       if (args.where.uid === 'secure_uid') {
         return Promise.resolve({ id: 'user-id', uid: 'secure_uid', email: 'test@example.com' });
       }
       return Promise.resolve(null);
     }),
-    create: mock(() => Promise.resolve({ id: 'new-user', uid: 'secure_uid' })),
-    update: mock(() => Promise.resolve({ id: 'user-id' }))
+    create: jest.fn(() => Promise.resolve({ id: 'new-user', uid: 'secure_uid' })),
+    update: jest.fn(() => Promise.resolve({ id: 'user-id' }))
   },
-  $disconnect: mock(() => Promise.resolve())
+  $disconnect: jest.fn(() => Promise.resolve())
 };
 
-mock.module("../lib/prisma", () => ({
-  default: mockPrisma,
-  user: mockPrisma.user,
-  $disconnect: mockPrisma.$disconnect
-}));
+jest.mock("../lib/prisma", () => mockPrisma);
 
 
-mock.module("firebase-admin", () => {
-  return {
-    apps: [],
-    initializeApp: mock(() => { }),
-    credential: { cert: mock(() => { }) },
-    auth: () => ({
-      verifyIdToken: mock((token) => {
-        if (token === "valid_token") {
-          return Promise.resolve({ uid: "secure_uid", email: "test@example.com" });
-        }
-        return Promise.reject(new Error("Invalid token"));
-      })
+const mockFirebase = {
+  apps: [],
+  initializeApp: jest.fn(() => { }),
+  credential: { cert: jest.fn(() => { }) },
+  auth: () => ({
+    verifyIdToken: jest.fn((token) => {
+      if (token === "valid_token") {
+        return Promise.resolve({ uid: "secure_uid", email: "test@example.com" });
+      }
+      return Promise.reject(new Error("Invalid token"));
     })
-  };
-});
+  })
+};
+
+jest.mock("firebase-admin", () => mockFirebase);
 
 
-mock.module("../utils/encryption", () => ({}));
-mock.module("../utils/regexUtils", () => ({}));
-mock.module("../services/mailer", () => ({
-  sendZyncEmail: mock(() => Promise.resolve({}))
+jest.mock("../utils/encryption", () => ({}));
+jest.mock("../utils/regexUtils", () => ({}));
+jest.mock("../services/mailer", () => ({
+  sendZyncEmail: jest.fn(() => Promise.resolve({}))
 }));
 
-const userRoutes = require("../routes/userRoutes");
+import userRoutes from "../routes/userRoutes";
 
 const app = express();
 app.use(express.json());
