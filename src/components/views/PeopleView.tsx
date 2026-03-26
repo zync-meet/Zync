@@ -647,7 +647,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                                     statusText = `Offline ${duration}`;
                                                 }
                                             } catch (e) {
-
+                                                // Ignore date formatting errors
                                             }
                                         }
 

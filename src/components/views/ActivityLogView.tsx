@@ -167,8 +167,8 @@ const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activityLogs, elapsed
         const m = Math.floor((seconds % 3600) / 60);
 
         const parts = [];
-        if (d > 0) parts.push(`${d}d`);
-        if (h > 0 || d > 0) parts.push(`${h}h`);
+        if (d > 0) {parts.push(`${d}d`);}
+        if (h > 0 || d > 0) {parts.push(`${h}h`);}
         parts.push(`${m}m`);
 
         return parts.join(' ');

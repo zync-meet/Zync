@@ -43,7 +43,7 @@ export function configureDevTools(
     window: BrowserWindow,
     options: Partial<DevToolsConfig> = {},
 ): void {
-    if (!isDev) return;
+    if (!isDev) {return;}
 
     const config = { ...DEFAULT_DEV_TOOLS_CONFIG, ...options };
 
@@ -70,7 +70,7 @@ export function configureDevTools(
 
 
 export async function installReactDevTools(): Promise<boolean> {
-    if (!isDev) return false;
+    if (!isDev) {return false;}
 
     try {
 
@@ -96,13 +96,13 @@ export function openDevTools(
     window: BrowserWindow,
     mode: DevToolsConfig['mode'] = 'right',
 ): void {
-    if (window.isDestroyed()) return;
+    if (window.isDestroyed()) {return;}
     window.webContents.openDevTools({ mode });
 }
 
 
 export function closeDevTools(window: BrowserWindow): void {
-    if (window.isDestroyed()) return;
+    if (window.isDestroyed()) {return;}
     if (window.webContents.isDevToolsOpened()) {
         window.webContents.closeDevTools();
     }
@@ -110,26 +110,26 @@ export function closeDevTools(window: BrowserWindow): void {
 
 
 export function toggleDevTools(window: BrowserWindow): void {
-    if (window.isDestroyed()) return;
+    if (window.isDestroyed()) {return;}
     window.webContents.toggleDevTools();
 }
 
 
 export function isDevToolsOpen(window: BrowserWindow): boolean {
-    if (window.isDestroyed()) return false;
+    if (window.isDestroyed()) {return false;}
     return window.webContents.isDevToolsOpened();
 }
 
 
 export function logRegisteredHandlers(): void {
-    if (!isDev) return;
+    if (!isDev) {return;}
     log.info('=== DevTools: IPC channel audit (manual check required) ===');
     log.info('Use electron-ipc-debug for runtime IPC logging');
 }
 
 
 export function enableCSPLogging(window: BrowserWindow): void {
-    if (!isDev || window.isDestroyed()) return;
+    if (!isDev || window.isDestroyed()) {return;}
 
     window.webContents.on('console-message', (_event, level, message) => {
         if (message.includes('Content Security Policy') || message.includes('CSP')) {

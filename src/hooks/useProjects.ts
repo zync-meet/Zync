@@ -21,7 +21,7 @@ const fetchProjects = async (userId: string): Promise<Project[]> => {
             'Authorization': `Bearer ${token}`
         }
     });
-    if (!response.ok) throw new Error('Failed to fetch projects');
+    if (!response.ok) {throw new Error('Failed to fetch projects');}
     return response.json();
 };
 

@@ -107,7 +107,7 @@ class NotificationQueue {
     }
 
     shouldShow(priority: NotificationItem['priority']): boolean {
-        if (!this.dndEnabled) return true;
+        if (!this.dndEnabled) {return true;}
         return priority === 'critical';
     }
 }

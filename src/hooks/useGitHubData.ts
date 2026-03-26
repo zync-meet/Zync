@@ -34,7 +34,7 @@ export interface Contribution {
 
 const fetchWithAuth = async (url: string) => {
     const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!user) {throw new Error("User not authenticated");}
     
     const token = await user.getIdToken();
     const res = await fetch(url, {

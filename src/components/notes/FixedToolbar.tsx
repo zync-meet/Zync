@@ -18,6 +18,7 @@ import {
   Undo2,
   Redo2,
   Link,
+  Plus,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -25,8 +26,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { ChevronRight, Share2 } from 'lucide-react';
 
 interface ActiveUser {
   id: string;
@@ -42,6 +41,7 @@ interface FixedToolbarProps {
   activeUsers?: ActiveUser[];
   onShare?: () => void;
   onLinkTask?: () => void;
+  onAddTask?: () => void;
 }
 
 
@@ -80,7 +80,7 @@ const ToolbarDivider = () => (
   <div className="w-px h-6 bg-zinc-700 mx-1" />
 );
 
-const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTask }) => {
+const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTask, onAddTask }) => {
   if (!editor) {return null;}
 
 
@@ -262,14 +262,23 @@ const FixedToolbar: React.FC<FixedToolbarProps> = ({ editor, className, onLinkTa
       />
 
       {}
-      {onLinkTask && (
+      {(onLinkTask || onAddTask) && (
         <>
           <ToolbarDivider />
-          <ToolbarButton
-            icon={<Link size={16} className="text-zinc-400" />}
-            tooltip="Link Task to Project"
-            onClick={onLinkTask}
-          />
+          {onLinkTask && (
+            <ToolbarButton
+              icon={<Link size={16} className="text-zinc-400" />}
+              tooltip="Search and Link Existing Task"
+              onClick={onLinkTask}
+            />
+          )}
+          {onAddTask && (
+            <ToolbarButton
+              icon={<Plus size={16} className="text-zinc-400" />}
+              tooltip="Create Task from Selection"
+              onClick={onAddTask}
+            />
+          )}
         </>
       )}
     </div>

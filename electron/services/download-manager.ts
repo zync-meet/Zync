@@ -142,7 +142,7 @@ export class DownloadManagerService {
 
         item.on('updated', (_event, state) => {
             const entry = this.downloads.get(id);
-            if (!entry) return;
+            if (!entry) {return;}
 
             const now = Date.now();
             const elapsed = (now - lastTimestamp) / 1000;
@@ -181,7 +181,7 @@ export class DownloadManagerService {
 
         item.once('done', (_event, state) => {
             const entry = this.downloads.get(id);
-            if (!entry) return;
+            if (!entry) {return;}
 
             const finalState: DownloadState =
                 state === 'completed' ? 'completed' :

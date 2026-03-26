@@ -16,12 +16,12 @@ export const useChatNotifications = () => {
 
             const unsubscribeMessage = onMessage((msg: ChatMessage) => {
                 // Only notify for messages targeted at the current user
-                if (msg.receiverId !== user.uid) return;
+                if (msg.receiverId !== user.uid) {return;}
 
                 const messageTime = new Date(msg.createdAt).getTime();
-                if (messageTime <= startTimeRef.current) return;
+                if (messageTime <= startTimeRef.current) {return;}
 
-                if (notifiedIds.current.has(msg.id)) return;
+                if (notifiedIds.current.has(msg.id)) {return;}
                 notifiedIds.current.add(msg.id);
 
                 const activeSection = localStorage.getItem("ZYNC-active-section");

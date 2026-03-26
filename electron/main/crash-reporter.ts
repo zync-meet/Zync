@@ -1,4 +1,4 @@
-import { app, BrowserWindow, crashReporter, dialog } from 'electron';
+import { app, BrowserWindow, crashReporter, dialog, shell } from 'electron';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
@@ -234,20 +234,20 @@ export function getCrashLogDir(): string {
 export async function readCrashLogs(): Promise<CrashEvent[]> {
     try {
         const exists = await directoryExists(crashLogDir);
-        if (!exists) return [];
+        if (!exists) {return [];}
 
         const files = await fs.readdir(crashLogDir);
         const logs: CrashEvent[] = [];
 
         for (const file of files) {
-            if (!file.endsWith('.json')) continue;
+            if (!file.endsWith('.json')) {continue;}
 
             try {
                 const content = await fs.readFile(join(crashLogDir, file), 'utf-8');
                 const event = JSON.parse(content) as CrashEvent;
                 logs.push(event);
-            } catch {
-
+            } catch (error) {
+                // Ignore errors from individual malformed crash log files
             }
         }
 
@@ -267,15 +267,15 @@ export async function clearCrashLogs(): Promise<number> {
 
     try {
         const exists = await directoryExists(crashLogDir);
-        if (!exists) return 0;
+        if (!exists) {return 0;}
 
         const files = await fs.readdir(crashLogDir);
         for (const file of files) {
             try {
                 await fs.unlink(join(crashLogDir, file));
                 deleted++;
-            } catch {
-
+            } catch (error) {
+                // Ignore errors when unlinking individual crash files
             }
         }
 
@@ -295,12 +295,12 @@ export async function rotateCrashLogs(): Promise<number> {
 
     try {
         const exists = await directoryExists(crashLogDir);
-        if (!exists) return 0;
+        if (!exists) {return 0;}
 
         const files = await fs.readdir(crashLogDir);
         const jsonFiles = files.filter((f) => f.endsWith('.json'));
 
-        if (jsonFiles.length <= config.maxLocalLogs) return 0;
+        if (jsonFiles.length <= config.maxLocalLogs) {return 0;}
 
 
         jsonFiles.sort();
@@ -310,8 +310,8 @@ export async function rotateCrashLogs(): Promise<number> {
             try {
                 await fs.unlink(join(crashLogDir, file));
                 rotated++;
-            } catch {
-
+            } catch (error) {
+                // Ignore rotation errors for specific files
             }
         }
 
@@ -383,8 +383,8 @@ async function writeCrashLog(event: CrashEvent): Promise<void> {
 async function ensureCrashLogDir(): Promise<void> {
     try {
         await fs.mkdir(crashLogDir, { recursive: true });
-    } catch {
-
+    } catch (error) {
+        // Ignore error if directory already exists or cannot be created
     }
 }
 
@@ -418,12 +418,10 @@ function showCrashDialog(event: CrashEvent): void {
             defaultId: 0,
         }).then((result) => {
             if (result.response === 1) {
-
-                const { shell } = require('electron');
                 shell.openPath(crashLogDir);
             }
         }).catch(() => {
-
+            // Ignore dialog cancellation
         });
     } catch {
 

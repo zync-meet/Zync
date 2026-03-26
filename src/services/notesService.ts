@@ -28,7 +28,7 @@ export interface Note {
 // ── Helper to get auth token ─────────────────────────────────────────
 const getToken = async (): Promise<string> => {
     const user = auth.currentUser;
-    if (!user) throw new Error('Not authenticated');
+    if (!user) {throw new Error('Not authenticated');}
     return user.getIdToken();
 };
 
@@ -108,7 +108,7 @@ export const createFolder = async (data: Partial<Omit<Folder, 'id' | '_id'>>) =>
             ...data
         })
     });
-    if (!res.ok) throw new Error('Failed to create folder');
+    if (!res.ok) {throw new Error('Failed to create folder');}
     return res.json();
 };
 
@@ -123,7 +123,7 @@ export const createNote = async (data: Partial<Omit<Note, 'id' | '_id' | 'create
             ...data
         })
     });
-    if (!res.ok) throw new Error('Failed to create note');
+    if (!res.ok) {throw new Error('Failed to create note');}
     return res.json();
 };
 
@@ -134,7 +134,7 @@ export const updateNote = async (id: string, data: Partial<Note>) => {
         headers: h,
         body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error('Failed to update note');
+    if (!res.ok) {throw new Error('Failed to update note');}
     return res.json();
 };
 
@@ -144,7 +144,7 @@ export const deleteNote = async (id: string) => {
         method: 'DELETE',
         headers: h
     });
-    if (!res.ok) throw new Error('Failed to delete note');
+    if (!res.ok) {throw new Error('Failed to delete note');}
     return res.json();
 };
 
@@ -155,7 +155,7 @@ export const updateFolder = async (id: string, data: Partial<Folder>) => {
         headers: h,
         body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error('Failed to update folder');
+    if (!res.ok) {throw new Error('Failed to update folder');}
     return res.json();
 };
 
@@ -165,7 +165,7 @@ export const deleteFolder = async (id: string) => {
         method: 'DELETE',
         headers: h
     });
-    if (!res.ok) throw new Error('Failed to delete folder');
+    if (!res.ok) {throw new Error('Failed to delete folder');}
     return res.json();
 };
 
@@ -176,7 +176,7 @@ export const shareFolder = async (folderId: string, collaboratorIds: string[]) =
         headers: h,
         body: JSON.stringify({ collaboratorIds })
     });
-    if (!res.ok) throw new Error('Failed to share folder');
+    if (!res.ok) {throw new Error('Failed to share folder');}
     return res.json();
 };
 
@@ -187,7 +187,7 @@ export const unshareFolder = async (folderId: string, userId: string) => {
         headers: h,
         body: JSON.stringify({ userId })
     });
-    if (!res.ok) throw new Error('Failed to unshare folder');
+    if (!res.ok) {throw new Error('Failed to unshare folder');}
     return res.json();
 };
 
@@ -195,7 +195,7 @@ export const getNote = async (id: string): Promise<Note | null> => {
     try {
         const h = await getHeaders();
         const res = await fetch(`${API_BASE_URL}/api/notes/${id}`, { headers: h });
-        if (!res.ok) return null;
+        if (!res.ok) {return null;}
         const data = await res.json();
         return { ...data, id: data.id || data._id, _id: data.id || data._id };
     } catch {
@@ -223,6 +223,6 @@ export const updateNotePermissions = async (noteId: string, permissions: Record<
         headers: h,
         body: JSON.stringify({ permissions })
     });
-    if (!res.ok) throw new Error('Failed to update permissions');
+    if (!res.ok) {throw new Error('Failed to update permissions');}
     return res.json();
 };

@@ -37,7 +37,7 @@ export const useMe = () => {
     return useQuery<UserData | null>({
         queryKey: ['me', user?.uid],
         queryFn: async () => {
-            if (!user) return null;
+            if (!user) {return null;}
             
             const token = await user.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/users/me`, {
@@ -47,7 +47,7 @@ export const useMe = () => {
             });
 
             if (!res.ok) {
-                if (res.status === 404) return null;
+                if (res.status === 404) {return null;}
                 throw new Error('Failed to fetch user data');
             }
 

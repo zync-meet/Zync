@@ -55,7 +55,7 @@ export function initContentProtection(options?: Partial<ContentProtectionConfig>
 
 
 export function enableProtection(window: BrowserWindow): void {
-    if (window.isDestroyed()) return;
+    if (window.isDestroyed()) {return;}
 
     try {
         window.setContentProtection(true);
@@ -74,7 +74,7 @@ export function enableProtection(window: BrowserWindow): void {
 
 
 export function disableProtection(window: BrowserWindow): void {
-    if (window.isDestroyed()) return;
+    if (window.isDestroyed()) {return;}
 
     try {
         window.setContentProtection(false);
@@ -87,7 +87,7 @@ export function disableProtection(window: BrowserWindow): void {
 
 
 export function toggleProtection(window: BrowserWindow): boolean {
-    if (window.isDestroyed()) return false;
+    if (window.isDestroyed()) {return false;}
 
     const isProtected = protectedWindows.has(window.id);
     if (isProtected) {
@@ -102,8 +102,8 @@ export function toggleProtection(window: BrowserWindow): boolean {
 export function applyToAllWindows(enabled: boolean): void {
     const windows = BrowserWindow.getAllWindows();
     for (const win of windows) {
-        if (win.isDestroyed()) continue;
-        if (config.excludeWindows.has(String(win.id))) continue;
+        if (win.isDestroyed()) {continue;}
+        if (config.excludeWindows.has(String(win.id))) {continue;}
 
         if (enabled) {
             enableProtection(win);

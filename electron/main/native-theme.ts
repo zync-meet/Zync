@@ -24,7 +24,7 @@ const log = logger;
 
 
 export function initNativeTheme(): void {
-    if (initialized) return;
+    if (initialized) {return;}
 
 
     ipcMain.handle('theme:get', (): ThemeInfo => {

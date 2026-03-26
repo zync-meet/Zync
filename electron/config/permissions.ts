@@ -40,7 +40,7 @@ const TRUSTED_ORIGINS = new Set<string>([
 
 
 function isTrustedOrigin(origin: string): boolean {
-    if (!origin) return false;
+    if (!origin) {return false;}
 
     for (const trusted of TRUSTED_ORIGINS) {
         if (origin === trusted || origin.startsWith(trusted)) {

@@ -74,10 +74,10 @@ export async function listDirectory(
             };
 
 
-            if (options?.filesOnly && !info.isFile) continue;
-            if (options?.directoriesOnly && !info.isDirectory) continue;
+            if (options?.filesOnly && !info.isFile) {continue;}
+            if (options?.directoriesOnly && !info.isDirectory) {continue;}
             if (options?.extensions && info.isFile) {
-                if (!options.extensions.includes(info.extension)) continue;
+                if (!options.extensions.includes(info.extension)) {continue;}
             }
 
             results.push(info);
@@ -165,8 +165,8 @@ export async function writeTextFileAtomic(
 
         try {
             await fs.unlink(tmpPath);
-        } catch {
-
+        } catch (error) {
+            // Ignore error if temp file cleanup fails
         }
 
         return { success: false, error: message };
@@ -317,7 +317,7 @@ export async function moveFile(
 
         if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'EXDEV') {
             const copyResult = await copyFile(source, destination);
-            if (!copyResult.success) return copyResult;
+            if (!copyResult.success) {return copyResult;}
             return await safeDelete(source);
         }
 
@@ -359,13 +359,13 @@ export async function cleanupTempFiles(maxAgeMs: number = 86400000): Promise<num
 
     try {
         const exists = await pathExists(tempDir);
-        if (!exists) return 0;
+        if (!exists) {return 0;}
 
         const entries = await fs.readdir(tempDir, { withFileTypes: true });
         const now = Date.now();
 
         for (const entry of entries) {
-            if (!entry.isFile()) continue;
+            if (!entry.isFile()) {continue;}
 
             const filePath = join(tempDir, entry.name);
             try {
@@ -374,8 +374,8 @@ export async function cleanupTempFiles(maxAgeMs: number = 86400000): Promise<num
                     await fs.unlink(filePath);
                     deleted++;
                 }
-            } catch {
-
+            } catch (error) {
+                // Ignore errors for individual files during cleanup
             }
         }
 
@@ -390,8 +390,8 @@ export async function cleanupTempFiles(maxAgeMs: number = 86400000): Promise<num
 
 
 export function formatBytes(bytes: number, decimals: number = 2): string {
-    if (bytes === 0) return '0 Bytes';
-    if (bytes < 0) return '-' + formatBytes(-bytes, decimals);
+    if (bytes === 0) {return '0 Bytes';}
+    if (bytes < 0) {return '-' + formatBytes(-bytes, decimals);}
 
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];

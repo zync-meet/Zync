@@ -53,8 +53,8 @@ function clampBounds(
     clamped.height = Math.max(clamped.height, 300);
 
 
-    if (clamped.x < 0) clamped.x = 0;
-    if (clamped.y < 0) clamped.y = 0;
+    if (clamped.x < 0) {clamped.x = 0;}
+    if (clamped.y < 0) {clamped.y = 0;}
     if (clamped.x + clamped.width > screenWidth) {
         clamped.x = Math.max(0, screenWidth - clamped.width);
     }

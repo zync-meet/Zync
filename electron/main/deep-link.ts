@@ -122,7 +122,7 @@ export function onDeepLink(type: DeepLinkType, handler: DeepLinkHandler): void {
 
 export function offDeepLink(type: DeepLinkType, handler: DeepLinkHandler): void {
     const existing = handlers.get(type);
-    if (!existing) return;
+    if (!existing) {return;}
 
     const index = existing.indexOf(handler);
     if (index !== -1) {
@@ -204,7 +204,7 @@ function handleDeepLinkUrl(url: string, mainWindow: BrowserWindow | null): void 
 
 
     if (mainWindow) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
+        if (mainWindow.isMinimized()) {mainWindow.restore();}
         mainWindow.focus();
     }
 

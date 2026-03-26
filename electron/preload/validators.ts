@@ -4,8 +4,8 @@ export function isNonEmptyString(value: unknown, maxLength = 10000): value is st
 
 
 export function isValidSettingsKey(key: unknown): key is string {
-    if (typeof key !== 'string') return false;
-    if (key.length === 0 || key.length > 100) return false;
+    if (typeof key !== 'string') {return false;}
+    if (key.length === 0 || key.length > 100) {return false;}
     return /^[a-zA-Z][a-zA-Z0-9._-]*$/.test(key);
 }
 
@@ -14,8 +14,8 @@ const SAFE_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 
 
 export function isSafeExternalUrl(url: unknown): url is string {
-    if (typeof url !== 'string') return false;
-    if (url.length === 0 || url.length > 2048) return false;
+    if (typeof url !== 'string') {return false;}
+    if (url.length === 0 || url.length > 2048) {return false;}
 
     try {
         const parsed = new URL(url);
@@ -27,7 +27,7 @@ export function isSafeExternalUrl(url: unknown): url is string {
 
 
 export function isHttpUrl(url: unknown): url is string {
-    if (typeof url !== 'string') return false;
+    if (typeof url !== 'string') {return false;}
 
     try {
         const parsed = new URL(url);
@@ -42,17 +42,17 @@ const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024;
 
 
 export function isSerializable(value: unknown): boolean {
-    if (value === null || value === undefined) return true;
+    if (value === null || value === undefined) {return true;}
 
     const type = typeof value;
-    if (type === 'string' || type === 'number' || type === 'boolean') return true;
-    if (type === 'function' || type === 'symbol' || type === 'bigint') return false;
+    if (type === 'string' || type === 'number' || type === 'boolean') {return true;}
+    if (type === 'function' || type === 'symbol' || type === 'bigint') {return false;}
 
-    if (value instanceof Date) return true;
-    if (value instanceof RegExp) return false;
-    if (value instanceof Error) return true;
+    if (value instanceof Date) {return true;}
+    if (value instanceof RegExp) {return false;}
+    if (value instanceof Error) {return true;}
 
-    if (ArrayBuffer.isView(value)) return true;
+    if (ArrayBuffer.isView(value)) {return true;}
 
     if (Array.isArray(value)) {
         return value.length <= 10000 && value.every(isSerializable);
@@ -61,7 +61,7 @@ export function isSerializable(value: unknown): boolean {
     if (type === 'object') {
         const obj = value as Record<string, unknown>;
         const keys = Object.keys(obj);
-        if (keys.length > 1000) return false;
+        if (keys.length > 1000) {return false;}
         return keys.every((k) => isSerializable(obj[k]));
     }
 
@@ -86,16 +86,16 @@ export function validatePayloadSize(payload: unknown): { valid: boolean; reason?
 
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
-    if (typeof value !== 'object' || value === null) return false;
+    if (typeof value !== 'object' || value === null) {return false;}
     const proto = Object.getPrototypeOf(value);
     return proto === Object.prototype || proto === null;
 }
 
 
 export function isValidNumber(value: unknown, min?: number, max?: number): value is number {
-    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) return false;
-    if (min !== undefined && value < min) return false;
-    if (max !== undefined && value > max) return false;
+    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {return false;}
+    if (min !== undefined && value < min) {return false;}
+    if (max !== undefined && value > max) {return false;}
     return true;
 }
 

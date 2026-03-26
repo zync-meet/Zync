@@ -247,7 +247,7 @@ export class Logger {
 
 
     private static writeToFile(entry: LogEntry): void {
-        if (!Logger.fileStream) return;
+        if (!Logger.fileStream) {return;}
 
         let line: string;
 
@@ -295,8 +295,8 @@ export class Logger {
             try {
                 const stats = fs.statSync(Logger.currentLogFile);
                 Logger.bytesWritten = stats.size;
-            } catch {
-
+            } catch (error) {
+                // Ignore error if stat fails for a new file
             }
         } catch (err) {
             console.error('[LOGGER] Failed to open log file:', err);

@@ -21,7 +21,7 @@ describe('Deep Link URL Parsing', () => {
 
     function parseDeepLink(url: string): { type: string; path: string; params: Record<string, string> } | null {
         try {
-            if (!url.startsWith(`${PROTOCOL}://`)) return null;
+            if (!url.startsWith(`${PROTOCOL}://`)) {return null;}
 
             const withHttp = url.replace(`${PROTOCOL}://`, 'http://zync.local/');
             const parsed = new URL(withHttp);

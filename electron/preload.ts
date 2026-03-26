@@ -61,7 +61,7 @@ function isValidAction(action: string): boolean {
 
 
 function isSafeURL(url: string): boolean {
-    if (typeof url !== 'string') return false;
+    if (typeof url !== 'string') {return false;}
     try {
         const parsed = new URL(url);
         return parsed.protocol === 'http:' || parsed.protocol === 'https:';
@@ -72,11 +72,11 @@ function isSafeURL(url: string): boolean {
 
 
 function isSerializable(value: unknown): boolean {
-    if (value === null || value === undefined) return true;
+    if (value === null || value === undefined) {return true;}
     const type = typeof value;
-    if (type === 'string' || type === 'number' || type === 'boolean') return true;
-    if (type === 'function' || type === 'symbol') return false;
-    if (Array.isArray(value)) return value.every(isSerializable);
+    if (type === 'string' || type === 'number' || type === 'boolean') {return true;}
+    if (type === 'function' || type === 'symbol') {return false;}
+    if (Array.isArray(value)) {return value.every(isSerializable);}
     if (type === 'object') {
         return Object.values(value as Record<string, unknown>).every(isSerializable);
     }
@@ -207,14 +207,14 @@ contextBridge.exposeInMainWorld('electron', {
 
 
     getSetting: (key: string): Promise<unknown> => {
-        if (!isValidAction(key)) return Promise.reject(new Error('Invalid key'));
+        if (!isValidAction(key)) {return Promise.reject(new Error('Invalid key'));}
         return ipcRenderer.invoke('settings:get', key);
     },
 
 
     setSetting: (key: string, value: unknown): Promise<void> => {
-        if (!isValidAction(key)) return Promise.reject(new Error('Invalid key'));
-        if (!isSerializable(value)) return Promise.reject(new Error('Non-serializable value'));
+        if (!isValidAction(key)) {return Promise.reject(new Error('Invalid key'));}
+        if (!isSerializable(value)) {return Promise.reject(new Error('Non-serializable value'));}
         return ipcRenderer.invoke('settings:set', key, value);
     },
 
@@ -242,7 +242,7 @@ contextBridge.exposeInMainWorld('electron', {
 
 
     shellOpenExternal: (url: string): Promise<void> => {
-        if (!isSafeURL(url)) return Promise.reject(new Error('Unsafe URL'));
+        if (!isSafeURL(url)) {return Promise.reject(new Error('Unsafe URL'));}
         return ipcRenderer.invoke('shell:open-external', url);
     },
 

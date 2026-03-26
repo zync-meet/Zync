@@ -88,7 +88,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   };
 
   const handleLinkRepo = async (repo: any) => {
-    if (!selectedProjectForLink) return;
+    if (!selectedProjectForLink) {return;}
     try {
       await linkGitHub({
         projectId: selectedProjectForLink._id,

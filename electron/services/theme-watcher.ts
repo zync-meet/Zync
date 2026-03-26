@@ -100,7 +100,7 @@ export class ThemeWatcherService {
 
 
     start(): void {
-        if (this.isWatching) return;
+        if (this.isWatching) {return;}
 
         this.nativeThemeHandler = () => {
             if (this.mode === 'system') {
@@ -121,7 +121,7 @@ export class ThemeWatcherService {
 
 
     stop(): void {
-        if (!this.isWatching) return;
+        if (!this.isWatching) {return;}
 
         if (this.nativeThemeHandler) {
             nativeTheme.removeListener('updated', this.nativeThemeHandler);

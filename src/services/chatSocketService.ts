@@ -41,7 +41,7 @@ const typingListeners = new Set<TypingCallback>();
  * only one connection per userId will be maintained.
  */
 export function connectChat(userId: string): Socket {
-  if (socket?.connected) return socket;
+  if (socket?.connected) {return socket;}
 
   const socketUrl = import.meta.env.DEV ? 'http://localhost:5000' : API_BASE_URL;
 

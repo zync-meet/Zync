@@ -42,23 +42,23 @@ export type LinuxDesktopEnvironment =
 
 
 export function detectLinuxDesktop(): LinuxDesktopEnvironment {
-    if (!isLinux) return 'unknown';
+    if (!isLinux) {return 'unknown';}
 
     const xdgDesktop = (process.env.XDG_CURRENT_DESKTOP || '').toLowerCase();
     const desktopSession = (process.env.DESKTOP_SESSION || '').toLowerCase();
     const combined = `${xdgDesktop} ${desktopSession}`;
 
-    if (combined.includes('gnome')) return 'gnome';
-    if (combined.includes('kde') || combined.includes('plasma')) return 'kde';
-    if (combined.includes('xfce')) return 'xfce';
-    if (combined.includes('cinnamon')) return 'cinnamon';
-    if (combined.includes('mate')) return 'mate';
-    if (combined.includes('lxqt')) return 'lxqt';
-    if (combined.includes('lxde')) return 'lxde';
-    if (combined.includes('budgie')) return 'budgie';
-    if (combined.includes('deepin')) return 'deepin';
-    if (combined.includes('pantheon')) return 'pantheon';
-    if (combined.includes('unity')) return 'unity';
+    if (combined.includes('gnome')) {return 'gnome';}
+    if (combined.includes('kde') || combined.includes('plasma')) {return 'kde';}
+    if (combined.includes('xfce')) {return 'xfce';}
+    if (combined.includes('cinnamon')) {return 'cinnamon';}
+    if (combined.includes('mate')) {return 'mate';}
+    if (combined.includes('lxqt')) {return 'lxqt';}
+    if (combined.includes('lxde')) {return 'lxde';}
+    if (combined.includes('budgie')) {return 'budgie';}
+    if (combined.includes('deepin')) {return 'deepin';}
+    if (combined.includes('pantheon')) {return 'pantheon';}
+    if (combined.includes('unity')) {return 'unity';}
 
     return 'unknown';
 }
@@ -68,13 +68,13 @@ export type DisplayServer = 'x11' | 'wayland' | 'unknown';
 
 
 export function detectDisplayServer(): DisplayServer {
-    if (!isLinux) return 'unknown';
+    if (!isLinux) {return 'unknown';}
 
     const waylandDisplay = process.env.WAYLAND_DISPLAY;
     const xdgSessionType = (process.env.XDG_SESSION_TYPE || '').toLowerCase();
 
-    if (waylandDisplay || xdgSessionType === 'wayland') return 'wayland';
-    if (process.env.DISPLAY || xdgSessionType === 'x11') return 'x11';
+    if (waylandDisplay || xdgSessionType === 'wayland') {return 'wayland';}
+    if (process.env.DISPLAY || xdgSessionType === 'x11') {return 'x11';}
 
     return 'unknown';
 }
@@ -188,7 +188,7 @@ export function formatMemory(bytes: number): string {
 
 
 export function isTraySupported(): boolean {
-    if (isMacOS || isWindows) return true;
+    if (isMacOS || isWindows) {return true;}
     if (isLinux) {
         const desktop = detectLinuxDesktop();
 

@@ -76,7 +76,7 @@ function setupConsoleMocks(): void {
 
 function setupProcessMocks(): void {
 
-  vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
+  vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null | undefined) => {
     throw new Error(`process.exit called with code: ${code}`);
   });
 }
@@ -258,8 +258,8 @@ afterAll(() => {
   tempDirsToCleanup.forEach(dir => {
     try {
       cleanupDir(dir);
-    } catch {
-
+    } catch (error) {
+      // Ignore cleanup errors for temp dirs
     }
   });
 
@@ -274,8 +274,8 @@ afterAll(() => {
     if (dir) {
       try {
         cleanupDir(dir);
-      } catch {
-
+      } catch (error) {
+        // Ignore cleanup errors for test dirs
       }
     }
   });
@@ -283,6 +283,7 @@ afterAll(() => {
 
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Vi {
     interface Assertion {
       toExist(): void;

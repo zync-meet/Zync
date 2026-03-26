@@ -75,12 +75,12 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
     const { data: teams = [], isLoading: isLoadingTeams } = useQuery<Team[]>({
         queryKey: ['myTeams', currentUser?.uid],
         queryFn: async () => {
-            if (!currentUser?.uid) return [];
+            if (!currentUser?.uid) {return [];}
             const token = await currentUser.getIdToken();
             const res = await fetch(`${API_BASE_URL}/api/teams/mine`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!res.ok) throw new Error('Failed to fetch teams');
+            if (!res.ok) {throw new Error('Failed to fetch teams');}
             return res.json();
         },
         enabled: !!currentUser?.uid,

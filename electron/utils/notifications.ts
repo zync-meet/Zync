@@ -179,7 +179,7 @@ export function isDoNotDisturbActive(): boolean {
 
 export function dismissAllNotifications(): void {
     for (const [id, active] of activeNotifications) {
-        if (active.timer) clearTimeout(active.timer);
+        if (active.timer) {clearTimeout(active.timer);}
         active.notification.close();
         activeNotifications.delete(id);
     }
@@ -223,7 +223,7 @@ export function getBadgeCount(): number {
 
 export function flashWindow(window?: BrowserWindow, continuous: boolean = false): void {
     const targetWindow = window ?? BrowserWindow.getFocusedWindow();
-    if (!targetWindow) return;
+    if (!targetWindow) {return;}
 
     try {
         targetWindow.flashFrame(continuous);
@@ -236,12 +236,12 @@ export function flashWindow(window?: BrowserWindow, continuous: boolean = false)
 
 export function stopFlashWindow(window?: BrowserWindow): void {
     const targetWindow = window ?? BrowserWindow.getFocusedWindow();
-    if (!targetWindow) return;
+    if (!targetWindow) {return;}
 
     try {
         targetWindow.flashFrame(false);
-    } catch {
-
+    } catch (error) {
+        // Ignore errors when stopping window flash
     }
 }
 
@@ -344,7 +344,7 @@ let drainTimer: ReturnType<typeof setTimeout> | null = null;
 
 
 function scheduleQueueDrain(): void {
-    if (drainTimer) return;
+    if (drainTimer) {return;}
 
     drainTimer = setTimeout(() => {
         drainTimer = null;

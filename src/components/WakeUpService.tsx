@@ -18,8 +18,7 @@ export const WakeUpService = () => {
 
                 clearTimeout(timeoutId);
             } catch (error) {
-
-
+                // Ignore wake-up ping errors
             }
         };
 

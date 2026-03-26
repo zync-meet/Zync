@@ -142,7 +142,7 @@ export class NetworkMonitor {
     }
 
     private handleStateChange(newState: NetworkState): void {
-        if (newState === this.state) return;
+        if (newState === this.state) {return;}
 
         const now = Date.now();
         const previousStateDuration = now - this.stateChangedAt;

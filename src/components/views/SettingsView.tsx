@@ -988,7 +988,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
             const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/details`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (res.ok) return await res.json();
+            if (res.ok) {return await res.json();}
             return null;
           } catch {
             return null;
@@ -1009,8 +1009,8 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
   }, [currentUser, userData?.teamMemberships]);
 
   const handleRemoveMember = async (teamId: string, memberUid: string) => {
-    if (!currentUser) return;
-    if (!window.confirm("Remove this member from the team?")) return;
+    if (!currentUser) {return;}
+    if (!window.confirm("Remove this member from the team?")) {return;}
 
     setActionLoading(true);
     try {
@@ -1042,8 +1042,8 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
   };
 
   const handleLeaveTeam = async (teamId: string) => {
-    if (!currentUser) return;
-    if (!window.confirm("Are you sure you want to leave this team?")) return;
+    if (!currentUser) {return;}
+    if (!window.confirm("Are you sure you want to leave this team?")) {return;}
 
     setActionLoading(true);
     try {
@@ -1072,8 +1072,8 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
   };
 
   const handleDeleteTeam = async (teamId: string) => {
-    if (!currentUser) return;
-    if (!window.confirm("Are you sure you want to DELETE this team? This action cannot be undone.")) return;
+    if (!currentUser) {return;}
+    if (!window.confirm("Are you sure you want to DELETE this team? This action cannot be undone.")) {return;}
 
     setActionLoading(true);
     try {

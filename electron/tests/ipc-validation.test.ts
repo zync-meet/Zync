@@ -57,9 +57,9 @@ function isValidReceiveChannel(channel: string): boolean {
 }
 
 function isSerializable(value: unknown): boolean {
-    if (value === null || value === undefined) return true;
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
-    if (value instanceof Date) return true;
+    if (value === null || value === undefined) {return true;}
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {return true;}
+    if (value instanceof Date) {return true;}
 
     if (Array.isArray(value)) {
         return value.every(isSerializable);
@@ -67,12 +67,12 @@ function isSerializable(value: unknown): boolean {
 
     if (typeof value === 'object' && value !== null) {
 
-        if (typeof value === 'function') return false;
+        if (typeof value === 'function') {return false;}
         return Object.values(value as Record<string, unknown>).every(isSerializable);
     }
 
 
-    if (typeof value === 'function' || typeof value === 'symbol') return false;
+    if (typeof value === 'function' || typeof value === 'symbol') {return false;}
 
     return false;
 }

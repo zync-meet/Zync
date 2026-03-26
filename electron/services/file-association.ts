@@ -75,7 +75,7 @@ export class FileAssociationService {
 
 
     initialize(): void {
-        if (this.initialized) return;
+        if (this.initialized) {return;}
 
 
         if (process.platform === 'darwin') {
@@ -100,7 +100,7 @@ export class FileAssociationService {
 
         for (const arg of fileArgs) {
 
-            if (arg.startsWith('-') || arg.startsWith('--')) continue;
+            if (arg.startsWith('-') || arg.startsWith('--')) {continue;}
 
 
             if (this.isSupportedFile(arg)) {
@@ -111,7 +111,7 @@ export class FileAssociationService {
 
 
     processPending(): void {
-        if (this.pendingFiles.length === 0) return;
+        if (this.pendingFiles.length === 0) {return;}
 
         const pending = [...this.pendingFiles];
         this.pendingFiles = [];
@@ -163,7 +163,7 @@ export class FileAssociationService {
 
 
     isSupportedFile(filePath: string): boolean {
-        if (!filePath || typeof filePath !== 'string') return false;
+        if (!filePath || typeof filePath !== 'string') {return false;}
 
         const ext = path.extname(filePath).toLowerCase().replace(/^\./, '');
         return this.associations.has(ext);

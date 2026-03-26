@@ -336,6 +336,6 @@ export function getCustomizableShortcuts(): ShortcutDefinition[] {
 
 export function getAccelerator(id: string): string | undefined {
     const shortcut = Object.values(SHORTCUTS).find((s) => s.id === id);
-    if (!shortcut) return undefined;
+    if (!shortcut) {return undefined;}
     return isMac && shortcut.macAccelerator ? shortcut.macAccelerator : shortcut.accelerator;
 }

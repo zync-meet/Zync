@@ -8,7 +8,7 @@ export const useTeamProtection = () => {
     const { data: userData, isLoading } = useMe();
 
     useEffect(() => {
-        if (isLoading) return;
+        if (isLoading) {return;}
 
         const publicPaths = ['/login', '/signup', '/', '/dashboard/people'];
         if (publicPaths.includes(location.pathname)) {

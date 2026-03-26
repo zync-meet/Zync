@@ -102,7 +102,7 @@ export class PowerMonitorService {
 
 
     start(): void {
-        if (this.running) return;
+        if (this.running) {return;}
 
         powerMonitor.on('suspend', () => {
             this.state.suspended = true;
@@ -156,7 +156,7 @@ export class PowerMonitorService {
 
 
     stop(): void {
-        if (!this.running) return;
+        if (!this.running) {return;}
 
         powerMonitor.removeAllListeners('suspend');
         powerMonitor.removeAllListeners('resume');

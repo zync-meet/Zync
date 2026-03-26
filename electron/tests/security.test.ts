@@ -42,8 +42,8 @@ describe('IPC Payload Validation', () => {
     });
 
     it('should accept null and undefined payloads', () => {
-        expect(null === null).toBe(true);
-        expect(undefined === undefined).toBe(true);
+        expect(null).toBeNull();
+        expect(undefined).toBeUndefined();
     });
 
     it('should accept plain object payloads', () => {

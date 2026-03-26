@@ -71,7 +71,7 @@ if (!gotTheLock) {
     app.on('second-instance', (_event, argv) => {
         log.info('Second instance detected');
         if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
+            if (mainWindow.isMinimized()) {mainWindow.restore();}
             mainWindow.focus();
         }
         handleSecondInstanceArgs(argv, mainWindow);
@@ -116,7 +116,7 @@ function createSplashScreen(): void {
 
 
 function closeSplashScreen(): void {
-    if (!splashWindow || splashWindow.isDestroyed()) return;
+    if (!splashWindow || splashWindow.isDestroyed()) {return;}
 
 
     splashWindow.webContents.send('splash:close');
@@ -236,8 +236,8 @@ function createMainWindow(): void {
                 mainWindow?.hide();
                 log.info('Main window hidden to tray');
             }
-        } catch {
-
+        } catch (error) {
+            log.error(`[Main] Error during window close/hide to tray: ${error instanceof Error ? error.message : String(error)}`);
         }
     });
 }
@@ -426,8 +426,8 @@ app.on('before-quit', () => {
     if (tray) {
         try {
             tray.destroy();
-        } catch {
-
+        } catch (error) {
+            log.error(`[Main] Error destroying tray: ${error instanceof Error ? error.message : String(error)}`);
         }
         tray = null;
     }

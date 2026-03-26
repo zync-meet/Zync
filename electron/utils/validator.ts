@@ -51,6 +51,7 @@ export function isSafeUrl(url: string): boolean {
 }
 
 
+// eslint-disable-next-line no-control-regex
 const INVALID_FILENAME_CHARS = /[<>:"|?*\x00-\x1f]/;
 
 
@@ -123,9 +124,10 @@ export function isWithinUserData(filePath: string): boolean {
 
 
 export function sanitizeFilename(filename: string, replacement = '_'): string {
-    if (typeof filename !== 'string') return '';
+    if (typeof filename !== 'string') {return '';}
 
     let sanitized = filename
+        // eslint-disable-next-line no-control-regex
         .replace(/[<>:"|?*\x00-\x1f]/g, replacement)
         .replace(/\.\./g, replacement)
         .trim();
@@ -197,7 +199,7 @@ export function isValidString(
 
 
 export function isValidEmail(email: string): boolean {
-    if (typeof email !== 'string') return false;
+    if (typeof email !== 'string') {return false;}
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email) && email.length <= 254;
@@ -205,7 +207,7 @@ export function isValidEmail(email: string): boolean {
 
 
 export function isValidSemver(version: string): boolean {
-    if (typeof version !== 'string') return false;
+    if (typeof version !== 'string') {return false;}
     const semverRegex = /^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$/;
     return semverRegex.test(version);
 }

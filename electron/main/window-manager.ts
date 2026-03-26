@@ -138,7 +138,7 @@ export function getWindowsByType(type: WindowType): WindowEntry[] {
 
 export function getWindowByType(type: WindowType): WindowEntry | null {
     for (const entry of windowRegistry.values()) {
-        if (entry.type === type) return entry;
+        if (entry.type === type) {return entry;}
     }
     return null;
 }
@@ -151,7 +151,7 @@ export function getWindowById(id: number): WindowEntry | null {
 
 export function hasWindowOfType(type: WindowType): boolean {
     for (const entry of windowRegistry.values()) {
-        if (entry.type === type && !entry.window.isDestroyed()) return true;
+        if (entry.type === type && !entry.window.isDestroyed()) {return true;}
     }
     return false;
 }
@@ -164,7 +164,7 @@ export function getWindowCount(): number {
 
 export function focusWindow(type: WindowType): boolean {
     const entry = getWindowByType(type);
-    if (!entry || entry.window.isDestroyed()) return false;
+    if (!entry || entry.window.isDestroyed()) {return false;}
 
     if (!entry.window.isVisible()) {
         entry.window.show();

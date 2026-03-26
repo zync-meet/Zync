@@ -12,7 +12,7 @@ import {
 
 const fetchChatHistory = async (chatId: string) => {
     const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!user) {throw new Error("User not authenticated");}
     
     const token = await user.getIdToken();
     const res = await fetch(`${API_BASE_URL}/api/chat/history/${chatId}`, {
@@ -41,13 +41,13 @@ export const useChatHistory = (chatId: string | null) => {
     });
 
     useEffect(() => {
-        if (!chatId) return;
+        if (!chatId) {return;}
 
         const unsubMessage = onMessage((msg) => {
             if (msg.chatId === chatId) {
                 queryClient.setQueryData<ChatMessage[]>(queryKey, (old) => {
                     const messages = old || [];
-                    if (messages.some(m => m.id === msg.id)) return messages;
+                    if (messages.some(m => m.id === msg.id)) {return messages;}
                     return [...messages, msg];
                 });
             }

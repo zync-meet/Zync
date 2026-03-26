@@ -77,7 +77,7 @@ function buildContextMenuTemplate(
         {
             label: isVisible ? 'Hide ZYNC' : 'Show ZYNC',
             click: () => {
-                if (!mainWindow) return;
+                if (!mainWindow) {return;}
 
                 if (mainWindow.isVisible()) {
                     mainWindow.hide();
@@ -176,7 +176,7 @@ export function initTray(mainWindow: BrowserWindow | null): Tray | null {
 
 
         tray.on('click', () => {
-            if (!mainWindow) return;
+            if (!mainWindow) {return;}
 
             if (mainWindow.isVisible()) {
                 if (mainWindow.isMinimized()) {
@@ -214,7 +214,7 @@ export function updateTrayMenu(
         updateVersion?: string;
     } = {},
 ): void {
-    if (!tray || isDisposed) return;
+    if (!tray || isDisposed) {return;}
 
     const template = buildContextMenuTemplate(mainWindow, options);
     const contextMenu = Menu.buildFromTemplate(template);
@@ -223,7 +223,7 @@ export function updateTrayMenu(
 
 
 export function updateTrayIcon(isDark?: boolean): void {
-    if (!tray || isDisposed) return;
+    if (!tray || isDisposed) {return;}
 
     const icon = createTrayIcon(isDark);
     tray.setImage(icon);
@@ -231,14 +231,14 @@ export function updateTrayIcon(isDark?: boolean): void {
 
 
 export function setTrayTooltip(text: string = TRAY_TOOLTIP): void {
-    if (!tray || isDisposed) return;
+    if (!tray || isDisposed) {return;}
     tray.setToolTip(text);
 }
 
 
 export function showTrayBalloon(title: string, content: string): void {
-    if (!tray || isDisposed) return;
-    if (process.platform !== 'win32') return;
+    if (!tray || isDisposed) {return;}
+    if (process.platform !== 'win32') {return;}
 
     tray.displayBalloon({
         title,

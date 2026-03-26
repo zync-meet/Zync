@@ -105,7 +105,8 @@ export class AutoUpdaterService {
         });
 
         if (result.response === 0) {
-
+            // TODO: Materialize the restart and install logic here
+            // this.autoUpdater.quitAndInstall();
         }
     }
 

@@ -64,7 +64,7 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
             queryClient.invalidateQueries({ queryKey: ['me', auth.currentUser?.uid] });
             queryClient.invalidateQueries({ queryKey: ['myTeams', auth.currentUser?.uid] });
             
-            if (onSuccess) onSuccess();
+            if (onSuccess) {onSuccess();}
             onOpenChange(false);
             setTeamName("");
             setInvites([]);

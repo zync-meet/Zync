@@ -92,11 +92,6 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
           });
         }
       }
-    } else if (messages.length === 0) {
-
-    } else {
-
-
     }
 
     prevMessagesLengthRef.current = messages.length;

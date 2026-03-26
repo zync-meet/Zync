@@ -30,15 +30,15 @@ const BLOCKED_PROTOCOLS: string[] = [
 
 function isAllowedNavigation(url: string): boolean {
 
-    if (url.startsWith('file://')) return true;
+    if (url.startsWith('file://')) {return true;}
 
 
     for (const protocol of BLOCKED_PROTOCOLS) {
-        if (url.startsWith(protocol)) return false;
+        if (url.startsWith(protocol)) {return false;}
     }
 
 
-    if (!app.isPackaged && url.includes('localhost')) return true;
+    if (!app.isPackaged && url.includes('localhost')) {return true;}
 
 
     try {
@@ -77,8 +77,8 @@ export function hardenWindow(window: BrowserWindow): void {
                         console.error(`[Security] Failed to open blocked URL externally: ${err.message}`);
                     });
                 }
-            } catch {
-
+            } catch (error) {
+                console.warn(`[Security] Silent fail during URL parsing for external open: ${error instanceof Error ? error.message : String(error)}`);
             }
         }
     });
@@ -100,8 +100,8 @@ export function hardenWindow(window: BrowserWindow): void {
                     console.error(`[Security] Failed to open popup URL externally: ${err.message}`);
                 });
             }
-        } catch {
-
+        } catch (error) {
+            console.warn(`[Security] Silent fail during URL parsing for popup: ${error instanceof Error ? error.message : String(error)}`);
         }
 
         return { action: 'deny' };
@@ -142,8 +142,8 @@ export function applyGlobalSecurity(): void {
                 if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
                     shell.openExternal(url).catch(() => { });
                 }
-            } catch {
-
+            } catch (error) {
+                // Ignore parsing errors for unknown/invalid protocols
             }
 
             return { action: 'deny' as const };
@@ -180,7 +180,7 @@ export function validateIPCPayload(
                         return false;
                     }
                 } else if (typeof value === 'object' && value !== null) {
-                    if (!checkStrings(value as Record<string, unknown>)) return false;
+                    if (!checkStrings(value as Record<string, unknown>)) {return false;}
                 }
             }
             return true;

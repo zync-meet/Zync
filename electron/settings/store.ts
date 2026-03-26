@@ -371,7 +371,7 @@ export function onSettingChange<K extends keyof ZyncSettings>(
 
     return () => {
         const listeners = changeListeners.get(keyStr);
-        if (!listeners) return;
+        if (!listeners) {return;}
 
         const index = listeners.indexOf(listener as (newValue: unknown, oldValue: unknown) => void);
         if (index !== -1) {
@@ -383,7 +383,7 @@ export function onSettingChange<K extends keyof ZyncSettings>(
 
 function notifyListeners(key: string, newValue: unknown, oldValue: unknown): void {
     const listeners = changeListeners.get(key);
-    if (!listeners || listeners.length === 0) return;
+    if (!listeners || listeners.length === 0) {return;}
 
     for (const listener of listeners) {
         try {
@@ -452,7 +452,7 @@ export function importSettings(json: string): {
 
         for (const [key, value] of Object.entries(parsed)) {
 
-            if (key.startsWith('_')) continue;
+            if (key.startsWith('_')) {continue;}
 
 
             if (!(key in DEFAULT_SETTINGS)) {

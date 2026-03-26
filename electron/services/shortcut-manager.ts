@@ -91,7 +91,7 @@ export class ShortcutManagerService {
 
     unregister(accelerator: string): boolean {
         const entry = this.shortcuts.get(accelerator);
-        if (!entry) return false;
+        if (!entry) {return false;}
 
         globalShortcut.unregister(accelerator);
         this.shortcuts.delete(accelerator);
@@ -109,7 +109,7 @@ export class ShortcutManagerService {
 
     disable(accelerator: string): boolean {
         const entry = this.shortcuts.get(accelerator);
-        if (!entry || !entry.enabled) return false;
+        if (!entry || !entry.enabled) {return false;}
 
         globalShortcut.unregister(accelerator);
         entry.registered = false;
@@ -121,7 +121,7 @@ export class ShortcutManagerService {
 
     enable(accelerator: string): boolean {
         const entry = this.shortcuts.get(accelerator);
-        if (!entry || entry.enabled) return false;
+        if (!entry || entry.enabled) {return false;}
 
         const success = globalShortcut.register(accelerator, entry.handler);
         if (success) {
@@ -154,7 +154,7 @@ export class ShortcutManagerService {
     registerDefaults(): void {
 
         this.register(DEFAULT_SHORTCUTS.TOGGLE_WINDOW, 'Toggle ZYNC Window', () => {
-            if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+            if (!this.mainWindow || this.mainWindow.isDestroyed()) {return;}
             if (this.mainWindow.isVisible()) {
                 this.mainWindow.hide();
             } else {

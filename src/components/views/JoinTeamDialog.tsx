@@ -44,7 +44,7 @@ export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialog
             queryClient.invalidateQueries({ queryKey: ['me', auth.currentUser?.uid] });
             queryClient.invalidateQueries({ queryKey: ['myTeams', auth.currentUser?.uid] });
             
-            if (onSuccess) onSuccess();
+            if (onSuccess) {onSuccess();}
             onOpenChange(false);
             setInviteCode("");
         },
