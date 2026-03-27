@@ -17,6 +17,8 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:8080',
+  'http://localhost:8081', // Vite dev server (see vite.config.ts; Electron loads this URL)
+  'http://127.0.0.1:8081',
   'http://localhost:3000',
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
   process.env.FRONTEND_URL
