@@ -25,6 +25,9 @@ import { NotesView } from "@/components/notes/NotesView";
 import MeetView from "@/components/views/MeetView";
 import SettingsView from "@/components/views/SettingsView";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
+import { useMe } from "@/hooks/useMe";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { WifiOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 const MobileView = () => {
   const [activeTab, setActiveTab] = useState("Home");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { isError: userMeError, refetch: refetchMe } = useMe();
   const [usersList, setUsersList] = useState<any[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -189,6 +193,27 @@ const MobileView = () => {
       onFabClick={() => navigate("/new-project")}
       headerTitle={activeTab === 'Home' ? 'Dashboard' : activeTab}
     >
+      {userMeError && currentUser && (
+        <div className="p-3 border-b border-destructive/30 bg-destructive/10 shrink-0">
+          <Alert className="border-destructive/40 bg-background/80 text-foreground">
+            <WifiOff className="h-4 w-4 text-destructive" />
+            <AlertTitle className="text-destructive text-sm">Can&apos;t reach the server</AlertTitle>
+            <AlertDescription className="flex flex-col gap-2 text-xs text-muted-foreground">
+              <span>We couldn&apos;t load your account data. Try again later or refresh the page.</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit gap-2"
+                onClick={() => void refetchMe()}
+              >
+                <RefreshCw className="h-3 w-3" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       {renderContent()}
     </MobileLayout>
   );

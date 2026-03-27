@@ -52,6 +52,9 @@ export const useMe = () => {
             }
 
             const data = await res.json();
+            if (!data || typeof data !== 'object' || !data.uid) {
+                throw new Error('Invalid user data');
+            }
             
             // Ensure teamId is consistently handled
             if (data.teamId && typeof data.teamId === 'object' && data.teamId.id) {
@@ -63,6 +66,8 @@ export const useMe = () => {
             return data;
         },
         enabled: !!user,
-        staleTime: 1000 * 60 * 5, 
+        staleTime: 1000 * 60 * 5,
+        retry: 2,
+        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
     });
 };

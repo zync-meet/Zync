@@ -18,12 +18,23 @@ if (!firebaseConfig.apiKey) {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize App Check
-if (typeof window !== 'undefined') {
+// App Check (reCAPTCHA v3) — only when a real site key is set. A missing/placeholder key
+// causes CSP/network noise and can interfere with Auth in dev.
+const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+const hasValidRecaptchaKey =
+  Boolean(recaptchaSiteKey) &&
+  recaptchaSiteKey !== "6Lc_your_site_key_here" &&
+  recaptchaSiteKey.startsWith("6L");
+
+if (typeof window !== "undefined" && hasValidRecaptchaKey) {
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6Lc_your_site_key_here'),
-    isTokenAutoRefreshEnabled: true
+    provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+    isTokenAutoRefreshEnabled: true,
   });
+} else if (import.meta.env.DEV && typeof window !== "undefined") {
+  console.info(
+    "[Firebase] App Check skipped: set VITE_RECAPTCHA_SITE_KEY to your reCAPTCHA v3 site key to enable.",
+  );
 }
 
 export const auth = getAuth(app);

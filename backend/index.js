@@ -78,8 +78,8 @@ app.use(
       useDefaults: true,
       directives: {
         "default-src": ["'self'"],
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "https://apis.google.com", "https://www.googleapis.com", "https://www.gstatic.com"],
-        "connect-src": ["'self'", "https://github.com", "https://api.github.com", "http://localhost:*", "ws://localhost:*", "wss://*.glitch.me", "https://*.googleapis.com"],
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "https://apis.google.com", "https://www.googleapis.com", "https://www.gstatic.com", "https://www.google.com"],
+        "connect-src": ["'self'", "https://github.com", "https://api.github.com", "http://localhost:*", "ws://localhost:*", "wss://*.glitch.me", "https://*.googleapis.com", "https://www.google.com", "https://www.gstatic.com", "https://*.firebaseio.com", "https://*.firebase.google.com"],
         "img-src": ["'self'", "data:", "https://avatars.githubusercontent.com", "https://*.githubusercontent.com", "https://*.googleusercontent.com", "https://*.google.com", "blob:", "https://ui-avatars.com", "https://res.cloudinary.com"],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "worker-src": ["'self'", "blob:"],

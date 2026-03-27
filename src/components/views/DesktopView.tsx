@@ -20,6 +20,8 @@ import {
   Circle,
   Loader2,
   LogOut,
+  WifiOff,
+  RefreshCw,
   Star,
   Github,
   Trash2,
@@ -27,7 +29,7 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from "lucide-react";
-import { getUserName, getUserInitials } from "@/lib/utils";
+import { getUserName, getUserInitials, pickUserForDisplay } from "@/lib/utils";
 import { NotesView } from "@/components/notes/NotesView";
 import TasksView from "./TasksView";
 import ActivityLogView from "./ActivityLogView";
@@ -86,6 +88,7 @@ import {
   ImperativePanelHandle
 } from "react-resizable-panels";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import { useMe } from "@/hooks/useMe";
 
@@ -94,7 +97,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const [mounted, setMounted] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
-  const { data: userData, isLoading: userLoading } = useMe();
+  const { data: userData, isLoading: userLoading, isError: userMeError, refetch: refetchMe } = useMe();
 
   useEffect(() => {
     setMounted(true);
@@ -874,11 +877,11 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
                   <div className={cn("flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors", isCollapsed ? "justify-center" : "")}>
                     <Avatar className="w-9 h-9 border border-white/10">
                       <AvatarImage src={currentUser?.photoURL || undefined} referrerPolicy="no-referrer" />
-                      <AvatarFallback className="bg-zinc-800 text-zinc-400">{isPreview ? "JD" : getUserInitials(userData || currentUser)}</AvatarFallback>
+                      <AvatarFallback className="bg-zinc-800 text-zinc-400">{isPreview ? "JD" : getUserInitials(pickUserForDisplay(userData, currentUser))}</AvatarFallback>
                     </Avatar>
                     {!isCollapsed && (
                       <div className="flex-1 overflow-hidden">
-                        <p className="text-sm font-medium text-white truncate">{isPreview ? "John Doe" : getUserName(userData || currentUser)}</p>
+                        <p className="text-sm font-medium text-white truncate">{isPreview ? "John Doe" : getUserName(pickUserForDisplay(userData, currentUser))}</p>
 
                       </div>
                     )}
@@ -934,6 +937,30 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
                   </div>
                 </div>
               </div>
+
+              {userMeError && !isPreview && (
+                <div className="px-4 pt-3 shrink-0 z-30">
+                  <Alert className="border-destructive/40 bg-destructive/10 text-foreground">
+                    <WifiOff className="h-4 w-4 text-destructive" />
+                    <AlertTitle className="text-destructive">Can&apos;t reach the server</AlertTitle>
+                    <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-muted-foreground">
+                      <span>
+                        We couldn&apos;t load your account data. Try again in a moment or refresh the page.
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 gap-2 border-destructive/30"
+                        onClick={() => void refetchMe()}
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Retry
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
 
               {/* Content Area */}
               <div

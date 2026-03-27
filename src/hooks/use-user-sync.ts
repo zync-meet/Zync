@@ -18,7 +18,7 @@ export const useUserSync = () => {
                     const token = await user.getIdToken();
                     
                     // Sync user data with backend
-                    await fetch(`${API_BASE_URL}/api/users/sync`, {
+                    const syncRes = await fetch(`${API_BASE_URL}/api/users/sync`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -33,15 +33,26 @@ export const useUserSync = () => {
                             lastName,
                         })
                     });
+                    if (!syncRes.ok) {
+                        throw new Error(`User sync failed: ${syncRes.status}`);
+                    }
 
-                    // Prefetch essential data to populate the cache immediately
-                    queryClient.prefetchQuery({
-                        queryKey: ['me'],
+                    // Prefetch essential data (same query key as useMe)
+                    await queryClient.prefetchQuery({
+                        queryKey: ['me', user.uid],
                         queryFn: async () => {
                             const res = await fetch(`${API_BASE_URL}/api/users/me`, {
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
-                            return res.json();
+                            if (!res.ok) {
+                                if (res.status === 404) {return null;}
+                                throw new Error('Failed to fetch user data');
+                            }
+                            const data = await res.json();
+                            if (!data || typeof data !== 'object' || !data.uid) {
+                                throw new Error('Invalid user data');
+                            }
+                            return data;
                         }
                     });
 
@@ -51,6 +62,7 @@ export const useUserSync = () => {
 
                 } catch (error: any) {
                     console.error("Error syncing user data:", error);
+                    void queryClient.invalidateQueries({ queryKey: ['me'] });
                 }
             }
         });

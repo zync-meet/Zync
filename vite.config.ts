@@ -25,7 +25,13 @@ export default defineConfig(({ mode }) => ({
       },
     },
     headers: {
-      'Content-Security-Policy': "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://apis.google.com https://www.googleapis.com https://www.gstatic.com; frame-src 'self' https://*.firebaseapp.com https://*.google.com; connect-src 'self' http://localhost:* ws://localhost:* https://*.googleapis.com https://*.firebaseio.com https://*.ws.pusherapp.com https://api.github.com https://github.com https://*.onrender.com wss://*.onrender.com; object-src 'none';"
+      // www.google.com + gstatic: Firebase App Check (reCAPTCHA v3); *.googleapis.com covers Firebase Auth & App Check APIs
+      'Content-Security-Policy':
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://apis.google.com https://www.googleapis.com https://www.gstatic.com https://www.google.com; " +
+        "frame-src 'self' https://*.firebaseapp.com https://*.google.com https://www.google.com; " +
+        "connect-src 'self' http://localhost:* ws://localhost:* https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://www.google.com https://www.gstatic.com https://*.ws.pusherapp.com https://api.github.com https://github.com https://*.onrender.com wss://*.onrender.com; " +
+        "worker-src 'self' blob:; " +
+        "object-src 'none';",
     }
   },
   optimizeDeps: {

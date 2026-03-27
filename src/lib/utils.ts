@@ -13,6 +13,17 @@ export function getFullUrl(path: string | undefined | null) {
   return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
+/**
+ * Prefer backend user when it has a real uid; otherwise use Firebase user.
+ * Avoids treating `{}` or stale cache as valid (which made the UI show "User").
+ */
+export function pickUserForDisplay(userData: any, firebaseUser: any | null | undefined) {
+  if (userData && typeof userData === "object" && userData.uid) {
+    return userData;
+  }
+  return firebaseUser ?? null;
+}
+
 export function getUserName(user: any) {
   if (!user) {return "User";}
   return user.displayName ||
@@ -24,5 +35,8 @@ export function getUserName(user: any) {
 
 export function getUserInitials(user: any) {
   const name = getUserName(user);
+  if (name === "User" && user?.email) {
+    return user.email.substring(0, 2).toUpperCase();
+  }
   return name.substring(0, 2).toUpperCase();
 }

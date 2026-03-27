@@ -1,6 +1,13 @@
 export const CONTENT_SECURITY_POLICY: Record<string, string[]> = {
 
-    'script-src': ["'self'", "'unsafe-inline'", 'https://apis.google.com', 'https://www.googleapis.com'],
+    'script-src': [
+        "'self'",
+        "'unsafe-inline'",
+        'https://apis.google.com',
+        'https://www.googleapis.com',
+        'https://www.gstatic.com',
+        'https://www.google.com',
+    ],
 
 
     'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
@@ -20,12 +27,14 @@ export const CONTENT_SECURITY_POLICY: Record<string, string[]> = {
         'wss://*.firebaseio.com',
         'https://identitytoolkit.googleapis.com',
         'https://securetoken.googleapis.com',
+        'https://www.google.com',
+        'https://www.gstatic.com',
         'https://api.github.com',
         'https://github.com',
     ],
 
 
-    'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.google.com', 'https://github.com'],
+    'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.google.com', 'https://www.google.com', 'https://github.com'],
 
 
     'media-src': ["'self'", 'blob:'],
@@ -44,6 +53,9 @@ export const CONTENT_SECURITY_POLICY: Record<string, string[]> = {
 
 
     'frame-ancestors': ["'none'"],
+
+
+    'worker-src': ["'self'", 'blob:'],
 };
 
 
@@ -56,7 +68,15 @@ export function buildCSPString(): string {
 
 export const DEV_CONTENT_SECURITY_POLICY: Record<string, string[]> = {
     ...CONTENT_SECURITY_POLICY,
-    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://apis.google.com', 'https://www.googleapis.com'],
+    'script-src': [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        'https://apis.google.com',
+        'https://www.googleapis.com',
+        'https://www.gstatic.com',
+        'https://www.google.com',
+    ],
     'connect-src': [
         ...CONTENT_SECURITY_POLICY['connect-src'],
         'ws://localhost:*',

@@ -25,7 +25,7 @@ vi.mock("tailwind-merge", () => ({
 }));
 
 
-const { cn, getFullUrl, getUserName, getUserInitials } = await import("./utils");
+const { cn, getFullUrl, getUserName, getUserInitials, pickUserForDisplay } = await import("./utils");
 
 describe("utils.ts", () => {
   describe("cn", () => {
@@ -108,6 +108,24 @@ describe("utils.ts", () => {
 
     test("should return 'US' for default 'User'", () => {
       expect(getUserInitials(null)).toBe("US");
+    });
+
+    test("should use email for initials when name resolves to User", () => {
+      expect(getUserInitials({ email: "alice@example.com", displayName: "User" })).toBe("AL");
+    });
+  });
+
+  describe("pickUserForDisplay", () => {
+    test("should prefer backend user when uid is set", () => {
+      const backend = { uid: "x", displayName: "Backend" };
+      const fb = { uid: "x", displayName: "Firebase" };
+      expect(pickUserForDisplay(backend, fb)).toBe(backend);
+    });
+
+    test("should fall back to Firebase when userData has no uid", () => {
+      const fb = { displayName: "Firebase User", email: "f@example.com" };
+      expect(pickUserForDisplay({}, fb)).toBe(fb);
+      expect(pickUserForDisplay(null, fb)).toBe(fb);
     });
   });
 });

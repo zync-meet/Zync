@@ -15,7 +15,7 @@ export const useTeamProtection = () => {
             return;
         }
 
-        if (userData && !userData.teamId) {
+        if (userData?.uid && !userData.teamId) {
             navigate('/dashboard/people');
         }
     }, [userData, isLoading, location.pathname, navigate]);
