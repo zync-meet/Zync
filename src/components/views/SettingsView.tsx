@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ProfilePhotoCropper from "@/components/ProfilePhotoCropper";
 import { auth } from "@/lib/firebase";
+import { signOutAndClearState } from "@/lib/auth-signout";
 import { updateProfile, GithubAuthProvider, GoogleAuthProvider, linkWithPopup, getAdditionalUserInfo, onAuthStateChanged, reauthenticateWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -530,7 +531,7 @@ export default function SettingsView() {
         }
 
 
-        await auth.signOut();
+        await signOutAndClearState(auth);
         window.location.href = "/";
       }
 

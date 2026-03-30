@@ -66,7 +66,10 @@ export const useMe = () => {
             return data;
         },
         enabled: !!user,
-        staleTime: 1000 * 60 * 5,
+        // Local-first: profile is persisted; refetch only when invalidated (e.g. settings, team changes).
+        staleTime: Number.POSITIVE_INFINITY,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
         retry: 2,
         retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
     });

@@ -56,9 +56,7 @@ export const useUserSync = () => {
                         }
                     });
 
-                    // We don't prefetch GitHub data here yet because we don't know if they are connected
-                    // But we can invalidate the 'me' query so that hooks using it will refetch
-                    queryClient.invalidateQueries({ queryKey: ['me'] });
+                    // Do not invalidate here — that would force an immediate refetch and defeat local cache.
 
                 } catch (error: any) {
                     console.error("Error syncing user data:", error);

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, onAuthStateChanged, signOut, User } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { signOutAndClearState } from "@/lib/auth-signout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +38,7 @@ const Login = () => {
   const handleSwitchAccount = async () => {
     try {
       setLoading(true);
-      await signOut(auth);
+      await signOutAndClearState(auth);
       setCurrentUser(null);
       toast({ title: "Signed out", description: "You can now sign in with a different account." });
     } catch (error) {

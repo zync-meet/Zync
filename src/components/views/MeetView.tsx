@@ -84,6 +84,7 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
             return res.json();
         },
         enabled: !!currentUser?.uid,
+        refetchOnMount: false,
     });
 
 

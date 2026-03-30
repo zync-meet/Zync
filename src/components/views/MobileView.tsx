@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
+import { signOutAndClearState } from "@/lib/auth-signout";
 import { onAuthStateChanged, User } from "firebase/auth";
 import {
   LayoutDashboard,
@@ -85,7 +86,7 @@ const MobileView = () => {
 
   const handleSignOut = async () => {
     try {
-      await auth.signOut();
+      await signOutAndClearState(auth);
       navigate("/login");
     } catch (error) {
       console.error("Error signing out", error);

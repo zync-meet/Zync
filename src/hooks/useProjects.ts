@@ -31,6 +31,7 @@ export const useProjects = () => {
         queryKey: ['projects', user?.uid],
         queryFn: () => fetchProjects(user?.uid || ""),
         enabled: !!user,
+        refetchOnMount: false,
     });
 };
 

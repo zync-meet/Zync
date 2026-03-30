@@ -8,6 +8,7 @@ export const useNotes = (folderId?: string) => {
         queryKey: folderId ? ['notes', folderId] : ['notes', 'all'],
         queryFn: () => fetchNotes(user?.uid || "", folderId),
         enabled: !!user,
+        refetchOnMount: false,
     });
 };
 
@@ -20,6 +21,7 @@ export const usePinnedNotes = () => {
             return allNotes.filter(note => note.isPinned);
         },
         enabled: !!user,
+        refetchOnMount: false,
     });
 };
 

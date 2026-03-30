@@ -46,7 +46,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, User, signOut } from "firebase/auth";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { signOutAndClearState } from "@/lib/auth-signout";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -900,7 +901,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
                     if (isPreview) { return; }
                     localStorage.removeItem("ZYNC-active-section");
                     localStorage.removeItem("ZYNC_HAS_SEEN_LANDING"); // Reset landing page state
-                    await signOut(auth);
+                    await signOutAndClearState(auth);
                     navigate("/login");
                   }} className="text-rose-500 focus:text-rose-400 focus:bg-rose-500/10 cursor-pointer py-2">
                     <LogOut className="mr-2 h-4 w-4" />

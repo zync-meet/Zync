@@ -70,7 +70,6 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
             return res.json();
         },
         enabled: !!currentUser && !isPreview,
-        staleTime: 300000
     });
 
     const { data: allUsersData } = useQuery({
@@ -85,7 +84,6 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
             return res.json();
         },
         enabled: !!currentUser && !isPreview,
-        staleTime: 300000
     });
 
     const [teamInfo, setTeamInfo] = useState<Team | null>(null);
@@ -117,7 +115,6 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
             return res.json();
         },
         enabled: !!teamInfo?.id && !isPreview,
-        staleTime: 300000
     });
 
     const users: User[] = isPreview ? (propUsers || []) : (teamUsersData || []);
