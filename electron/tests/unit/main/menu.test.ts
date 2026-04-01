@@ -25,7 +25,6 @@ let applicationMenu: unknown = null;
 
 vi.mock('electron', () => ({
   app: mockApp,
-  },
   shell: {
     openExternal: vi.fn().mockResolvedValue(undefined),
   },
