@@ -55,18 +55,25 @@ const MockTrayConstructor = vi.fn((icon: unknown) => {
 });
 
 
-vi.mock('electron', () => ({
-  app: {
-    getVersion: vi.fn().mockReturnValue('1.0.0'),
-    getName: vi.fn().mockReturnValue('ZYNC'),
-    quit: vi.fn(),
-    isPackaged: false,
-  },
-  Tray: MockTrayConstructor,
-  Menu: mockMenu,
-  nativeImage: mockNativeImage,
-  BrowserWindow: vi.fn(),
-}));
+vi.mock('electron', () => {
+  const MockTrayConstructorInline = vi.fn((icon: unknown) => {
+    createdTrayIcon = icon;
+    mockTrayInstance = createMockTray(icon);
+    return mockTrayInstance;
+  });
+  return {
+    app: {
+      getVersion: vi.fn().mockReturnValue('1.0.0'),
+      getName: vi.fn().mockReturnValue('ZYNC'),
+      quit: vi.fn(),
+      isPackaged: false,
+    },
+    Tray: MockTrayConstructorInline,
+    Menu: mockMenu,
+    nativeImage: mockNativeImage,
+    BrowserWindow: vi.fn(),
+  };
+});
 
 
 import { createSystemTray } from '../../../main/tray';
@@ -158,7 +165,7 @@ describe('System Tray Manager', () => {
       );
 
       expect(tray).toBeDefined();
-      expect(MockTrayConstructor).toHaveBeenCalled();
+      expect(Tray).toHaveBeenCalled();
     });
 
     it('should create tray with an icon', () => {

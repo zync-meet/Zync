@@ -15,16 +15,16 @@ import {
 } from '../../helpers';
 
 
+const mockApp = {
+  getVersion: vi.fn().mockReturnValue('1.0.0'),
+  getName: vi.fn().mockReturnValue('ZYNC'),
+};
+
 let lastBuiltTemplate: Electron.MenuItemConstructorOptions[] = [];
 let applicationMenu: unknown = null;
 
-
 vi.mock('electron', () => ({
-  app: {
-    getVersion: vi.fn().mockReturnValue('1.0.0'),
-    getName: vi.fn().mockReturnValue('ZYNC'),
-    quit: vi.fn(),
-    isPackaged: false,
+  app: mockApp,
   },
   shell: {
     openExternal: vi.fn().mockResolvedValue(undefined),
