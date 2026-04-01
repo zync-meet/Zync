@@ -1,8 +1,10 @@
 // import { describe, it, expect, mock, beforeAll, beforeEach } from "bun:test";
 import express from "express";
 import request from "supertest";
-import path from "path";
+import mongoose from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
 
+jest.setTimeout(30000);
 
 process.env.GEMINI_API_KEY_SECONDARY = "mock-key";
 process.env.ENCRYPTION_KEY = "mock-encryption-key";
@@ -68,13 +70,24 @@ const mockPrisma = {
 
 jest.mock("../lib/prisma.js", () => mockPrisma);
 
+const createObjectId = () => new mongoose.Types.ObjectId().toHexString();
 
 import projectRoutes from "../routes/projectRoutes";
 
 describe("Project Routes Security", () => {
   let app;
+  let mongoServer;
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+
+    await mongoose.connect(uri);
+
     app = express();
     app.use(express.json());
 
@@ -86,7 +99,23 @@ describe("Project Routes Security", () => {
   });
 
   beforeEach(() => {
+    // Reset auth middleware tracker between tests
     mockAuthMiddlewareTracker.mockClear();
+  });
+
+  afterEach(async () => {
+    const collections = mongoose.connection.collections;
+    for (const key of Object.keys(collections)) {
+      await collections[key].deleteMany({});
+    }
+    jest.clearAllMocks();
+  });
+
+  afterAll(async () => {
+    await mongoose.connection.dropDatabase();
+    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer?.stop();
   });
 
   it("POST /projects (Create Project) should require auth", async () => {
@@ -111,49 +140,60 @@ describe("Project Routes Security", () => {
   });
 
   it("POST /projects/:id/team should require auth", async () => {
-    await request(app).post("/projects/123/team").send({ userId: "user2" });
+    const projectId = createObjectId();
+    await request(app).post(`/projects/${projectId}/team`).send({ userId: "user2" });
     expect(mockAuthMiddlewareTracker).toHaveBeenCalled();
   });
 
   it("GET /projects/:id should require auth", async () => {
-    await request(app).get("/projects/123");
+    const projectId = createObjectId();
+    await request(app).get(`/projects/${projectId}`);
     expect(mockAuthMiddlewareTracker).toHaveBeenCalled();
   });
 
   it("DELETE /projects/:id should require auth", async () => {
-    await request(app).delete("/projects/123");
+    const projectId = createObjectId();
+    await request(app).delete(`/projects/${projectId}`);
     expect(mockAuthMiddlewareTracker).toHaveBeenCalled();
   });
 
   it("PATCH /projects/:id should require auth", async () => {
-    await request(app).patch("/projects/123").send({ name: "New Name" });
+    const projectId = createObjectId();
+    await request(app).patch(`/projects/${projectId}`).send({ name: "New Name" });
     expect(mockAuthMiddlewareTracker).toHaveBeenCalled();
   });
 
   it("POST /projects/:projectId/steps/:stepId/tasks should require auth", async () => {
+    const projectId = createObjectId();
+    const stepId = createObjectId();
     await request(app)
-      .post("/projects/123/steps/s1/tasks")
+      .post(`/projects/${projectId}/steps/${stepId}/tasks`)
       .send({ title: "Task" });
     expect(mockAuthMiddlewareTracker).toHaveBeenCalled();
   });
 
   it("PUT /projects/:projectId/steps/:stepId/tasks/:taskId should require auth", async () => {
+    const projectId = createObjectId();
+    const stepId = createObjectId();
+    const taskId = createObjectId();
     await request(app)
-      .put("/projects/123/steps/s1/tasks/t1")
+      .put(`/projects/${projectId}/steps/${stepId}/tasks/${taskId}`)
       .send({ status: "Done" });
     expect(mockAuthMiddlewareTracker).toHaveBeenCalled();
   });
 
   it("POST /projects/:projectId/quick-task should require auth", async () => {
+    const projectId = createObjectId();
     await request(app)
-      .post("/projects/123/quick-task")
+      .post(`/projects/${projectId}/quick-task`)
       .send({ title: "Quick Task" });
     expect(mockAuthMiddlewareTracker).toHaveBeenCalled();
   });
 
   it("POST /projects/:id/analyze-architecture should require auth", async () => {
+    const projectId = createObjectId();
     await request(app)
-      .post("/projects/123/analyze-architecture")
+      .post(`/projects/${projectId}/analyze-architecture`)
       .send({});
     expect(mockAuthMiddlewareTracker).toHaveBeenCalled();
   });
