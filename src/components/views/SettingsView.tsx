@@ -429,9 +429,6 @@ export default function SettingsView() {
 
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportForm, setSupportForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
     message: ""
   });
 
@@ -440,15 +437,26 @@ export default function SettingsView() {
     setSupportLoading(true);
 
     try {
+      let firstName = "User";
+      let lastName = "";
+      if (currentUser?.displayName) {
+        const parts = currentUser.displayName.split(" ");
+        firstName = parts[0];
+        if (parts.length > 1) {
+          lastName = parts.slice(1).join(" ");
+        }
+      }
+      const email = currentUser?.email || "No email provided";
+
       const res = await fetch(`${API_BASE_URL}/api/support`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          firstName: supportForm.firstName,
-          lastName: supportForm.lastName,
-          email: supportForm.email,
+          firstName,
+          lastName,
+          email,
           message: supportForm.message
         })
       });
@@ -479,9 +487,6 @@ export default function SettingsView() {
 
       toast({ title: "Message Sent", description: "We'll get back to you soon!" });
       setSupportForm({
-        firstName: "",
-        lastName: "",
-        email: "",
         message: ""
       });
 
@@ -790,39 +795,6 @@ export default function SettingsView() {
                   </CardHeader>
                   <CardContent>
                     <form className="space-y-4" onSubmit={handleSupportSubmit}>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Input
-                            placeholder="First name"
-                            value={supportForm.firstName}
-                            onChange={(e) => setSupportForm({ ...supportForm, firstName: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Input
-                            placeholder="Last name"
-                            value={supportForm.lastName}
-                            onChange={(e) => setSupportForm({ ...supportForm, lastName: e.target.value })}
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Your email"
-                            className="pl-10"
-                            type="email"
-                            value={supportForm.email}
-                            onChange={(e) => setSupportForm({ ...supportForm, email: e.target.value })}
-                            required
-                          />
-                        </div>
-                      </div>
-
                       <div className="space-y-2">
                         <Textarea
                           placeholder="How can we help?"
