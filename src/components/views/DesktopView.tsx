@@ -242,7 +242,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       const connectGitHub = async () => {
         try {
           const token = await currentUser.getIdToken();
-          await fetch(`${API_BASE_URL}/api/github/install`, {
+          const res = await fetch(`${API_BASE_URL}/api/github/install`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -251,13 +251,14 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             body: JSON.stringify({ installationId })
           });
 
+          if (!res.ok) {
+            throw new Error(`API returned ${res.status}`);
+          }
+
           toast({
             title: "GitHub Connected",
             description: "App installation verified successfully."
           });
-
-
-          navigate(location.pathname, { replace: true });
         } catch (error) {
           console.error("Failed to save installation ID", error);
           toast({
@@ -265,6 +266,9 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             description: "Failed to save GitHub installation.",
             variant: "destructive"
           });
+        } finally {
+          // Always clear the URL parameters so it doesn't get stuck doing it repeatedly
+          navigate(location.pathname, { replace: true });
         }
       };
       connectGitHub();
