@@ -15,9 +15,11 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useProjects, useProjectMutations } from "@/hooks/useProjects";
 import { usePinnedNotes } from "@/hooks/useNotes";
 
@@ -56,6 +58,8 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedRepos, setSelectedRepos] = useState<any[]>([]);
+  const [creatingProjects, setCreatingProjects] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -108,6 +112,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   const handleOpenCreateModal = async () => {
     setCreateModalOpen(true);
     setSearchTerm("");
+    setSelectedRepos([]);
     if (repos.length === 0) {
       setLoadingRepos(true);
       try {
@@ -143,6 +148,47 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
       toast({ title: "Success", description: `Project ${repo.name} created successfully.` });
     } catch (error) {
       toast({ title: "Error", description: "Failed to create project.", variant: "destructive" });
+    }
+  };
+
+  const handleCreateMultipleProjects = async () => {
+    if (selectedRepos.length === 0) return;
+    setCreatingProjects(true);
+    try {
+      for (const repo of selectedRepos) {
+        await createProject({
+          name: repo.name,
+          description: repo.description,
+          ownerId: currentUser?.uid,
+          githubRepoName: repo.name,
+          githubRepoOwner: repo.owner.login
+        });
+      }
+      setCreateModalOpen(false);
+      toast({ title: "Success", description: `${selectedRepos.length} project(s) created successfully.` });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to create projects.", variant: "destructive" });
+    } finally {
+      setCreatingProjects(false);
+    }
+  };
+
+  const toggleRepoSelection = (repo: any) => {
+    setSelectedRepos(prev => {
+      const isSelected = prev.some(r => r.id === repo.id);
+      if (isSelected) {
+        return prev.filter(r => r.id !== repo.id);
+      } else {
+        return [...prev, repo];
+      }
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRepos.length === filteredRepos.length) {
+      setSelectedRepos([]);
+    } else {
+      setSelectedRepos([...filteredRepos]);
     }
   };
 
@@ -193,6 +239,12 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const installationId = params.get('installation_id');
+    const autoOpenCreate = params.get('action') === 'create_project';
+
+    if (autoOpenCreate) {
+      handleOpenCreateModal();
+      navigate(location.pathname, { replace: true });
+    }
 
     if (installationId && currentUser) {
       const connectGitHub = async () => {
@@ -214,6 +266,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
           }
 
           toast({ title: "GitHub Connected", description: "App installation verified successfully." });
+          handleOpenCreateModal();
         } catch (error) {
           console.error("Failed to save installation ID", error);
         } finally {
@@ -222,7 +275,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
       };
       connectGitHub();
     }
-  }, [location.search, currentUser, navigate]);
+  }, [location.search, currentUser, navigate, toast]);
 
   const filteredRepos = repos.filter(repo =>
     repo.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -457,56 +510,121 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
       {}
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Add Project from GitHub</DialogTitle>
             <DialogDescription>
-              Select a repository to import as a new project.
+              Select repositories to import as new projects.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search repositories..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="flex flex-col md:flex-row gap-6 py-4 flex-1 min-h-[350px] overflow-hidden">
+            {/* Left Pane - Repository Selection */}
+            <div className="flex-1 flex flex-col border rounded-md overflow-hidden bg-background shadow-sm">
+              <div className="p-3 border-b bg-muted/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    id="select-all" 
+                    checked={filteredRepos.length > 0 && selectedRepos.length === filteredRepos.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                    Check all
+                  </label>
+                </div>
+                <div className="relative w-full md:w-auto flex-1 md:max-w-[200px]">
+                  <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search..."
+                    className="pl-8 h-8 text-xs"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  {loadingRepos ? (
+                      <div className="flex h-full items-center justify-center p-4">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                  ) : repos.length === 0 ? (
+                      <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
+                        <p>No repositories found.</p>
+                        <a href="https://github.com/apps/ZYNC-meet/installations/new" target="_blank" rel="noreferrer" className="text-primary hover:underline mt-2 block">
+                          Install Zync App on GitHub
+                        </a>
+                      </div>
+                  ) : filteredRepos.length === 0 ? (
+                      <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
+                        No matches.
+                      </div>
+                  ) : (
+                      filteredRepos.map(repo => {
+                        const isChecked = selectedRepos.some(r => r.id === repo.id);
+                        return (
+                          <div
+                            key={repo.id}
+                            onClick={() => toggleRepoSelection(repo)}
+                            className={`flex items-center justify-between p-2 rounded-md border border-transparent cursor-pointer transition-colors ${isChecked ? 'bg-secondary border-border' : 'hover:bg-secondary/50'}`}
+                          >
+                            <div className="flex items-center gap-3 overflow-hidden pr-2">
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${repo.private ? 'bg-orange-500' : 'bg-green-500'}`} />
+                              <div className="flex flex-col flex-1 overflow-hidden">
+                                <span className="font-medium text-sm truncate leading-none">
+                                  {repo.name} 
+                                  <span className="text-xs text-muted-foreground font-normal ml-1 hidden sm:inline-block truncate">
+                                    {repo.full_name}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                            <Checkbox 
+                              checked={isChecked}
+                              onCheckedChange={() => toggleRepoSelection(repo)}
+                              onClick={e => e.stopPropagation()}
+                            />
+                          </div>
+                        );
+                      })
+                  )}
+              </div>
             </div>
 
-            <div className="h-[200px] overflow-y-auto border rounded-md p-2 space-y-1">
-              {loadingRepos ? (
-                <div className="flex h-full items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-              ) : repos.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
-                  <p>No repositories found.</p>
-                  <a href="https://github.com/apps/ZYNC-meet/installations/new" target="_blank" rel="noreferrer" className="text-primary hover:underline mt-2 block">
-                    Install Zync App on GitHub
-                  </a>
-                </div>
-              ) : (
-                filteredRepos.map(repo => (
-                  <div
-                    key={repo.id}
-                    onClick={() => handleCreateProjectFromRepo(repo)}
-                    className="flex items-center justify-between p-2 hover:bg-secondary rounded-md cursor-pointer transition-colors"
-                  >
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="font-medium text-sm truncate">{repo.name}</span>
-                      <span className="text-xs text-muted-foreground truncate">{repo.full_name}</span>
-                    </div>
-                    <Button variant="ghost" size="sm" disabled={creatingProject}>
-                      {creatingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    </Button>
+            {/* Right Pane - Selected Repos */}
+            <div className="flex-1 flex flex-col border rounded-md overflow-hidden bg-muted/10 shadow-sm relative">
+              <div className="p-3 border-b bg-muted/40">
+                <span className="text-sm text-muted-foreground">{selectedRepos.length} checked</span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                {selectedRepos.length === 0 ? (
+                  <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground text-center">
+                    Nothing selected yet.
                   </div>
-                ))
-              )}
+                ) : (
+                  selectedRepos.map(repo => (
+                    <div key={`selected-${repo.id}`} className="flex items-center justify-between p-2 rounded-md bg-background border border-border shadow-sm">
+                      <div className="flex items-center gap-2 overflow-hidden flex-1 pr-2">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${repo.private ? 'bg-orange-500' : 'bg-green-500'}`} />
+                        <span className="font-medium text-sm truncate">{repo.name}</span>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full opacity-60 hover:opacity-100 hover:bg-destructive/10 hover:text-destructive shrink-0" onClick={() => toggleRepoSelection(repo)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
+
+          <DialogFooter className="mt-2 border-t pt-4">
+              <Button variant="outline" onClick={() => setCreateModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateMultipleProjects} disabled={selectedRepos.length === 0 || creatingProjects} className="min-w-[100px]">
+                  {creatingProjects ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Submit
+              </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
