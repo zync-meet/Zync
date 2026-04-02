@@ -36,7 +36,7 @@ async function saveDataToApi(payload: any, token: string) {
       },
       body: JSON.stringify(proj), // e.g. creating/updating a project
     });
-    if (!res.ok) throw new Error("Failed to save data");
+    if (!res.ok) {throw new Error("Failed to save data");}
     return res.json();
   }
 }
@@ -77,7 +77,7 @@ export function useSyncData() {
   const syncQuery = useQuery({
     queryKey: ["syncData", userId],
     queryFn: async () => {
-      if (!currentUser || !userId) return null;
+      if (!currentUser || !userId) {return null;}
       console.log(`[Sync] Fetching new user data from backend for ${userId} in the background...`);
       const token = await currentUser.getIdToken();
       const result = await fetchSyncData(userId, token);
@@ -91,7 +91,7 @@ export function useSyncData() {
 
   // 3) When fresh API data arrives, write to IndexedDB
   useEffect(() => {
-    if (!syncQuery.data || !userId) return;
+    if (!syncQuery.data || !userId) {return;}
 
     const { user, projects } = syncQuery.data;
     console.log("[Sync] Updating local IndexedDB with freshly fetched background data...");
@@ -128,7 +128,7 @@ export function useSyncData() {
   const saveMutation = useMutation({
     mutationFn: async (payload: any) => {
       console.log(`[Sync] Background save triggered. Sending updated data to backend...`);
-      if (!currentUser) throw new Error("Not authenticated");
+      if (!currentUser) {throw new Error("Not authenticated");}
       const token = await currentUser.getIdToken();
       const res = await saveDataToApi(payload, token);
       console.log(`[Sync] Background save to backend successful!`, res);
@@ -136,7 +136,7 @@ export function useSyncData() {
     },
 
     onMutate: async (payload: any) => {
-      if (!userId) return;
+      if (!userId) {return;}
       console.log(`[Sync] Optimistic update: Temporarily saving to local DB for instant UI reflection without spinners...`);
       await queryClient.cancelQueries({ queryKey: ["syncData", userId] });
 
@@ -172,7 +172,7 @@ export function useSyncData() {
 
     onError: async (_error, _payload, context) => {
       console.warn(`[Sync] Backend save failed! Rolling back local data to prevent fake UI...`);
-      if (!context || !userId) return;
+      if (!context || !userId) {return;}
       await db.transaction("rw", db.userData, db.projectData, async () => {
         if (context.previousUser) {
           await db.userData.put(context.previousUser);

@@ -152,7 +152,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   };
 
   const handleCreateMultipleProjects = async () => {
-    if (selectedRepos.length === 0) return;
+    if (selectedRepos.length === 0) {return;}
     setCreatingProjects(true);
     try {
       for (const repo of selectedRepos) {
