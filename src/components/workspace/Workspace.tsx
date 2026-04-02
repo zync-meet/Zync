@@ -200,7 +200,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
           const user = auth.currentUser;
           const token = user ? await user.getIdToken() : null;
 
-          await fetch(`${API_BASE_URL}/api/github/install`, {
+          const res = await fetch(`${API_BASE_URL}/api/github/install`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -209,10 +209,15 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
             body: JSON.stringify({ installationId })
           });
 
+          if (!res.ok) {
+            throw new Error(`API returned ${res.status}`);
+          }
+
           toast({ title: "GitHub Connected", description: "App installation verified successfully." });
-          navigate(location.pathname, { replace: true });
         } catch (error) {
           console.error("Failed to save installation ID", error);
+        } finally {
+          navigate(location.pathname, { replace: true });
         }
       };
       connectGitHub();
