@@ -267,8 +267,8 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             variant: "destructive"
           });
         } finally {
-          // Always clear the URL parameters so it doesn't get stuck doing it repeatedly
-          navigate(location.pathname, { replace: true });
+          // Redirect the user perfectly back to the "Add Project" popup in the workspace
+          navigate('/dashboard/workspace?action=create_project', { replace: true });
         }
       };
       connectGitHub();
