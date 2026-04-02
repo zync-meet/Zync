@@ -21,6 +21,7 @@ import Terms from "./pages/Terms";
 import { useActivityTracker } from "./hooks/use-activity-tracker";
 import { useChatNotifications } from "./hooks/use-chat-notifications";
 import { useUserSync } from "./hooks/use-user-sync";
+import { useSyncData } from "./hooks/useSyncData";
 import { WakeUpService } from "@/components/WakeUpService";
 import { GlobalLoading } from "@/components/GlobalLoading";
 
@@ -28,6 +29,7 @@ const AppContent = () => {
   useActivityTracker();
   useChatNotifications();
   useUserSync();
+  useSyncData(); // Trigger local-first data fetch and Dexie sync on login/app load
   const location = useLocation();
 
 
