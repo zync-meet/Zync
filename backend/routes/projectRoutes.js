@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { sendZyncEmail } = require('../services/mailer');
+const { getTaskAssignmentEmailHtml } = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../utils/regexUtils');
 const User = require('../models/User');
 const Project = require('../models/Project');
@@ -552,18 +553,15 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       if (assigneeUser && assigneeUser.email) {
         const subject = `New Task Assigned: ${title}`;
         const text = `You have been assigned a new task in project "${project.name}".\n\nTask: ${title}\nDescription: ${description || 'No description'}\nAssigned By: ${assignedBy || 'Admin'}`;
-        const html = `
-          <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2>New Task Assignment</h2>
-            <p>You have been assigned a new task in project <strong>${project.name}</strong>.</p>
-            <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; margin: 15px 0;">
-              <p><strong>Step:</strong> ${step.title}</p>
-              <p><strong>Task:</strong> ${title}</p>
-              <p><strong>Description:</strong> ${description || 'No description'}</p>
-            </div>
-            <p>Please log in to Zync to view more details.</p>
-          </div>
-        `;
+        const html = getTaskAssignmentEmailHtml({
+          projectName: project.name,
+          lines: [
+            { label: 'Step', value: step.title },
+            { label: 'Task', value: title },
+            { label: 'Description', value: description || 'No description' },
+            { label: 'Assigned By', value: assignedBy || 'Admin' },
+          ],
+        });
         try {
           await sendZyncEmail(assigneeUser.email, subject, html, text);
         } catch (emailError) {
@@ -625,18 +623,14 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
         if (assigneeUser && assigneeUser.email) {
           const subject = `New Task Assigned: ${task.title}`;
           const text = `You have been assigned a new task in project "${project.name}".\n\nStep: ${step.title}\nTask: ${task.title}\nAssigned By: ${assignedBy || 'Admin'}`;
-          const html = `
-            <div style="font-family: Arial, sans-serif; color: #333;">
-              <h2>New Task Assignment</h2>
-              <p>You have been assigned a new task in project <strong>${project.name}</strong>.</p>
-              <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                <p><strong>Task:</strong> ${task.title}</p>
-                <p><strong>Step:</strong> ${step.title}</p>
-                <p><strong>Assigned By:</strong> ${assignedBy || 'Admin'}</p>
-              </div>
-              <p>Please log in to ZYNC to view more details.</p>
-            </div>
-          `;
+          const html = getTaskAssignmentEmailHtml({
+            projectName: project.name,
+            lines: [
+              { label: 'Task', value: task.title },
+              { label: 'Step', value: step.title },
+              { label: 'Assigned By', value: assignedBy || 'Admin' },
+            ],
+          });
 
           try {
             await sendZyncEmail(assigneeUser.email, subject, html, text);
@@ -819,17 +813,14 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
       if (assigneeUser && assigneeUser.email) {
         const subject = `New Task Assigned: ${newTask.title}`;
         const text = `You have been assigned a new task in project "${project.name}".\n\nTask: ${newTask.title}\nDescription: ${newTask.description || 'No description'}\nAssigned By: Admin`;
-        const html = `
-          <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2>New Task Assignment</h2>
-            <p>You have been assigned a new task in project <strong>${project.name}</strong>.</p>
-            <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; margin: 15px 0;">
-              <p><strong>Task:</strong> ${newTask.title}</p>
-              <p><strong>Description:</strong> ${newTask.description || 'No description'}</p>
-            </div>
-            <p>Please log in to Zync to view more details.</p>
-          </div>
-        `;
+        const html = getTaskAssignmentEmailHtml({
+          projectName: project.name,
+          lines: [
+            { label: 'Task', value: newTask.title },
+            { label: 'Description', value: newTask.description || 'No description' },
+            { label: 'Assigned By', value: 'Admin' },
+          ],
+        });
         try {
           await sendZyncEmail(assigneeUser.email, subject, html, text);
         } catch (emailError) {
