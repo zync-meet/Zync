@@ -39,7 +39,7 @@
 - [ ] #18 — Add text index for user search
 - [ ] #19 — Remove console.log statements, use structured logger
 - [ ] #20 — Remove unused Redux Toolkit dependency
-- [ ] #21 — Use ETags for GitHub API calls
+- [x] #21 — Use ETags for GitHub API calls
 - [x] ~~#22 — Support pagination for GitHub repo listing~~
 
 ---
