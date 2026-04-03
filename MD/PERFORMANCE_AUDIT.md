@@ -18,7 +18,7 @@
 
 ### P1: Medium Impact, Medium Effort
 
-- [ ] #6 — Denormalize ownerUid on Project (2 queries → 1 for auth checks)
+- [x] ~~#6 — Denormalize ownerUid on Project (2 queries → 1 for auth checks)~~
 - [x] ~~#7 — Batch step/task creation with insertMany (5 sequential → 1 bulk)~~
 - [x] ~~#8 — Parallelize independent queries with Promise.all (GET /api/projects, /users)~~
 - [ ] #9 — Add Redis caching for /me, project listings, GitHub API responses
