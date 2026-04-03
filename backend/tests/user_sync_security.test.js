@@ -18,7 +18,8 @@ jest.mock("../models/User", () => ({
 }));
 
 jest.mock("../models/Team", () => ({
-  findById: jest.fn()
+  findById: jest.fn(),
+  find: jest.fn()
 }));
 
 const mockUserModel = jest.requireMock("../models/User");
@@ -89,6 +90,7 @@ const resetModelMocks = (userData = defaultUserData) => {
     })
   }));
   mockTeamModel.findById.mockImplementation(() => createLeanChain(null));
+  mockTeamModel.find.mockImplementation(() => createLeanChain([]));
 };
 
 beforeEach(() => {
