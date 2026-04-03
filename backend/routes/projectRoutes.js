@@ -740,27 +740,26 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
 
     const stepIds = steps.map(s => s._id);
 
-    // Search tasks
-    const searchLower = query.toLowerCase();
-    const allTasks = await ProjectTask.find({ stepId: { $in: stepIds } }).lean();
+    // Search tasks using MongoDB $regex instead of in-memory filtering
+    const matchedTasks = await ProjectTask.find({
+      stepId: { $in: stepIds },
+      title: { $regex: query, $options: 'i' }
+    }).limit(10).lean();
 
-    const results = [];
-    allTasks.forEach(task => {
-      if (task.title.toLowerCase().includes(searchLower)) {
-        const step = stepMap.get(task.stepId.toString());
-        const proj = step ? projectMap.get(step.projectId.toString()) : null;
-        results.push({
-          id: task._id.toString(),
-          title: task.title,
-          projectId: proj?._id?.toString() || '',
-          projectName: proj?.name || '',
-          status: task.status,
-          stepName: step?.title || ''
-        });
-      }
+    const results = matchedTasks.map(task => {
+      const step = stepMap.get(task.stepId.toString());
+      const proj = step ? projectMap.get(step.projectId.toString()) : null;
+      return {
+        id: task._id.toString(),
+        title: task.title,
+        projectId: proj?._id?.toString() || '',
+        projectName: proj?.name || '',
+        status: task.status,
+        stepName: step?.title || ''
+      };
     });
 
-    res.json(results.slice(0, 10));
+    res.json(results);
   } catch (error) {
     console.error('Error searching tasks:', error);
     res.status(500).json({ message: 'Server error' });
