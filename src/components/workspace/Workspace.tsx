@@ -6,7 +6,9 @@ import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FolderGit2, Plus, ArrowRight, Loader2, Calendar, User, Trash2, Pin, FileText, Unlink, Search, Github } from "lucide-react";
+import { FolderGit2, Plus, ArrowRight, Calendar, User, Trash2, Pin, FileText, Unlink, Search, Github } from "lucide-react";
+import { RepositoryListSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -282,11 +284,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   );
 
   if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <RepositoryListSkeleton />;
   }
 
   return (
@@ -478,8 +476,13 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
             <div className="h-[200px] overflow-y-auto border rounded-md p-2 space-y-1">
               {loadingRepos ? (
-                <div className="flex h-full items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <div className="space-y-2 p-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 p-2">
+                      <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+                      <Skeleton className="h-4 flex-1" />
+                    </div>
+                  ))}
                 </div>
               ) : repos.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
@@ -545,8 +548,13 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
               <div className="flex-1 overflow-y-auto p-2 space-y-1">
                   {loadingRepos ? (
-                      <div className="flex h-full items-center justify-center p-4">
-                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <div className="space-y-2 p-2">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="flex items-center gap-3 p-2">
+                            <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+                            <Skeleton className="h-4 flex-1" />
+                          </div>
+                        ))}
                       </div>
                   ) : repos.length === 0 ? (
                       <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
@@ -621,8 +629,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
           <DialogFooter className="mt-2 border-t pt-4">
               <Button variant="outline" onClick={() => setCreateModalOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateMultipleProjects} disabled={selectedRepos.length === 0 || creatingProjects} className="min-w-[100px]">
-                  {creatingProjects ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Submit
+                  {creatingProjects ? "Creating..." : "Submit"}
               </Button>
           </DialogFooter>
         </DialogContent>

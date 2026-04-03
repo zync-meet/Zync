@@ -37,11 +37,11 @@ import {
   Users,
   MoreHorizontal,
   Link as LinkIcon,
-  Loader2,
   FilePenLine,
   Trash,
   Edit
 } from 'lucide-react';
+import { NoteListSkeleton } from "@/components/ui/skeletons";
 import {
   Dialog,
   DialogContent,
@@ -574,11 +574,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   }, [selectedNote, folders]);
 
   if (isLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center bg-background text-muted-foreground">
-        <Loader2 className="animate-spin mr-2" /> Loading Notes...
-      </div>
-    );
+    return <NoteListSkeleton />;
   }
 
   return (

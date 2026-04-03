@@ -13,7 +13,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserSync } from "@/hooks/use-user-sync";
 import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Headphones, MessageSquare, Newspaper, UserMinus, Trash2, Copy, LogOut, Crown, Users } from "lucide-react";
+import { Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Headphones, MessageSquare, Newspaper, UserMinus, Trash2, Copy, LogOut, Crown, Users } from "lucide-react";
+import { SettingsSkeleton } from "@/components/ui/skeletons";
 import { cn, API_BASE_URL, getFullUrl } from "@/lib/utils";
 import {
   Command,
@@ -676,7 +677,7 @@ export default function SettingsView() {
                   </div>
 
                   <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes</Button>
+                    <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Save Changes"}</Button>
                   </div>
                 </form>
               </CardContent>
@@ -808,8 +809,7 @@ export default function SettingsView() {
                       </div>
 
                       <Button type="submit" className="w-full" disabled={supportLoading}>
-                        {supportLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Submit
+                        {supportLoading ? "Submitting..." : "Submit"}
                       </Button>
 
                       <p className="text-xs text-center text-muted-foreground">
@@ -887,8 +887,7 @@ export default function SettingsView() {
                       Warning: Deleting your account is irreversible.
                     </div>
                     <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleteLoading}>
-                      {deleteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Request Account Deletion
+                      {deleteLoading ? "Requesting..." : "Request Account Deletion"}
                     </Button>
                   </div>
                 ) : (
@@ -905,8 +904,7 @@ export default function SettingsView() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleteLoading || deleteCode.length !== 6}>
-                        {deleteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Confirm Deletion
+                        {deleteLoading ? "Confirming..." : "Confirm Deletion"}
                       </Button>
                     </div>
                   </div>
@@ -1080,13 +1078,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
   };
 
   if (teamLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
+    return <SettingsSkeleton />;
   }
 
   if (!teamsData || teamsData.length === 0) {
@@ -1211,16 +1203,14 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
                       Deleting the team will remove all members and cannot be undone.
                     </div>
                     <Button variant="destructive" onClick={() => handleDeleteTeam(team.id)} disabled={actionLoading}>
-                      {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Team
+                      {actionLoading ? "Deleting..." : "Delete Team"}
                     </Button>
                   </div>
                 ) : (
                   <Button variant="outline" onClick={() => handleLeaveTeam(team.id)} disabled={actionLoading}>
-                    {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <LogOut className="mr-2 h-4 w-4" />
-                    Leave Team
+                    {actionLoading ? "Leaving..." : "Leave Team"}
                   </Button>
                 )}
               </CardContent>

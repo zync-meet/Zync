@@ -3,6 +3,7 @@ import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,8 +34,7 @@ import {
     AlertCircle,
     ChevronDown,
     BookMarked,
-    LogOut,
-    Loader2
+    LogOut
 } from "lucide-react";
 
 import { useGitHubStats, useGitHubEvents, useGitHubContributions } from "@/hooks/useGitHubData";
@@ -159,11 +159,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
     const availableYears = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
 
     if (loading) {
-        return (
-            <div className="flex h-full w-full items-center justify-center min-h-[60vh]">
-                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     if (error && !stats) {

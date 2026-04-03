@@ -30,7 +30,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto">
                     {status === 'Saving...' ? (
                         <>
-                            <Clock size={11} className="animate-spin" />
+                            <Clock size={11} className="opacity-50" />
                             <span>Saving...</span>
                         </>
                     ) : (

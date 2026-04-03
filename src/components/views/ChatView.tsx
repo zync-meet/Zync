@@ -465,7 +465,7 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
             disabled={isUploading}
           />
           <Button type="submit" size="icon" disabled={(!newMessage.trim() && !file) || isUploading}>
-            {isUploading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
+            <Send className={`w-4 h-4 ${isUploading ? "opacity-50" : ""}`} />
           </Button>
         </form>
       </div >

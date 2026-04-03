@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { lazy, Suspense } from "react";
+import { PageSkeleton } from "@/components/ui/skeletons";
 
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
@@ -25,7 +26,6 @@ import { useChatNotifications } from "./hooks/use-chat-notifications";
 import { useUserSync } from "./hooks/use-user-sync";
 import { useSyncData } from "./hooks/useSyncData";
 import { WakeUpService } from "@/components/WakeUpService";
-import { GlobalLoading } from "@/components/GlobalLoading";
 
 const AppContent = () => {
   useActivityTracker();
@@ -45,8 +45,7 @@ const AppContent = () => {
   return (
     <>
       <WakeUpService />
-      <GlobalLoading />
-      <AnimatePresence mode="wait">
+<AnimatePresence mode="wait">
         <motion.div
           key={getPageKey(location.pathname)}
           initial={{ opacity: 0, y: 10 }}
@@ -55,7 +54,7 @@ const AppContent = () => {
           transition={{ duration: 0.2, ease: "easeOut" }}
           className="h-full w-full"
         >
-          <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
+          <Suspense fallback={<PageSkeleton />}>
             <Routes location={location}>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
