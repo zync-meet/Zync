@@ -3,7 +3,6 @@ const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const Project = require('../models/Project');
 const Repository = require('../models/Repository');
-const User = require('../models/User');
 const { normalizeDoc } = require('../utils/normalize');
 const { getProjectWithSteps } = require('../utils/projectHelper');
 
@@ -20,8 +19,7 @@ router.post('/link-repo', authMiddleware, async (req, res) => {
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== uid && !project.team.includes(uid))) {
+    if (project.ownerUid !== uid && !project.team.includes(uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -55,8 +53,7 @@ router.post('/unlink-repo', authMiddleware, async (req, res) => {
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== uid && !project.team.includes(uid))) {
+    if (project.ownerUid !== uid && !project.team.includes(uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 

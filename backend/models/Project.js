@@ -6,6 +6,7 @@ const projectSchema = new mongoose.Schema(
     description: { type: String, default: '' },
 
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    ownerUid: { type: String, required: true }, // Denormalized Firebase UID for auth checks
 
     team: { type: [String], default: [] }, // Firebase UIDs
 
@@ -31,6 +32,7 @@ const projectSchema = new mongoose.Schema(
 );
 
 projectSchema.index({ ownerId: 1 });
+projectSchema.index({ ownerUid: 1 });
 projectSchema.index({ team: 1 });
 
 module.exports = mongoose.model('Project', projectSchema);

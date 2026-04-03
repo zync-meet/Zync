@@ -88,32 +88,23 @@ router.post('/sync', verifyToken, async (req, res) => {
     const isNew = user.createdAt && (Date.now() - new Date(user.createdAt).getTime() < 5000);
 
     if (isNew) {
-      try {
-        await sendZyncEmail(
-          'consolemaster.app@gmail.com',
-          '🚀 New User Joined ZYNC!',
-          getNewUserRegistrationTemplate({
-            name: finalDisplayName || 'N/A',
-            email: email,
-            uid: uid
-          }),
-          `New User Alert! Name: ${finalDisplayName || 'N/A'}, Email: ${email}`
-        );
-        console.log(`Notification email sent for new user: ${email}`);
-      } catch (emailError) {
-        console.error("Failed to send admin notification:", emailError);
-      }
+      // Fire-and-forget: don't block response on external notifications
+      sendZyncEmail(
+        'consolemaster.app@gmail.com',
+        '🚀 New User Joined ZYNC!',
+        getNewUserRegistrationTemplate({
+          name: finalDisplayName || 'N/A',
+          email: email,
+          uid: uid
+        }),
+        `New User Alert! Name: ${finalDisplayName || 'N/A'}, Email: ${email}`
+      ).catch(err => console.error("Failed to send admin notification:", err));
 
-      try {
-        await appendRow(
-          finalDisplayName || 'N/A',
-          email,
-          new Date().toISOString()
-        );
-        console.log(`New user logged to Google Sheets: ${email}`);
-      } catch (sheetError) {
-        console.error('Failed to log user to Google Sheets:', sheetError);
-      }
+      appendRow(
+        finalDisplayName || 'N/A',
+        email,
+        new Date().toISOString()
+      ).catch(err => console.error('Failed to log user to Google Sheets:', err));
     }
 
     const teams = await Team.find({ members: user.uid }).lean();
@@ -252,8 +243,10 @@ router.post('/chat-request/respond', verifyToken, async (req, res) => {
   }
 
   try {
-    const recipient = await User.findOne({ uid: recipientUid }).lean();
-    const sender = await User.findOne({ uid: senderId }).lean();
+    const [recipient, sender] = await Promise.all([
+      User.findOne({ uid: recipientUid }).lean(),
+      User.findOne({ uid: senderId }).lean()
+    ]);
 
     if (!recipient || !sender) return res.status(404).json({ message: 'User not found' });
 
@@ -272,15 +265,16 @@ router.post('/chat-request/respond', verifyToken, async (req, res) => {
       if (!recipientConnections.includes(senderId)) recipientConnections.push(senderId);
       if (!senderConnections.includes(recipientUid)) senderConnections.push(recipientUid);
 
-      await User.updateOne(
-        { uid: senderId },
-        { $set: { connections: senderConnections } }
-      );
-
-      await User.updateOne(
-        { uid: recipientUid },
-        { $set: { chatRequests, connections: recipientConnections } }
-      );
+      await Promise.all([
+        User.updateOne(
+          { uid: senderId },
+          { $set: { connections: senderConnections } }
+        ),
+        User.updateOne(
+          { uid: recipientUid },
+          { $set: { chatRequests, connections: recipientConnections } }
+        )
+      ]);
     } else {
       await User.updateOne(
         { uid: recipientUid },
@@ -341,8 +335,10 @@ router.get('/', verifyToken, async (req, res) => {
 
     const relatedUids = new Set(currentUser.connections || []);
 
-    const allMyTeams = await Team.find({ members: req.user.uid }).lean();
-    const ownedTeams = await Team.find({ ownerId: req.user.uid }).lean();
+    const [allMyTeams, ownedTeams] = await Promise.all([
+      Team.find({ members: req.user.uid }).lean(),
+      Team.find({ ownerId: req.user.uid }).lean()
+    ]);
 
     const uniqueTeams = [...allMyTeams, ...ownedTeams];
     uniqueTeams.forEach(t => {

@@ -107,27 +107,32 @@ Return ONLY a valid JSON object (no markdown, no explanation) with this exact st
       team: [],
     });
 
-    // Create steps and tasks
-    for (const [idx, stepData] of (generatedData.steps || []).entries()) {
-      const step = await Step.create({
-        title: stepData.title,
-        description: stepData.description || '',
-        type: stepData.type || 'Other',
-        page: stepData.page || 'General',
-        order: idx,
-        projectId: newProject._id,
-      });
+    // Create steps and tasks (bulk insert)
+    const stepsData = (generatedData.steps || []).map((stepData, idx) => ({
+      title: stepData.title,
+      description: stepData.description || '',
+      type: stepData.type || 'Other',
+      page: stepData.page || 'General',
+      order: idx,
+      projectId: newProject._id,
+      tasks: stepData.tasks || [],
+    }));
 
-      if (stepData.tasks && stepData.tasks.length > 0) {
-        for (const task of stepData.tasks) {
-          await ProjectTask.create({
-            title: task.title,
-            description: task.description || '',
-            status: 'Pending',
-            stepId: step._id,
-          });
-        }
-      }
+    const createdSteps = await Step.insertMany(
+      stepsData.map(({ tasks, ...stepFields }) => stepFields)
+    );
+
+    const allTasks = createdSteps.flatMap((step, i) =>
+      stepsData[i].tasks.map(task => ({
+        title: task.title,
+        description: task.description || '',
+        status: 'Pending',
+        stepId: step._id,
+      }))
+    );
+
+    if (allTasks.length > 0) {
+      await ProjectTask.insertMany(allTasks);
     }
 
     const fullProject = await getProjectWithSteps(newProject._id);

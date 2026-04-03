@@ -177,17 +177,14 @@ router.post('/', authMiddleware, async (req, res) => {
       name,
       description: description || 'No description',
       ownerId: owner._id,
+      ownerUid: owner.uid,
       githubRepoName,
       githubRepoOwner,
       isTrackingActive: !!(githubRepoName && githubRepoOwner),
     });
 
-    // Create default steps
-    const createdSteps = [];
-    for (const s of defaultSteps) {
-      const step = await Step.create({ ...s, projectId: newProject._id });
-      createdSteps.push(step);
-    }
+    // Create default steps (bulk insert)
+    await Step.insertMany(defaultSteps.map(s => ({ ...s, projectId: newProject._id })));
 
     const result = await getProjectWithSteps(newProject._id);
     res.status(201).json(result);
@@ -205,8 +202,7 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || owner.uid !== req.user.uid) {
+    if (project.ownerUid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -216,7 +212,8 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Project is not linked to a GitHub repository' });
     }
 
-    const github = owner.githubIntegration;
+    const owner = await User.findById(project.ownerId).lean();
+    const github = owner?.githubIntegration;
     if (!github?.accessToken) {
       return res.status(400).json({ message: 'Owner is not connected to GitHub' });
     }
@@ -330,31 +327,37 @@ router.post('/generate', authMiddleware, async (req, res) => {
       name,
       description,
       ownerId: owner._id,
+      ownerUid: owner.uid,
       architecture: generatedData.architecture || {},
       team: [],
     });
 
-    // Create steps and tasks
-    for (const [idx, stepData] of (generatedData.steps || []).entries()) {
-      const step = await Step.create({
-        title: stepData.title,
-        description: stepData.description || '',
-        type: stepData.type || 'Other',
-        page: stepData.page || 'General',
-        order: idx,
-        projectId: newProject._id,
-      });
+    // Create steps and tasks (bulk insert)
+    const stepsData = (generatedData.steps || []).map((stepData, idx) => ({
+      title: stepData.title,
+      description: stepData.description || '',
+      type: stepData.type || 'Other',
+      page: stepData.page || 'General',
+      order: idx,
+      projectId: newProject._id,
+      tasks: stepData.tasks || [],
+    }));
 
-      if (stepData.tasks && stepData.tasks.length > 0) {
-        for (const task of stepData.tasks) {
-          await ProjectTask.create({
-            title: task.title,
-            description: task.description || '',
-            status: 'Pending',
-            stepId: step._id,
-          });
-        }
-      }
+    const createdSteps = await Step.insertMany(
+      stepsData.map(({ tasks, ...stepFields }) => stepFields)
+    );
+
+    const allTasks = createdSteps.flatMap((step, i) =>
+      stepsData[i].tasks.map(task => ({
+        title: task.title,
+        description: task.description || '',
+        status: 'Pending',
+        stepId: step._id,
+      }))
+    );
+
+    if (allTasks.length > 0) {
+      await ProjectTask.insertMany(allTasks);
     }
 
     const fullProject = await getProjectWithSteps(newProject._id);
@@ -371,19 +374,16 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const ownerUid = req.user.uid;
 
-    const user = await User.findOne({ uid: ownerUid }).lean();
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    // Projects owned by user or where user is a team member
-    const projects = await getProjectsWithSteps({
-      $or: [
-        { ownerId: user._id },
-        { team: ownerUid }
-      ]
-    });
-
-    // Projects where user has assigned tasks
-    const assignedTasks = await ProjectTask.find({ assignedTo: ownerUid }).select('stepId').lean();
+    // Fetch owned/team projects and assigned tasks in parallel
+    const [projects, assignedTasks] = await Promise.all([
+      getProjectsWithSteps({
+        $or: [
+          { ownerUid },
+          { team: ownerUid }
+        ]
+      }),
+      ProjectTask.find({ assignedTo: ownerUid }).select('stepId').lean()
+    ]);
     const assignedStepIds = [...new Set(assignedTasks.map(t => t.stepId.toString()))];
 
     let assignedProjects = [];
@@ -417,12 +417,11 @@ router.post('/:id/team', authMiddleware, async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || owner.uid !== req.user.uid) {
+    if (project.ownerUid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    if (!project.team.includes(userId) && owner.uid !== userId) {
+    if (!project.team.includes(userId) && project.ownerUid !== userId) {
       const newTeam = [...project.team, userId];
       await Project.updateOne({ _id: req.params.id }, { $set: { team: newTeam } });
     }
@@ -440,14 +439,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const project = await Project.findById(req.params.id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Check if project has any steps
     const stepCount = await Step.countDocuments({ projectId: project._id });
-
     if (stepCount === 0) {
       const defaultSteps = [
         { title: 'Planning', description: 'Initial requirements and design', type: 'Design', order: 0, projectId: project._id },
@@ -456,9 +452,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         { title: 'Database', description: 'Schema design and data management', type: 'Database', order: 3, projectId: project._id },
         { title: 'Deployment', description: 'CI/CD and hosting setup', type: 'Other', order: 4, projectId: project._id }
       ];
-      for (const s of defaultSteps) {
-        await Step.create(s);
-      }
+      await Step.insertMany(defaultSteps);
     }
 
     const full = await getProjectWithSteps(req.params.id);
@@ -474,8 +468,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     const project = await Project.findById(req.params.id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || owner.uid !== req.user.uid) {
+    if (project.ownerUid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -501,8 +494,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
     const project = await Project.findById(id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -539,8 +531,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -598,8 +589,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -670,8 +660,7 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || owner.uid !== userId) {
+    if (project.ownerUid !== userId) {
       return res.status(403).json({ message: 'Permission denied. Only the project owner can delete tasks.' });
     }
 
@@ -702,11 +691,8 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
 
     if (!query) return res.json([]);
 
-    const user = await User.findOne({ uid: userId }).lean();
-    if (!user) return res.json([]);
-
     // Get all projects user has access to
-    const ownedProjects = await Project.find({ ownerId: user._id }).select('_id name').lean();
+    const ownedProjects = await Project.find({ ownerUid: userId }).select('_id name').lean();
     const teamProjects = await Project.find({ team: userId }).select('_id name').lean();
 
     // Get projects via task assignment
@@ -769,8 +755,7 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
