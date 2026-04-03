@@ -32,6 +32,11 @@ interface Project {
   description: string;
   ownerId: string;
   ownerUid?: string;
+  owner?: {
+    uid: string;
+    displayName: string;
+    photoURL?: string | null;
+  } | null;
   team?: string[];
   createdAt: string;
   githubRepoName?: string;
@@ -92,6 +97,19 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     return [];
   };
 
+  const getRepoOwnerLogin = (repo: any) => {
+    if (!repo) { return ""; }
+    if (typeof repo.owner === "string") { return repo.owner; }
+    if (repo.owner?.login) { return repo.owner.login; }
+    if (repo.full_name && typeof repo.full_name === "string" && repo.full_name.includes("/")) {
+      return repo.full_name.split("/")[0];
+    }
+    return "";
+  };
+
+  const makeRepoKey = (owner?: string | null, name?: string | null) =>
+    `${String(owner || "").trim().toLowerCase()}/${String(name || "").trim().toLowerCase()}`;
+
   const handleOpenLinkModal = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
     setSelectedProjectForLink(project);
@@ -123,11 +141,12 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   const handleLinkRepo = async (repo: any) => {
     if (!selectedProjectForLink) {return;}
     try {
+      const ownerLogin = getRepoOwnerLogin(repo);
       await linkGitHub({
         projectId: selectedProjectForLink.id,
         repoData: {
           githubRepoName: repo.name,
-          githubRepoOwner: repo.owner.login
+          githubRepoOwner: ownerLogin
         }
       });
       setRepoModalOpen(false);
@@ -165,12 +184,13 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
   const handleCreateProjectFromRepo = async (repo: any) => {
     try {
+      const ownerLogin = getRepoOwnerLogin(repo);
       await createProject({
         name: repo.name,
         description: repo.description,
         ownerId: currentUser?.uid,
         githubRepoName: repo.name,
-        githubRepoOwner: repo.owner.login
+        githubRepoOwner: ownerLogin
       });
       setCreateModalOpen(false);
       toast({ title: "Success", description: `Project ${repo.name} created successfully.` });
@@ -184,12 +204,13 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     setCreatingProjects(true);
     try {
       for (const repo of selectedRepos) {
+        const ownerLogin = getRepoOwnerLogin(repo);
         await createProject({
           name: repo.name,
           description: repo.description,
           ownerId: currentUser?.uid,
           githubRepoName: repo.name,
-          githubRepoOwner: repo.owner.login
+          githubRepoOwner: ownerLogin
         });
       }
       setCreateModalOpen(false);
@@ -213,10 +234,10 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   };
 
   const toggleSelectAll = () => {
-    if (selectedRepos.length === filteredRepos.length) {
+    if (selectedRepos.length === addProjectRepos.length) {
       setSelectedRepos([]);
     } else {
-      setSelectedRepos([...filteredRepos]);
+      setSelectedRepos([...addProjectRepos]);
     }
   };
 
@@ -447,13 +468,42 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   }, [location.search, currentUser, navigate, toast]);
 
   const safeRepos = Array.isArray(repos) ? repos : normalizeRepoList(repos);
-  const filteredRepos = safeRepos.filter(repo =>
+
+  const searchMatchedRepos = safeRepos.filter(repo =>
     repo.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const workspaceRepoKeys = new Set(
+    projects
+      .filter((p: any) => p?.githubRepoName && p?.githubRepoOwner)
+      .map((p: any) => makeRepoKey(p.githubRepoOwner, p.githubRepoName))
+  );
+
+  const addProjectRepos = searchMatchedRepos.filter((repo: any) => {
+    const ownerLogin = getRepoOwnerLogin(repo);
+    const key = makeRepoKey(ownerLogin, repo?.name);
+    return !workspaceRepoKeys.has(key);
+  });
+
+  const linkRepos = searchMatchedRepos;
 
   const getProjectOwnerUid = (project: Project) => project.ownerUid || project.ownerId;
   const isProjectOwner = (project: Project) => getProjectOwnerUid(project) === currentUser?.uid;
   const canAssignTaskForProject = (project: Project) => isProjectOwner(project);
+  const getOwnerProfile = (project: Project) => {
+    const ownerUid = getProjectOwnerUid(project);
+    const ownerFromPayload = project.owner;
+    const fallbackUser = usersList?.find((u: any) => u.uid === ownerUid);
+
+    return {
+      uid: ownerUid,
+      displayName:
+        ownerFromPayload?.displayName ||
+        fallbackUser?.displayName ||
+        (isProjectOwner(project) ? "You" : "Unknown"),
+      photoURL: ownerFromPayload?.photoURL || fallbackUser?.photoURL || (isProjectOwner(project) ? currentUser?.photoURL : null),
+    };
+  };
 
   if (loading) {
     return <RepositoryListSkeleton />;
@@ -547,24 +597,20 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                     </div>
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4" />
-                      {isProjectOwner(project) ? (
-                        <span>By You</span>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span>By</span>
-                          <div className="flex items-center gap-1 bg-secondary/50 pr-2 pl-1 py-0.5 rounded-full">
-                            <Avatar className="w-4 h-4">
-                              <AvatarImage src={getFullUrl(usersList?.find(u => u.uid === getProjectOwnerUid(project))?.photoURL)} />
-                              <AvatarFallback className="text-[8px]">
-                                {usersList?.find(u => u.uid === getProjectOwnerUid(project))?.displayName?.substring(0, 2) || '??'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium text-xs">
-                              {usersList?.find(u => u.uid === getProjectOwnerUid(project))?.displayName || 'Unknown'}
-                            </span>
-                          </div>
+                      <div className="flex items-center gap-2" title={`Owner: ${getOwnerProfile(project).displayName}`}>
+                        <span>Owner</span>
+                        <div className="flex items-center gap-1 bg-secondary/50 pr-2 pl-1 py-0.5 rounded-full">
+                          <Avatar className="w-5 h-5">
+                            <AvatarImage src={getFullUrl(getOwnerProfile(project).photoURL || undefined)} />
+                            <AvatarFallback className="text-[9px]">
+                              {getOwnerProfile(project).displayName?.substring(0, 2)?.toUpperCase() || '??'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium text-xs max-w-[90px] truncate">
+                            {isProjectOwner(project) ? 'You' : getOwnerProfile(project).displayName}
+                          </span>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                   {!project.githubRepoName && isProjectOwner(project) && (
@@ -673,7 +719,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                   </a>
                 </div>
               ) : (
-                filteredRepos.map(repo => (
+                linkRepos.map(repo => (
                   <div
                     key={repo.id}
                     onClick={() => handleLinkRepo(repo)}
@@ -709,7 +755,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                 <div className="flex items-center gap-2">
                   <Checkbox 
                     id="select-all" 
-                    checked={filteredRepos.length > 0 && selectedRepos.length === filteredRepos.length}
+                    checked={addProjectRepos.length > 0 && selectedRepos.length === addProjectRepos.length}
                     onCheckedChange={toggleSelectAll}
                   />
                   <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
@@ -744,12 +790,12 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                           Install Zync App on GitHub
                         </a>
                       </div>
-                  ) : filteredRepos.length === 0 ? (
+                  ) : addProjectRepos.length === 0 ? (
                       <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
-                        No matches.
+                        All matching repositories are already added to your workspace.
                       </div>
                   ) : (
-                      filteredRepos.map(repo => {
+                      addProjectRepos.map(repo => {
                         const isChecked = selectedRepos.some(r => r.id === repo.id);
                         return (
                           <div

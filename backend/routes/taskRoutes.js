@@ -7,6 +7,7 @@ const Project = require('../models/Project');
 const Step = require('../models/Step');
 const ProjectTask = require('../models/ProjectTask');
 const { normalizeDocs } = require('../utils/normalize');
+const cache = require('../utils/cache');
 
 const buildOctokitForInstallation = async (installationId) => {
   const appId = process.env.GITHUB_APP_ID;
@@ -142,6 +143,13 @@ router.post('/assign', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'Selected assignee is not a collaborator on this repository.' });
     }
 
+    if (!project.team?.includes(resolvedAssigneeId) && resolvedAssigneeId !== project.ownerUid) {
+      await Project.updateOne(
+        { _id: project._id },
+        { $addToSet: { team: resolvedAssigneeId } }
+      );
+    }
+
     const createdTasksPayload = [];
     for (const uid of normalizedAssigneeIds) {
       const assignee = assigneeMap.get(uid);
@@ -162,6 +170,8 @@ router.post('/assign', verifyToken, async (req, res) => {
     }
 
     const createdTasks = await ProjectTask.insertMany(createdTasksPayload);
+
+    await cache.invalidate(`projects:${requesterUid}`, `projects:${resolvedAssigneeId}`);
 
     return res.status(200).json({
       message: 'Task created successfully.',

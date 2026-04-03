@@ -1,7 +1,32 @@
 const Project = require('../models/Project');
 const Step = require('../models/Step');
 const ProjectTask = require('../models/ProjectTask');
+const User = require('../models/User');
 const { normalizeDoc, normalizeDocs } = require('./normalize');
+
+const attachOwnerData = async (projects) => {
+  if (!projects || projects.length === 0) return projects;
+
+  const ownerUids = [...new Set(projects.map((p) => p.ownerUid).filter(Boolean))];
+  if (ownerUids.length === 0) return projects;
+
+  const owners = await User.find({ uid: { $in: ownerUids } })
+    .select('uid displayName photoURL')
+    .lean();
+
+  const ownerByUid = new Map(
+    owners.map((owner) => [owner.uid, {
+      uid: owner.uid,
+      displayName: owner.displayName || 'Unknown',
+      photoURL: owner.photoURL || null,
+    }])
+  );
+
+  return projects.map((project) => ({
+    ...project,
+    owner: ownerByUid.get(project.ownerUid) || null,
+  }));
+};
 
 /**
  * Fetch a single project with its steps (ordered) and their tasks.
@@ -34,7 +59,8 @@ async function getProjectWithSteps(projectId) {
     return ns;
   });
 
-  return result;
+  const [withOwner] = await attachOwnerData([result]);
+  return withOwner;
 }
 
 /**
@@ -73,11 +99,13 @@ async function getProjectsWithSteps(filter, sort = { createdAt: -1 }) {
     stepsByProject[key].push(ns);
   });
 
-  return projects.map(p => {
+  const normalizedProjects = projects.map(p => {
     const np = normalizeDoc(p);
     np.steps = stepsByProject[p._id.toString()] || [];
     return np;
   });
+
+  return attachOwnerData(normalizedProjects);
 }
 
 module.exports = { getProjectWithSteps, getProjectsWithSteps };

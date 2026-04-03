@@ -959,6 +959,16 @@ router.get('/:projectId/collaborator-assignees', authMiddleware, async (req, res
   try {
     const { projectId } = req.params;
     const requesterUid = req.user.uid;
+    const cacheKey = `collaborator-assignees:${projectId}:${requesterUid}`;
+
+    try {
+      const cached = await cache.getJson(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    } catch (cacheReadError) {
+      console.warn(`[Cache] collaborator-assignees read failed for ${cacheKey}:`, cacheReadError.message);
+    }
 
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
@@ -1018,10 +1028,18 @@ router.get('/:projectId/collaborator-assignees', authMiddleware, async (req, res
           : 'User has not connected GitHub yet',
       }));
 
-    return res.json({
+    const responsePayload = {
       activeCollaborators,
       availableTeamMembers,
-    });
+    };
+
+    try {
+      await cache.setJson(cacheKey, responsePayload, 60);
+    } catch (cacheWriteError) {
+      console.warn(`[Cache] collaborator-assignees write failed for ${cacheKey}:`, cacheWriteError.message);
+    }
+
+    return res.json(responsePayload);
   } catch (error) {
     console.error('Error fetching collaborator assignees:', error);
     return res.status(500).json({ message: 'Failed to fetch collaborator assignees', error: error.message });
@@ -1081,6 +1099,12 @@ router.post('/:projectId/invite-collaborator', authMiddleware, async (req, res) 
       } else {
         throw inviteError;
       }
+    }
+
+    try {
+      await cache.invalidate(`collaborator-assignees:${projectId}:${requesterUid}`);
+    } catch (cacheInvalidateError) {
+      console.warn(`[Cache] collaborator-assignees invalidate failed for ${projectId}:${requesterUid}:`, cacheInvalidateError.message);
     }
 
     return res.status(200).json({

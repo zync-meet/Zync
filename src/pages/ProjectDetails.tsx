@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -102,6 +102,8 @@ const MOCK_USERS = [
 const ProjectDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = (location.state as { from?: string } | null)?.from || "/dashboard/workspace";
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(true);
@@ -481,7 +483,7 @@ const ProjectDetails = () => {
           <p className="text-muted-foreground">
             The project you are looking for does not exist or has been deleted.
           </p>
-          <Button onClick={() => navigate('/dashboard')} className="gap-2">
+          <Button onClick={() => navigate(backPath)} className="gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to Dashboard
           </Button>
         </div>
@@ -497,7 +499,7 @@ const ProjectDetails = () => {
       {}
       <header className="border-b bg-card px-6 py-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(backPath)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
