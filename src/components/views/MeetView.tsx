@@ -13,7 +13,6 @@ import {
     Circle,
     Users,
     Building2,
-    Loader2,
     Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -169,11 +168,11 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                 newWindow.document.write(`
           <style>
             body { background: #111; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-            .loader { border: 2px solid #333; border-top: 2px solid #2563eb; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin-bottom: 20px; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .dot { width: 8px; height: 8px; background: #2563eb; border-radius: 50%; margin-bottom: 20px; animation: pulse 1.5s ease-in-out infinite; }
+            @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
             h2 { font-weight: 500; font-size: 1.25rem; }
           </style>
-          <div class="loader"></div>
+          <div class="dot"></div>
           <h2>Creating your secure meeting...</h2>
         `);
             }
@@ -382,8 +381,8 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                             <DialogFooter>
                                 <Button variant="outline" onClick={() => setIsScheduling(false)} className="border-white/10 text-white hover:bg-white/5">Cancel</Button>
                                 <Button onClick={handleScheduleMeeting} disabled={isGenerating} className="bg-blue-600 hover:bg-blue-700">
-                                    {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Calendar className="w-4 h-4 mr-2" />}
-                                    Schedule
+                                    {!isGenerating && <Calendar className="w-4 h-4 mr-2" />}
+                                    {isGenerating ? "Scheduling..." : "Schedule"}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -415,8 +414,9 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                             </DialogHeader>
                             <div className="py-4">
                                 {isLoadingTeams ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                                    <div className="flex items-center justify-center py-8 text-zinc-400 animate-pulse">
+                                        <Building2 className="w-6 h-6" />
+                                        <span className="ml-2 text-sm">Loading teams...</span>
                                     </div>
                                 ) : teams.length === 0 ? (
                                     <div className="text-center py-8">
@@ -512,16 +512,15 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                                     className="border-white/10 text-white hover:bg-white/5 flex-1"
                                     disabled={isGenerating}
                                 >
-                                    {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                    Start Alone
+                                    {isGenerating ? "Starting..." : "Start Alone"}
                                 </Button>
                                 <Button
                                     onClick={() => handleStartInstantMeeting(selectedTeamId)}
                                     disabled={isGenerating || !selectedTeamId}
                                     className="bg-blue-600 hover:bg-blue-700 flex-1"
                                 >
-                                    {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Users className="w-4 h-4 mr-2" />}
-                                    Invite Team
+                                    {!isGenerating && <Users className="w-4 h-4 mr-2" />}
+                                    {isGenerating ? "Inviting..." : "Invite Team"}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -533,8 +532,8 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                         onClick={() => setIsTeamSelectDialogOpen(true)}
                         disabled={isGenerating}
                     >
-                        {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-5 h-5 mr-2" />}
-                        Start Instant Meeting
+                        {!isGenerating && <Video className="w-5 h-5 mr-2" />}
+                        {isGenerating ? "Starting..." : "Start Instant Meeting"}
                     </Button>
                 </div>
             </div>
@@ -660,8 +659,8 @@ export default function MeetView({ currentUser, usersList, userStatuses = {} }: 
                             onClick={() => handleStartInstantMeeting(null, invitedUserIds)}
                             disabled={isGenerating}
                         >
-                            {isGenerating ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Video className="w-3 h-3 mr-2" />}
-                            Start with {invitedUserIds.length} People
+                            {!isGenerating && <Video className="w-3 h-3 mr-2" />}
+                            {isGenerating ? "Starting..." : `Start with ${invitedUserIds.length} People`}
                         </Button>
                     )}
                 </div>

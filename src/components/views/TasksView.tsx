@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { fetchProjects, Project } from "@/api/projects";
-import { CheckSquare, Loader2, Terminal, Layout, Github, ExternalLink, Inbox, ArrowUpCircle, MinusCircle, ArrowDownCircle } from "lucide-react";
+import { CheckSquare, Terminal, Layout, Github, ExternalLink, Inbox, ArrowUpCircle, MinusCircle, ArrowDownCircle } from "lucide-react";
+import { TaskListSkeleton } from "@/components/ui/skeletons";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -254,8 +255,8 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
 
     if (loading) {
         return (
-            <div className="flex w-full h-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="p-6">
+                <TaskListSkeleton />
             </div>
         );
     }
@@ -485,8 +486,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
                         <Button onClick={handleCreateTask} disabled={isCreating}>
-                            {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                            Create Task
+                            {isCreating ? "Creating..." : "Create Task"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

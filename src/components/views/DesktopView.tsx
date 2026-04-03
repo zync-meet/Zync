@@ -18,7 +18,6 @@ import {
   Video,
   MessageSquare,
   Circle,
-  Loader2,
   LogOut,
   WifiOff,
   RefreshCw,
@@ -29,6 +28,7 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from "lucide-react";
+import { DesktopSkeleton } from "@/components/ui/skeletons";
 import { getUserName, getUserInitials, pickUserForDisplay } from "@/lib/utils";
 import { NotesView } from "@/components/notes/NotesView";
 import TasksView from "./TasksView";
@@ -724,7 +724,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
       case "New Project":
         return (
-          <CreateProject onProjectCreated={(data) => navigate(`/projects/${data._id}`)} />
+          <CreateProject onProjectCreated={(data) => navigate(`/projects/${data.id}`)} />
         );
 
       case "Messages":
@@ -786,11 +786,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   };
 
   if (userLoading && !isPreview) {
-    return (
-      <div className="h-screen w-full bg-black flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
-      </div>
-    );
+    return <DesktopSkeleton />;
   }
 
   return (

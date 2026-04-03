@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MessageSquare, Loader2, PanelLeftClose, PanelLeftOpen, Check } from "lucide-react";
+import { Plus, MessageSquare, PanelLeftClose, PanelLeftOpen, Check } from "lucide-react";
 import { getFullUrl, API_BASE_URL, getUserName, getUserInitials, cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import TeamOnboarding from "./TeamOnboarding";
@@ -547,8 +547,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                                             setInviteLoading(false);
                                                         }
                                                     }}>
-                                                        {inviteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                        Send Invite
+                                                        {inviteLoading ? "Sending..." : "Send Invite"}
                                                     </Button>
                                                 </DialogFooter>
                                             </DialogContent>

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { API_BASE_URL } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -116,12 +116,7 @@ const CreateProject = ({ onProjectCreated }: CreateProjectProps) => {
               disabled={!projectName || !projectDescription || isGenerating}
               className="w-full sm:w-auto"
             >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating Architecture...
-                </>
-              ) : (
+              {isGenerating ? "Generating..." : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
                   Generate Project Plan

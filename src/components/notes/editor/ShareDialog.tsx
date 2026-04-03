@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import { updateNotePermissions } from '../../../services/notesService';
 
 interface ShareDialogProps {
@@ -101,7 +101,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                                 onChange={(e) => setEmail(e.target.value)}
                             />
                             <Button disabled={loading || !email} onClick={handleInvite}>
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Invite"}
+                                {loading ? "Inviting..." : "Invite"}
                             </Button>
                         </div>
                     </div>

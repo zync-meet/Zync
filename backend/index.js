@@ -173,6 +173,10 @@ async function connectWithRetry(attempt = 1) {
 
 connectWithRetry();
 
+// ── Redis connection (non-blocking) ────────────────────────────────────
+const { connectRedis } = require('./utils/redisClient');
+connectRedis();
+
 app.get('/', (req, res) => {
   res.send('API is running...');
 });

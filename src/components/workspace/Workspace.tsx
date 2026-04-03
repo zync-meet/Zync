@@ -6,7 +6,9 @@ import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FolderGit2, Plus, ArrowRight, Loader2, Calendar, User, Trash2, Pin, FileText, Unlink, Search, Github } from "lucide-react";
+import { FolderGit2, Plus, ArrowRight, Calendar, User, Trash2, Pin, FileText, Unlink, Search, Github } from "lucide-react";
+import { RepositoryListSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +26,7 @@ import { useProjects, useProjectMutations } from "@/hooks/useProjects";
 import { usePinnedNotes } from "@/hooks/useNotes";
 
 interface Project {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   ownerId: string;
@@ -96,7 +98,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     if (!selectedProjectForLink) {return;}
     try {
       await linkGitHub({
-        projectId: selectedProjectForLink._id,
+        projectId: selectedProjectForLink.id,
         repoData: {
           githubRepoName: repo.name,
           githubRepoOwner: repo.owner.login
@@ -200,7 +202,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
 
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -282,11 +284,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   );
 
   if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <RepositoryListSkeleton />;
   }
 
   return (
@@ -354,7 +352,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
         ) : (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project._id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-primary" onClick={() => onSelectProject(project._id)}>
+              <Card key={project.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-primary" onClick={() => onSelectProject(project.id)}>
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <Badge variant="outline" className="mb-2">Project</Badge>
@@ -442,7 +440,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteProject(project._id);
+                      deleteProject(project.id);
                     }}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -478,8 +476,13 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
             <div className="h-[200px] overflow-y-auto border rounded-md p-2 space-y-1">
               {loadingRepos ? (
-                <div className="flex h-full items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <div className="space-y-2 p-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 p-2">
+                      <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+                      <Skeleton className="h-4 flex-1" />
+                    </div>
+                  ))}
                 </div>
               ) : repos.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
@@ -545,8 +548,13 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
               <div className="flex-1 overflow-y-auto p-2 space-y-1">
                   {loadingRepos ? (
-                      <div className="flex h-full items-center justify-center p-4">
-                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <div className="space-y-2 p-2">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="flex items-center gap-3 p-2">
+                            <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+                            <Skeleton className="h-4 flex-1" />
+                          </div>
+                        ))}
                       </div>
                   ) : repos.length === 0 ? (
                       <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
@@ -621,8 +629,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
           <DialogFooter className="mt-2 border-t pt-4">
               <Button variant="outline" onClick={() => setCreateModalOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateMultipleProjects} disabled={selectedRepos.length === 0 || creatingProjects} className="min-w-[100px]">
-                  {creatingProjects ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Submit
+                  {creatingProjects ? "Creating..." : "Submit"}
               </Button>
           </DialogFooter>
         </DialogContent>

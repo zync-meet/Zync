@@ -5,6 +5,7 @@ const CryptoJS = require('crypto-js');
 const User = require('../models/User');
 const verifyToken = require('../middleware/authMiddleware');
 const { normalizeDoc } = require('../utils/normalize');
+const cache = require('../utils/cache');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
@@ -87,6 +88,8 @@ router.post('/connect', verifyToken, async (req, res) => {
       username: githubUsername
     });
 
+    cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
+
   } catch (error) {
     console.error('Error connecting GitHub:', error.message);
     if (error.response && error.response.status === 401) {
@@ -121,6 +124,7 @@ router.delete('/disconnect', verifyToken, async (req, res) => {
     }
 
     res.json({ message: 'GitHub disconnected successfully' });
+    cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
   } catch (error) {
     console.error('Error disconnecting GitHub:', error.message);
     res.status(500).json({ message: 'Failed to disconnect GitHub' });
@@ -189,6 +193,8 @@ router.post('/callback', verifyToken, async (req, res) => {
       username: githubUser.login
     });
 
+    cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
+
   } catch (error) {
     console.error('Error in GitHub OAuth callback:', error.message);
     res.status(500).json({ message: 'Failed to complete GitHub authentication' });
@@ -200,6 +206,9 @@ router.get('/repos', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
+    const cached = await cache.getJson(`gh:repos:${uid}`);
+    if (cached) return res.json(cached);
+
     const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
@@ -238,8 +247,10 @@ router.get('/repos', verifyToken, async (req, res) => {
 
     const linkHeader = githubResponse.headers.link;
     const hasNextPage = !!(linkHeader && linkHeader.includes('rel="next"'));
+    const result = { repos: githubResponse.data, hasNextPage, page };
 
-    res.json({ repos: githubResponse.data, hasNextPage, page });
+    cache.setJson(`gh:repos:${uid}:${page}`, result, 300);
+    res.json(result);
 
   } catch (error) {
     console.error('Error fetching GitHub repos:', error.message);
@@ -290,6 +301,7 @@ router.post('/install', verifyToken, async (req, res) => {
     );
 
     res.json({ message: 'GitHub App Installation Connected', user: normalizeDoc(updatedUser) });
+    cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
   } catch (error) {
     console.error('Error saving installation ID:', error);
     res.status(500).json({ message: 'Server error' });
@@ -323,6 +335,9 @@ router.get('/user-repos', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
+    const cached = await cache.getJson(`gh:user-repos:${uid}`);
+    if (cached) return res.json(cached);
+
     const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
@@ -411,7 +426,9 @@ router.get('/user-repos', verifyToken, async (req, res) => {
         html_url: repo.html_url
       }));
 
-      res.json({ repos, hasNextPage, page });
+      const userReposResult = { repos, hasNextPage, page };
+      cache.setJson(`gh:user-repos:${uid}:${page}`, userReposResult, 300);
+      res.json(userReposResult);
     } catch (requestErr) {
       console.error("Error fetching repositories from GitHub:", requestErr.message);
       await disconnectGithub(uid, { installationId: null });
@@ -443,6 +460,9 @@ router.get('/stats', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
+    const cached = await cache.getJson(`gh:stats:${uid}`);
+    if (cached) return res.json(cached);
+
     const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
@@ -461,7 +481,7 @@ router.get('/stats', verifyToken, async (req, res) => {
       }
     }, cacheKey);
 
-    res.json({
+    const stats = {
       login: userResponse.data.login,
       name: userResponse.data.name,
       avatar_url: userResponse.data.avatar_url,
@@ -471,7 +491,10 @@ router.get('/stats', verifyToken, async (req, res) => {
       following: userResponse.data.following,
       created_at: userResponse.data.created_at,
       html_url: userResponse.data.html_url
-    });
+    };
+
+    cache.setJson(`gh:stats:${uid}`, stats, 600);
+    res.json(stats);
   } catch (error) {
     console.error('Error fetching GitHub stats:', error.message);
     res.status(500).json({ message: 'Failed to fetch GitHub stats' });
@@ -483,6 +506,9 @@ router.get('/events', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
+    const cached = await cache.getJson(`gh:events:${uid}`);
+    if (cached) return res.json(cached);
+
     const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
@@ -516,6 +542,7 @@ router.get('/events', verifyToken, async (req, res) => {
       }
     }));
 
+    cache.setJson(`gh:events:${uid}`, events, 60);
     res.json(events);
   } catch (error) {
     console.error('Error fetching GitHub events:', error.message);
@@ -528,6 +555,12 @@ router.get('/contributions', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const cacheKey = `gh:contribs:${uid}:${year}`;
+
+    const cached = await cache.getJson(cacheKey);
+    if (cached) return res.json(cached);
+
     const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
@@ -557,7 +590,6 @@ router.get('/contributions', verifyToken, async (req, res) => {
       }
     `;
 
-    const year = parseInt(req.query.year) || new Date().getFullYear();
     const from = new Date(`${year}-01-01T00:00:00Z`).toISOString();
     const to = new Date(`${year}-12-31T23:59:59Z`).toISOString();
 
@@ -590,6 +622,7 @@ router.get('/contributions', verifyToken, async (req, res) => {
       });
     });
 
+    cache.setJson(cacheKey, contributions, 1800);
     res.json(contributions);
   } catch (error) {
     console.error('Error fetching contributions:', error.message);
@@ -607,6 +640,10 @@ router.get('/readme', verifyToken, async (req, res) => {
   }
 
   try {
+    const cacheKey = `gh:readme:${owner}:${repo}`;
+    const cached = await cache.getJson(cacheKey);
+    if (cached !== null) return res.send(cached);
+
     const user = await User.findOne({ uid }).lean();
     const github = user?.githubIntegration;
 
@@ -628,9 +665,11 @@ router.get('/readme', verifyToken, async (req, res) => {
         repo,
         mediaType: { format: 'raw' }
       });
+      cache.setJson(cacheKey, response.data, 1800);
       res.send(response.data);
     } catch (err) {
       if (err.status === 404) {
+        cache.setJson(cacheKey, "# No README found", 1800);
         return res.send("# No README found");
       }
       throw err;

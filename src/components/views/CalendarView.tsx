@@ -5,7 +5,7 @@ import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './CalendarView.css';
 import { Card } from "@/components/ui/card";
-import { Loader2 } from 'lucide-react';
+import { CalendarSkeleton } from "@/components/ui/skeletons";
 import { fetchProjects } from "@/api/projects";
 import { auth } from "@/lib/firebase";
 
@@ -134,9 +134,7 @@ const CalendarView = () => {
             <h2 className="text-2xl font-bold tracking-tight mb-6">Calendar</h2>
             <Card className="flex-1 p-4 shadow-sm border-none bg-background/50 backdrop-blur-sm">
                 {loading ? (
-                    <div className="flex h-full items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
+                    <CalendarSkeleton />
                 ) : (
                     <Calendar
                         localizer={localizer}

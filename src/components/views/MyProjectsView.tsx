@@ -4,7 +4,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Github, Loader2, Link as LinkIcon, ExternalLink, Star, GitFork, Search } from "lucide-react";
+import { Github, Link as LinkIcon, ExternalLink, Star, GitFork, Search } from "lucide-react";
+import { ProjectCardSkeleton } from "@/components/ui/skeletons";
 import { API_BASE_URL } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -108,8 +109,8 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
 
   if (!userData) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="p-8">
+        <ProjectCardSkeleton />
       </div>
     );
   }
@@ -128,7 +129,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
           </p>
         </div>
         <Button size="lg" onClick={handleConnect} disabled={connecting} className="gap-2">
-          {connecting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Github className="h-5 w-5" />}
+          {!connecting && <Github className="h-5 w-5" />}
           {connecting ? "Connecting..." : "Link GitHub Projects"}
         </Button>
       </div>
@@ -176,9 +177,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
       </div>
 
       {loading ? (
-        <div className="flex-1 flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <ProjectCardSkeleton />
       ) : (
         <Tabs defaultValue="all" className="w-full space-y-6">
           <TabsList>

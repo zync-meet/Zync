@@ -14,6 +14,14 @@ const authMiddleware = require('../middleware/authMiddleware');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 const { getProjectWithSteps, getProjectsWithSteps } = require('../utils/projectHelper');
+const cache = require('../utils/cache');
+
+async function invalidateProjectCache(project) {
+  if (!project) return;
+  const uids = [project.ownerUid, ...(project.team || [])];
+  const keys = uids.map(uid => `projects:${uid}`);
+  await cache.invalidate(...keys);
+}
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
 const MODEL_NAME = "gemini-2.5-flash";
@@ -232,6 +240,7 @@ router.post('/', authMiddleware, async (req, res) => {
     await Step.insertMany(defaultSteps.map(s => ({ ...s, projectId: newProject._id })));
 
     const result = await getProjectWithSteps(newProject._id);
+    cache.invalidate(`projects:${ownerUid}`);
     res.status(201).json(result);
   } catch (error) {
     console.error('Error creating project:', error);
@@ -313,11 +322,13 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
       await Project.updateOne({ _id: id }, { $set: updates });
       console.log("Project architecture saved successfully.");
       const updatedProject = await getProjectWithSteps(id);
+      invalidateProjectCache(project);
       return res.json(updatedProject);
     }
 
     console.warn("Analysis returned empty or null.");
     const full = await getProjectWithSteps(id);
+    invalidateProjectCache(project);
     res.json(full);
   } catch (error) {
     console.error("Architecture analysis failed:", error);
@@ -441,6 +452,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
     }
 
     const fullProject = await getProjectWithSteps(newProject._id);
+    cache.invalidate(`projects:${ownerUid}`);
     res.status(201).json(fullProject);
 
   } catch (error) {
@@ -453,6 +465,10 @@ router.post('/generate', authMiddleware, async (req, res) => {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const ownerUid = req.user.uid;
+    const cacheKey = `projects:${ownerUid}`;
+
+    const cached = await cache.getJson(cacheKey);
+    if (cached) return res.json(cached);
 
     // Fetch owned/team projects and assigned tasks in parallel
     const [projects, assignedTasks] = await Promise.all([
@@ -485,6 +501,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const { items, pagination } = paginateArray(allProjects, req.query);
     setPaginationHeaders(res, pagination);
 
+    cache.setJson(cacheKey, allProjects, 60);
     res.json(items);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -509,6 +526,7 @@ router.post('/:id/team', authMiddleware, async (req, res) => {
     }
 
     const full = await getProjectWithSteps(req.params.id);
+    invalidateProjectCache({ ownerUid: project.ownerUid, team: [...project.team, userId] });
     res.json(full);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -563,6 +581,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     await Step.deleteMany({ projectId: project._id });
     await Project.findByIdAndDelete(req.params.id);
 
+    invalidateProjectCache(project);
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -593,6 +612,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
     await Project.updateOne({ _id: id }, { $set: filteredUpdates });
 
     const updatedProject = await getProjectWithSteps(id);
+    invalidateProjectCache(project);
     res.json(updatedProject);
   } catch (error) {
     console.error('Error updating project:', error);
@@ -655,6 +675,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
     });
 
     const updatedProject = await getProjectWithSteps(projectId);
+    invalidateProjectCache(project);
     res.status(201).json(updatedProject);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -722,6 +743,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
       project: updatedProject
     });
 
+    invalidateProjectCache(project);
     res.json(updatedProject);
   } catch (error) {
     console.error('Error updating task:', error);
@@ -759,6 +781,7 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
     });
 
     res.json({ message: 'Task deleted successfully', projectId, stepId, taskId });
+    invalidateProjectCache(project);
   } catch (error) {
     console.error('Error deleting task:', error);
     res.status(500).json({ message: 'Server error' });
@@ -902,6 +925,7 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
     const updatedProject = await getProjectWithSteps(projectId);
     const taskObj = normalizeDoc(newTask.toObject());
 
+    invalidateProjectCache(project);
     res.json({ message: 'Task created', task: taskObj, stepId: step._id?.toString() || step.id, project: updatedProject });
   } catch (error) {
     console.error('Error creating quick task:', error);

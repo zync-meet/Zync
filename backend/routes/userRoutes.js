@@ -15,6 +15,7 @@ const {
   getAccountDeletionCodeEmailHtml,
 } = require('../utils/emailTemplates');
 const { deleteCloudinaryAsset } = require('../services/cloudinaryService');
+const cache = require('../utils/cache');
 
 
 const sendVerificationEmail = async (email, code) => {
@@ -29,6 +30,11 @@ const sendVerificationEmail = async (email, code) => {
 
 router.get('/me', verifyToken, async (req, res) => {
   try {
+    const cacheKey = `user:me:${req.user.uid}`;
+
+    const cached = await cache.getJson(cacheKey);
+    if (cached) return res.json(cached);
+
     const user = await User.findOne({ uid: req.user.uid })
       .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
       .lean();
@@ -37,7 +43,10 @@ router.get('/me', verifyToken, async (req, res) => {
     const teams = await Team.find({ members: user.uid }).lean();
     const teamInfo = teams.length > 0 ? normalizeDoc(teams[0]) : null;
 
-    res.json({ ...normalizeDoc(user), teamId: teamInfo });
+    const result = { ...normalizeDoc(user), teamId: teamInfo };
+    cache.setJson(cacheKey, result, 300);
+
+    res.json(result);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -111,6 +120,7 @@ router.post('/sync', verifyToken, async (req, res) => {
     const teams = await Team.find({ members: user.uid }).lean();
     const teamInfo = teams.length > 0 ? normalizeDoc(teams[0]) : null;
 
+    cache.invalidate(`user:me:${uid}`);
     res.status(200).json({ ...normalizeDoc(user), teamId: teamInfo });
   } catch (error) {
     console.error('Error syncing user:', error);
@@ -149,6 +159,7 @@ router.post('/sync-github', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found in database. Please refresh.' });
     }
 
+    cache.invalidate(`user:me:${uid}`);
     res.json({ message: 'GitHub account linked successfully', user: normalizeDoc(user) });
   } catch (error) {
     console.error('Error syncing GitHub data:', error);
@@ -286,6 +297,7 @@ router.post('/chat-request/respond', verifyToken, async (req, res) => {
     }
 
     res.json({ message: `Request ${status}` });
+    cache.invalidate(`user:me:${recipientUid}`, `user:me:${senderId}`);
   } catch (error) {
     console.error('Error responding to request:', error);
     res.status(500).json({ message: 'Server error' });
@@ -307,10 +319,12 @@ router.post('/close-friends/toggle', verifyToken, async (req, res) => {
     if (index > -1) {
       closeFriends.splice(index, 1);
       await User.updateOne({ uid }, { $set: { closeFriends } });
+      cache.invalidate(`user:me:${uid}`);
       return res.json({ message: 'Removed from Close Friends', isCloseFriend: false });
     } else {
       closeFriends.push(friendId);
       await User.updateOne({ uid }, { $set: { closeFriends } });
+      cache.invalidate(`user:me:${uid}`);
       return res.json({ message: 'Added to Close Friends', isCloseFriend: true });
     }
   } catch (error) {
@@ -402,6 +416,7 @@ router.put('/:uid', async (req, res) => {
       { returnDocument: 'after', lean: true }
     );
     if (!user) return res.status(404).json({ message: 'User not found' });
+    cache.invalidate(`user:me:${uid}`);
     res.status(200).json(normalizeDoc(user));
   } catch (error) {
     console.error('Error updating profile:', error);
@@ -494,6 +509,7 @@ router.post('/delete/confirm', verifyToken, async (req, res) => {
     }
 
     await User.deleteOne({ uid });
+    cache.invalidate(`user:me:${uid}`);
     console.log(`[DELETE] User ${uid} deleted from database`);
 
     try {

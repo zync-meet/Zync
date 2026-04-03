@@ -274,7 +274,7 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                         <div className={`absolute right-3 top-2.5 transition-opacity duration-200 ${isSearching ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary/50 border-t-primary"></div>
+                            <div className="h-4 w-4 rounded-full bg-primary/30 animate-pulse"></div>
                         </div>
                     </div>
                 </div>
@@ -465,12 +465,8 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
                                     disabled={isSendingRequest}
                                 />
                                 <Button className="w-full gap-2" onClick={handleSendRequest} disabled={isSendingRequest || !requestMessage.trim()}>
-                                    {isSendingRequest ? (
-                                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                        <Send className="w-4 h-4" />
-                                    )}
-                                    Send Request
+                                    <Send className={`w-4 h-4 ${isSendingRequest ? "opacity-50" : ""}`} />
+                                    {isSendingRequest ? "Sending..." : "Send Request"}
                                 </Button>
                                 <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
                                     <Lock className="w-3 h-3" />
