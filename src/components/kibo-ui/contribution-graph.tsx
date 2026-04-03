@@ -15,6 +15,20 @@ interface Activity {
     level: number;
 }
 
+/** Parse YYYY-MM-DD as a local calendar date (avoids UTC shift from `new Date(iso)`). */
+function parseLocalDate(isoDate: string): Date {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    return new Date(y, m - 1, d);
+}
+
+/** Format a local calendar date as YYYY-MM-DD (avoids UTC shift from `toISOString()`). */
+function formatLocalDateKey(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
 interface ContributionGraphContextValue {
     data: Activity[];
     blockSize: number;
@@ -83,11 +97,11 @@ const ContributionGraphCalendar = ({
 
 
     const sortedData = [...data].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        (a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
     );
 
-    const startDate = new Date(sortedData[0].date);
-    const endDate = new Date(sortedData[sortedData.length - 1].date);
+    const startDate = parseLocalDate(sortedData[0].date);
+    const endDate = parseLocalDate(sortedData[sortedData.length - 1].date);
 
 
     const adjustedStart = new Date(startDate);
@@ -101,7 +115,7 @@ const ContributionGraphCalendar = ({
         const week: Activity[] = [];
 
         for (let day = 0; day < 7; day++) {
-            const dateStr = currentDate.toISOString().split("T")[0];
+            const dateStr = formatLocalDateKey(currentDate);
             const activity = dataMap.get(dateStr) || {
                 date: dateStr,
                 count: 0,
@@ -122,11 +136,18 @@ const ContributionGraphCalendar = ({
     const months: { name: string; weekIndex: number }[] = [];
     let lastMonth = -1;
     weeks.forEach((week, weekIndex) => {
-        const firstDayOfWeek = new Date(week[0].date);
+        const firstDayOfWeek = parseLocalDate(week[0].date);
         const month = firstDayOfWeek.getMonth();
         if (month !== lastMonth) {
+            // Skip labels for week columns that only exist for Sunday alignment before the
+            // dataset starts (e.g. late Dec). Otherwise "Dec" sits on top of "Jan" (~15px apart)
+            // and reads as a merged "Dedan".
+            if (firstDayOfWeek < startDate) {
+                lastMonth = month;
+                return;
+            }
             months.push({
-                name: firstDayOfWeek.toLocaleString('default', { month: 'short' }),
+                name: firstDayOfWeek.toLocaleString("en-US", { month: "short" }),
                 weekIndex,
             });
             lastMonth = month;
@@ -143,7 +164,7 @@ const ContributionGraphCalendar = ({
                 {months.map((month, idx) => (
                     <span
                         key={idx}
-                        className="absolute"
+                        className="absolute whitespace-nowrap"
                         style={{
                             left: month.weekIndex * (blockSize + blockMargin),
                         }}

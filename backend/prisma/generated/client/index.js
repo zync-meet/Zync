@@ -293,7 +293,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/chitkul-lakshya/VS/Zync/backend/prisma/generated/client",
+      "value": "/Users/eesha/Desktop/VS/Zync/backend/prisma/generated/client",
       "fromEnvVar": null
     },
     "config": {
@@ -302,12 +302,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "debian-openssl-3.0.x",
+        "value": "darwin-arm64",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/chitkul-lakshya/VS/Zync/backend/prisma/schema.prisma",
+    "sourceFilePath": "/Users/eesha/Desktop/VS/Zync/backend/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -369,8 +369,8 @@ exports.PrismaClient = PrismaClient
 Object.assign(exports, Prisma)
 
 // file annotations for bundling tools to include these files
-path.join(__dirname, "libquery_engine-debian-openssl-3.0.x.so.node");
-path.join(process.cwd(), "prisma/generated/client/libquery_engine-debian-openssl-3.0.x.so.node")
+path.join(__dirname, "libquery_engine-darwin-arm64.dylib.node");
+path.join(process.cwd(), "prisma/generated/client/libquery_engine-darwin-arm64.dylib.node")
 // file annotations for bundling tools to include these files
 path.join(__dirname, "schema.prisma");
 path.join(process.cwd(), "prisma/generated/client/schema.prisma")
