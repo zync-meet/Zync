@@ -11,6 +11,7 @@ import { Github, LogOut, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getFullUrl, getUserInitials, API_BASE_URL } from "@/lib/utils";
+import { postLoginRedirect } from "@/lib/postLoginRedirect";
 import { LinkedinSignInButton } from "@/components/auth/LinkedinSignInButton";
 
 const Login = () => {
@@ -32,9 +33,9 @@ const Login = () => {
       navigate('/login', { replace: true }); // clear URL
     } else if (customToken) {
       signInWithCustomToken(auth, customToken)
-        .then(() => {
+        .then(async (cred) => {
           toast({ title: "Success", description: "Logged in successfully" });
-          navigate("/dashboard");
+          await postLoginRedirect(navigate, cred.user);
         })
         .catch((error) => {
           toast({ variant: "destructive", title: "Login Error", description: error.message });
@@ -53,8 +54,10 @@ const Login = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleContinue = () => {
-    navigate("/dashboard");
+  const handleContinue = async () => {
+    if (currentUser) {
+      await postLoginRedirect(navigate, currentUser);
+    }
   };
 
   const handleSwitchAccount = async () => {
@@ -74,12 +77,12 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
-      navigate("/dashboard");
+      await postLoginRedirect(navigate, cred.user);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -122,7 +125,7 @@ const Login = () => {
             await linkWithCredential(result.user, pendingCred);
 
             toast({ title: "Success", description: "Accounts linked successfully!" });
-            navigate("/dashboard");
+            await postLoginRedirect(navigate, result.user);
           }
         }
       } catch (linkError: any) {
@@ -166,7 +169,7 @@ const Login = () => {
       }
 
       toast({ title: "Success", description: "Logged in with GitHub successfully" });
-      navigate("/dashboard");
+      await postLoginRedirect(navigate, result.user);
     } catch (error: any) {
       await handleAccountLinking(error);
     } finally {
@@ -181,9 +184,9 @@ const Login = () => {
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       toast({ title: "Success", description: "Logged in with Google successfully" });
-      navigate("/dashboard");
+      await postLoginRedirect(navigate, result.user);
     } catch (error: any) {
       await handleAccountLinking(error);
     } finally {
@@ -289,7 +292,7 @@ const Login = () => {
               <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
               Google
             </Button>
-            <LinkedinSignInButton disabled={loading} />
+            <LinkedinSignInButton auth={auth} disabled={loading} />
           </div>
         </CardContent>
         <CardFooter className="flex justify-center">
