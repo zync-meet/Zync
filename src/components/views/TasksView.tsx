@@ -71,7 +71,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
     const loadTasks = async () => {
         if (!currentUser?.uid) {return;}
         try {
-            const fetchedProjects = await fetchProjects(currentUser.uid);
+            const fetchedProjects = await fetchProjects();
             const groups: Record<string, ProjectGroup> = {};
 
             fetchedProjects.forEach(p => {

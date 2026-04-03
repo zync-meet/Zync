@@ -3,6 +3,7 @@ const router = express.Router();
 const Session = require('../models/Session');
 const verifyToken = require('../middleware/authMiddleware');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
+const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 
 
 router.use(verifyToken);
@@ -45,7 +46,10 @@ router.post('/batch', async (req, res) => {
     const sessions = await Session.find({ userId: { $in: userIds } })
       .sort({ startTime: -1 })
       .lean();
-    res.json(normalizeDocs(sessions));
+    const { items, pagination } = paginateArray(normalizeDocs(sessions), req.query);
+    setPaginationHeaders(res, pagination);
+
+    res.json(items);
   } catch (error) {
     console.error('Error fetching batch sessions:', error);
     res.status(500).json({ message: 'Server error' });
@@ -100,7 +104,10 @@ router.get('/:userId', async (req, res) => {
     const sessions = await Session.find({ userId: req.params.userId })
       .sort({ startTime: -1 })
       .lean();
-    res.json(normalizeDocs(sessions));
+    const { items, pagination } = paginateArray(normalizeDocs(sessions), req.query);
+    setPaginationHeaders(res, pagination);
+
+    res.json(items);
   } catch (error) {
     console.error('Error fetching sessions:', error);
     res.status(500).json({ message: 'Server error' });

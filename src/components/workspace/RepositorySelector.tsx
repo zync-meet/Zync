@@ -28,7 +28,7 @@ export function RepositorySelector({ projectId, currentRepoIds = [] }: { project
       const token = await import('@/lib/firebase').then(m => m.auth.currentUser?.getIdToken());
       if (!token) {return;}
 
-      const res = await fetch(`${API_BASE_URL}/api/github/repos`, {
+      const res = await fetch(`${API_BASE_URL}/api/github/repos?per_page=100`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

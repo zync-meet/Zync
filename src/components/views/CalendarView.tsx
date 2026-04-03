@@ -82,7 +82,7 @@ const CalendarView = () => {
                 const user = auth.currentUser;
                 if (user) {
                     try {
-                        const projects = await fetchProjects(user.uid);
+                        const projects = await fetchProjects();
                         projectEvents = projects.map(p => ({
                             title: `🚀 Project: ${p.name}`,
                             start: new Date(p.createdAt),

@@ -5,20 +5,16 @@ import { db } from "../lib/db";
 import { auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/utils";
 import { onAuthStateChanged } from "firebase/auth";
+import { fetchProjects } from "@/api/projects";
 
 // --- API helpers ---
-async function fetchSyncData(userId: string, token: string) {
-  const [userRes, projRes] = await Promise.all([
-    fetch(`${API_BASE_URL}/api/users/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-    fetch(`${API_BASE_URL}/api/projects?userId=${userId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-  ]);
+async function fetchSyncData(token: string) {
+  const userRes = await fetch(`${API_BASE_URL}/api/users/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
   const user = userRes.ok ? await userRes.json() : null;
-  const projects = projRes.ok ? await projRes.json() : [];
+  const projects = await fetchProjects();
 
   return { user, projects };
 }
@@ -80,7 +76,7 @@ export function useSyncData() {
       if (!currentUser || !userId) {return null;}
       console.log(`[Sync] Fetching new user data from backend for ${userId} in the background...`);
       const token = await currentUser.getIdToken();
-      const result = await fetchSyncData(userId, token);
+      const result = await fetchSyncData(token);
       console.log("[Sync] Received new data from backend:", result);
       return result;
     },
