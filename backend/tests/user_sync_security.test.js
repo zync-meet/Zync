@@ -58,7 +58,10 @@ jest.mock("../utils/normalize", () => ({
   normalizeDocs: (docs) => docs
 }));
 jest.mock("../utils/emailTemplates", () => ({
-  getNewUserRegistrationTemplate: jest.fn(() => "<html></html>")
+  getNewUserRegistrationTemplate: jest.fn(() => "<html></html>"),
+  getPhoneVerificationEmailHtml: jest.fn(() => "<html></html>"),
+  getChatRequestEmailHtml: jest.fn(() => "<html></html>"),
+  getAccountDeletionCodeEmailHtml: jest.fn(() => "<html></html>"),
 }));
 jest.mock("../services/cloudinaryService", () => ({
   deleteCloudinaryAsset: jest.fn(() => Promise.resolve())

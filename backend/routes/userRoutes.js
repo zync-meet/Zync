@@ -7,7 +7,12 @@ const { encrypt } = require('../utils/encryption');
 const { sendZyncEmail } = require('../services/mailer');
 const { appendRow } = require('../services/sheetLogger');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
-const { getNewUserRegistrationTemplate } = require('../utils/emailTemplates');
+const {
+  getNewUserRegistrationTemplate,
+  getPhoneVerificationEmailHtml,
+  getChatRequestEmailHtml,
+  getAccountDeletionCodeEmailHtml,
+} = require('../utils/emailTemplates');
 const { deleteCloudinaryAsset } = require('../services/cloudinaryService');
 
 
@@ -15,7 +20,7 @@ const sendVerificationEmail = async (email, code) => {
   return sendZyncEmail(
     email,
     'Phone Verification Code',
-    `<b>Your verification code is: ${code}</b>`,
+    getPhoneVerificationEmailHtml({ code }),
     `Your verification code is: ${code}`
   );
 };
@@ -214,13 +219,10 @@ router.post('/chat-request', verifyToken, async (req, res) => {
     await sendZyncEmail(
       recipient.email,
       `New Chat Request from ${sender.displayName || 'a Zync User'}`,
-      `
-        <h2>Chat Request</h2>
-        <p><b>${sender.displayName}</b> wants to chat with you on ZYNC.</p>
-        <p><i>"${message}"</i></p>
-        <br/>
-        <p>Log in to ZYNC to view and reply.</p>
-      `,
+      getChatRequestEmailHtml({
+        senderName: sender.displayName || 'A Zync user',
+        message: message || '',
+      }),
       `New Chat Request from ${sender.displayName}: "${message}"`
     );
 
@@ -427,12 +429,7 @@ router.post('/delete/request', verifyToken, async (req, res) => {
     await sendZyncEmail(
       user.email,
       'Account Deletion Verification Code',
-      `
-        <h2>Confirm Account Deletion</h2>
-        <p>You have requested to delete your ZYNC account. This action is irreversible.</p>
-        <p><b>Verification Code: ${code}</b></p>
-        <p>If you did not request this, please ignore this email and secure your account.</p>
-      `,
+      getAccountDeletionCodeEmailHtml({ code }),
       `Verification Code: ${code}`
     );
 
