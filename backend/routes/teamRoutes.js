@@ -4,6 +4,7 @@ const verifyToken = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Team = require('../models/Team');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
+const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 
 
 const generateInviteCode = async () => {
@@ -22,7 +23,10 @@ router.get('/owned', verifyToken, async (req, res) => {
     const uid = req.user.uid;
     try {
         const teams = await Team.find({ ownerId: uid }).lean();
-        res.json(normalizeDocs(teams));
+        const { items, pagination } = paginateArray(normalizeDocs(teams), req.query);
+        setPaginationHeaders(res, pagination);
+
+        res.json(items);
     } catch (error) {
         console.error('Error fetching owned teams:', error);
         res.status(500).json({ message: 'Server error' });
@@ -34,7 +38,10 @@ router.get('/mine', verifyToken, async (req, res) => {
     const uid = req.user.uid;
     try {
         const teams = await Team.find({ members: uid }).lean();
-        res.json(normalizeDocs(teams));
+        const { items, pagination } = paginateArray(normalizeDocs(teams), req.query);
+        setPaginationHeaders(res, pagination);
+
+        res.json(items);
     } catch (error) {
         console.error('Error fetching my teams:', error);
         res.status(500).json({ message: 'Server error' });

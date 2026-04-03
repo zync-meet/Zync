@@ -27,11 +27,11 @@
 
 ### P2: Medium Impact, Medium Effort
 
-- [ ] #12 — Add pagination to all list endpoints
-- [ ] #13 — Remove dead ownerId parameter from frontend fetch
-- [ ] #14 — Deduplicate project fetching (useSyncData vs useProjects)
-- [ ] #15 — Reuse Puppeteer browser instance OR switch to API
-- [ ] #16 — Cache architecture analysis results
+- [x] #12 — Add pagination to all list endpoints
+- [x] #13 — Remove dead ownerId parameter from frontend fetch
+- [x] #14 — Deduplicate project fetching (useSyncData vs useProjects)
+- [x] #15 — Reuse Puppeteer browser instance OR switch to API
+- [x] #16 — Cache architecture analysis results
 
 ### P3: Low-Medium Impact, Low Effort
 
@@ -39,8 +39,8 @@
 - [ ] #18 — Add text index for user search
 - [ ] #19 — Remove console.log statements, use structured logger
 - [ ] #20 — Remove unused Redux Toolkit dependency
-- [ ] #21 — Use ETags for GitHub API calls
-- [ ] #22 — Support pagination for GitHub repo listing
+- [x] #21 — Use ETags for GitHub API calls
+- [x] ~~#22 — Support pagination for GitHub repo listing~~
 
 ---
 
@@ -759,7 +759,7 @@ This is a security issue. If the environment variable is missing, webhook authen
 | 19 | Remove console.log statements, use structured logger | Production logs bloat | **Code quality** |
 | 20 | Remove unused Redux Toolkit dependency | Dead code | **~20KB bundle ↓** |
 | 21 | Use ETags for GitHub API calls | Rate limit conservation | **Rate limit efficiency** |
-| 22 | Support pagination for GitHub repo listing | Users with 100+ repos | **UX improvement** |
+| 22 | ~~Support pagination for GitHub repo listing~~ | Users with 100+ repos | **UX improvement** |
 
 ---
 

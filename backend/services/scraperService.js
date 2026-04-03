@@ -13,6 +13,25 @@ const LAUNCH_OPTIONS = {
     ]
 };
 
+const SHARED_BROWSER_IDLE_MS = Number.parseInt(process.env.SHARED_BROWSER_IDLE_MS || '300000', 10);
+let sharedBrowser = null;
+let sharedBrowserPromise = null;
+let sharedBrowserIdleTimer = null;
+
+function clearSharedBrowserIdleTimer() {
+    if (sharedBrowserIdleTimer) {
+        clearTimeout(sharedBrowserIdleTimer);
+        sharedBrowserIdleTimer = null;
+    }
+}
+
+function scheduleSharedBrowserClose() {
+    clearSharedBrowserIdleTimer();
+    sharedBrowserIdleTimer = setTimeout(async () => {
+        await closeSharedBrowser();
+    }, SHARED_BROWSER_IDLE_MS);
+}
+
 
 async function launchBrowser() {
 
@@ -30,6 +49,52 @@ async function launchBrowser() {
 
     console.log('DEBUG: Launching Stealth Puppeteer...');
     return await puppeteer.launch(options);
+}
+
+async function getSharedBrowser() {
+    if (sharedBrowser && sharedBrowser.isConnected()) {
+        scheduleSharedBrowserClose();
+        return sharedBrowser;
+    }
+
+    if (sharedBrowserPromise) {
+        return sharedBrowserPromise;
+    }
+
+    sharedBrowserPromise = launchBrowser()
+        .then((browser) => {
+            sharedBrowser = browser;
+            browser.on('disconnected', () => {
+                sharedBrowser = null;
+                clearSharedBrowserIdleTimer();
+            });
+            scheduleSharedBrowserClose();
+            return browser;
+        })
+        .finally(() => {
+            sharedBrowserPromise = null;
+        });
+
+    return sharedBrowserPromise;
+}
+
+async function closeSharedBrowser() {
+    clearSharedBrowserIdleTimer();
+
+    if (!sharedBrowser) {
+        return;
+    }
+
+    const browserToClose = sharedBrowser;
+    sharedBrowser = null;
+
+    try {
+        if (browserToClose.isConnected()) {
+            await browserToClose.close();
+        }
+    } catch (error) {
+        console.error('Failed to close shared browser:', error.message);
+    }
 }
 
 
@@ -375,6 +440,8 @@ async function scrapeAwwwards(browser, query) {
 
 module.exports = {
     launchBrowser,
+    getSharedBrowser,
+    closeSharedBrowser,
     scrapeLapaNinja,
     scrapeGodly,
     scrapeSiteInspire,

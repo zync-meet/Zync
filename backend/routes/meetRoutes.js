@@ -8,6 +8,7 @@ const { createInstantMeet } = require('../services/googleMeet');
 const { sendZyncEmail } = require('../services/mailer');
 const { getMeetingInviteTextVersion, getMeetingEmailHtml } = require('../utils/emailTemplates');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
+const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 
 
 router.get('/user/:uid', verifyToken, async (req, res) => {
@@ -51,7 +52,10 @@ router.get('/user/:uid', verifyToken, async (req, res) => {
             return { ...normalizeDoc(m), status };
         });
 
-        res.json(updatedMeetings);
+        const { items, pagination } = paginateArray(updatedMeetings, req.query, { defaultLimit: 20, maxLimit: 100 });
+        setPaginationHeaders(res, pagination);
+
+        res.json(items);
     } catch (error) {
         console.error('Error fetching meetings:', error);
         res.status(500).json({ message: 'Server error' });
