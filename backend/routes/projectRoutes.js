@@ -5,6 +5,7 @@ const { sendZyncEmail } = require('../services/mailer');
 const { getTaskAssignmentEmailHtml } = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../utils/regexUtils');
 const User = require('../models/User');
+const Team = require('../models/Team');
 const Project = require('../models/Project');
 const Step = require('../models/Step');
 const ProjectTask = require('../models/ProjectTask');
@@ -98,6 +99,27 @@ const buildRepoFreshnessKey = async (accessToken, owner, repo) => {
     repoData.pushed_at || '',
     repoData.updated_at || ''
   ].join('|');
+};
+
+const buildInstallationOctokitFromOwner = async (ownerUid) => {
+  const ownerUser = await User.findOne({ uid: ownerUid }).lean();
+  const installationId = ownerUser?.githubIntegration?.installationId;
+  const appId = process.env.GITHUB_APP_ID;
+  let privateKey = process.env.GITHUB_PRIVATE_KEY;
+
+  if (!installationId || !appId || !privateKey) {
+    throw new Error('Missing GitHub App installation/configuration for owner');
+  }
+
+  privateKey = privateKey.replace(/\\n/g, '\n');
+  const { App } = await import('octokit');
+  const app = new App({ appId, privateKey });
+  return app.getInstallationOctokit(Number.parseInt(installationId, 10));
+};
+
+const getTeamUidsForUser = async (uid) => {
+  const teams = await Team.find({ members: uid }).select('members').lean();
+  return [...new Set(teams.flatMap((team) => team.members || []))];
 };
 
 
@@ -930,6 +952,153 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error creating quick task:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/:projectId/collaborator-assignees', authMiddleware, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const requesterUid = req.user.uid;
+
+    const project = await Project.findById(projectId).lean();
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    if (project.ownerUid !== requesterUid) {
+      return res.status(403).json({ message: 'Only the repository owner can manage collaborators' });
+    }
+
+    if (!project.githubRepoOwner || !project.githubRepoName) {
+      return res.status(400).json({ message: 'Project is not linked to a GitHub repository' });
+    }
+
+    const teamUids = await getTeamUidsForUser(requesterUid);
+    const teamUsers = await User.find({ uid: { $in: teamUids } })
+      .select('uid displayName email photoURL githubIntegration.username')
+      .lean();
+
+    const nonSelfTeamUsers = teamUsers.filter((u) => u.uid !== requesterUid);
+    const connectedTeamUsers = nonSelfTeamUsers.filter((u) => u?.githubIntegration?.username);
+
+    const octokit = await buildInstallationOctokitFromOwner(requesterUid);
+    const collaboratorsResponse = await octokit.request('GET /repos/{owner}/{repo}/collaborators', {
+      owner: project.githubRepoOwner,
+      repo: project.githubRepoName,
+      affiliation: 'all',
+      per_page: 100,
+    });
+
+    const collaboratorLogins = new Set(
+      (collaboratorsResponse.data || []).map((c) => String(c.login || '').toLowerCase())
+    );
+
+    const activeCollaborators = connectedTeamUsers
+      .filter((u) => collaboratorLogins.has(String(u.githubIntegration.username).toLowerCase()))
+      .map((u) => ({
+        uid: u.uid,
+        displayName: u.displayName,
+        email: u.email,
+        photoURL: u.photoURL,
+        githubUsername: u.githubIntegration.username,
+      }));
+
+    const availableTeamMembers = nonSelfTeamUsers
+      .filter((u) => {
+        const gh = String(u?.githubIntegration?.username || '').toLowerCase();
+        return !gh || !collaboratorLogins.has(gh);
+      })
+      .map((u) => ({
+        uid: u.uid,
+        displayName: u.displayName,
+        email: u.email,
+        photoURL: u.photoURL,
+        githubUsername: u.githubIntegration?.username || null,
+        canInvite: Boolean(u.githubIntegration?.username),
+        inviteDisabledReason: u.githubIntegration?.username
+          ? null
+          : 'User has not connected GitHub yet',
+      }));
+
+    return res.json({
+      activeCollaborators,
+      availableTeamMembers,
+    });
+  } catch (error) {
+    console.error('Error fetching collaborator assignees:', error);
+    return res.status(500).json({ message: 'Failed to fetch collaborator assignees', error: error.message });
+  }
+});
+
+router.post('/:projectId/invite-collaborator', authMiddleware, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { userId } = req.body || {};
+    const requesterUid = req.user.uid;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+
+    if (userId === requesterUid) {
+      return res.status(400).json({ message: 'You cannot invite yourself' });
+    }
+
+    const project = await Project.findById(projectId).lean();
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    if (project.ownerUid !== requesterUid) {
+      return res.status(403).json({ message: 'Only the repository owner can invite collaborators' });
+    }
+
+    if (!project.githubRepoOwner || !project.githubRepoName) {
+      return res.status(400).json({ message: 'Project is not linked to a GitHub repository' });
+    }
+
+    const teamUids = await getTeamUidsForUser(requesterUid);
+    if (!teamUids.includes(userId)) {
+      return res.status(400).json({ message: 'Selected user is not in your team' });
+    }
+
+    const assignee = await User.findOne({ uid: userId }).select('uid displayName email photoURL githubIntegration.username').lean();
+    if (!assignee?.githubIntegration?.username) {
+      return res.status(400).json({ message: 'Selected user is not connected to GitHub' });
+    }
+
+    const octokit = await buildInstallationOctokitFromOwner(requesterUid);
+
+    let alreadyCollaborator = false;
+    try {
+      await octokit.request('PUT /repos/{owner}/{repo}/collaborators/{username}', {
+        owner: project.githubRepoOwner,
+        repo: project.githubRepoName,
+        username: assignee.githubIntegration.username,
+        permission: 'push',
+      });
+    } catch (inviteError) {
+      const status = inviteError?.status || inviteError?.response?.status;
+      const message = inviteError?.response?.data?.message || inviteError?.message || '';
+      if (status === 422 && /already.*collaborator/i.test(message)) {
+        alreadyCollaborator = true;
+      } else {
+        throw inviteError;
+      }
+    }
+
+    return res.status(200).json({
+      message: alreadyCollaborator
+        ? 'User is already a collaborator on this repository.'
+        : 'Repository invite sent successfully.',
+      alreadyCollaborator,
+      user: {
+        uid: assignee.uid,
+        displayName: assignee.displayName,
+        email: assignee.email,
+        photoURL: assignee.photoURL,
+        githubUsername: assignee.githubIntegration.username,
+      },
+    });
+  } catch (error) {
+    console.error('Error inviting repository collaborator:', error);
+    return res.status(500).json({ message: 'Failed to invite collaborator', error: error.message });
   }
 });
 

@@ -72,6 +72,7 @@ const linkRoutes = require('./routes/linkRoutes');
 const githubAppWebhook = require('./routes/githubAppWebhook');
 const noteRoutes = require('./routes/noteRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const taskRoutes = require('./routes/taskRoutes');
 const calendarRoutes = require('./routes/calendarRoutes');
 
 
@@ -131,6 +132,7 @@ app.use('/api/design', designRoutes);
 app.use('/api/inspiration', inspirationRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/tasks', taskRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/github-app', githubAppWebhook);

@@ -58,12 +58,19 @@ export const useProjectMutations = () => {
         mutationFn: async (projectId: string) => {
             const user = auth.currentUser;
             const token = await user?.getIdToken();
-            await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
+
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(errBody?.message || 'Failed to delete project');
+            }
+
+            return response.json();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['projects'] });

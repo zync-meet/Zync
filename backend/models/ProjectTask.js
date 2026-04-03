@@ -8,11 +8,13 @@ const projectTaskSchema = new mongoose.Schema(
     status:      { type: String, default: 'Backlog' },
 
     assignedTo:     { type: String, default: null },
+    assignedUserIds:{ type: [String], default: [] },
     assignedToName: { type: String, default: null },
     createdBy:      { type: String, default: null },
     assignedBy:     { type: String, default: null },
 
     // GitHub commit linkage
+    commitCode:      { type: String, default: null },
     commitMessage:   { type: String, default: null },
     commitUrl:       { type: String, default: null },
     commitAuthor:    { type: String, default: null },
@@ -32,7 +34,9 @@ const projectTaskSchema = new mongoose.Schema(
 projectTaskSchema.index({ stepId: 1 });
 projectTaskSchema.index({ title: 'text' });
 projectTaskSchema.index({ assignedTo: 1 });
+projectTaskSchema.index({ assignedUserIds: 1 });
 projectTaskSchema.index({ status: 1 });
 projectTaskSchema.index({ displayId: 1 }, { unique: true, sparse: true });
+projectTaskSchema.index({ commitCode: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('ProjectTask', projectTaskSchema);
