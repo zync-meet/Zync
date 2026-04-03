@@ -72,6 +72,7 @@ const linkRoutes = require('./routes/linkRoutes');
 const githubAppWebhook = require('./routes/githubAppWebhook');
 const noteRoutes = require('./routes/noteRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const calendarRoutes = require('./routes/calendarRoutes');
 
 
 app.use(
@@ -137,6 +138,7 @@ app.use('/api/meet', require('./routes/meetRoutes'));
 app.use('/api/linkedin', require('./routes/linkedinRoutes'));
 app.use('/api/teams', require('./routes/teamRoutes'));
 app.use('/api/google', require('./routes/googleRoutes'));
+app.use('/api/calendar', calendarRoutes);
 app.use('/api/cache/sample', require('./routes/redisCacheSampleRoutes'));
 
 

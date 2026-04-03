@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/utils";
+import { detectLocation } from "@/api/geo";
 
 export const useUserSync = () => {
     const queryClient = useQueryClient();
@@ -14,10 +15,13 @@ export const useUserSync = () => {
                 const firstName = parts[0] || "";
                 const lastName = parts.slice(1).join(" ") || "";
 
+                // Detect timezone from browser (instant, no API needed)
+                const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
                 try {
                     const token = await user.getIdToken();
-                    
-                    // Sync user data with backend
+
+                    // Sync user data with backend (includes timezone)
                     const syncRes = await fetch(`${API_BASE_URL}/api/users/sync`, {
                         method: "POST",
                         headers: {
@@ -31,11 +35,15 @@ export const useUserSync = () => {
                             photoURL: user.photoURL,
                             firstName,
                             lastName,
+                            timezone: browserTimezone,
                         })
                     });
                     if (!syncRes.ok) {
                         throw new Error(`User sync failed: ${syncRes.status}`);
                     }
+
+                    // Fire-and-forget: enrich location from IP (non-blocking)
+                    detectLocation().catch(() => {});
 
                     // Prefetch essential data (same query key as useMe)
                     await queryClient.prefetchQuery({
@@ -58,7 +66,7 @@ export const useUserSync = () => {
 
                     // Do not invalidate here — that would force an immediate refetch and defeat local cache.
 
-                } catch (error: any) {
+                } catch (error: unknown) {
                     console.error("Error syncing user data:", error);
                     void queryClient.invalidateQueries({ queryKey: ['me'] });
                 }

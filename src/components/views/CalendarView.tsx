@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -6,7 +6,15 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './CalendarView.css';
 import { Card } from "@/components/ui/card";
 import { CalendarSkeleton } from "@/components/ui/skeletons";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { fetchProjects } from "@/api/projects";
+import { fetchHolidays, fetchCountries, type Holiday, type Country } from "@/api/calendar";
 import { auth } from "@/lib/firebase";
 
 const locales = {
@@ -29,74 +37,54 @@ interface CalendarEvent {
     resource?: any;
 }
 
+const STORAGE_KEY = 'zync-holiday-country';
+
 const CalendarView = () => {
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [loading, setLoading] = useState(false);
+    const [countries, setCountries] = useState<Country[]>([]);
+    const [selectedCountry, setSelectedCountry] = useState<string>(() => {
+        return localStorage.getItem(STORAGE_KEY) || 'US';
+    });
 
+    // Fetch available countries once
+    useEffect(() => {
+        fetchCountries()
+            .then(setCountries)
+            .catch(() => {});
+    }, []);
+
+    // Persist country selection
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, selectedCountry);
+    }, [selectedCountry]);
+
+    // Load holidays + projects when country or year changes
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
+                const year = new Date().getFullYear();
 
-                const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-                let holidayEvents: CalendarEvent[] = [];
+                const [holidays, projectEvents] = await Promise.all([
+                    fetchHolidays(year, selectedCountry).catch<Holiday[]>(() => []),
+                    loadProjectEvents(),
+                ]);
 
-                if (apiKey) {
-                    const calendarId = 'en.indian#holiday@group.v.calendar.google.com';
-                    const year = new Date().getFullYear();
-                    const timeMin = new Date(year, 0, 1).toISOString();
-                    const timeMax = new Date(year, 11, 31).toISOString();
-                    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true`;
-
-                    const response = await fetch(url);
-                    if (response.ok) {
-                        const data = await response.json();
-                        holidayEvents = data.items.map((item: any) => {
-
-
-                            let start: Date, end: Date;
-
-                            if (item.start.date) {
-
-                                start = new Date(item.start.date + 'T00:00:00');
-                                end = new Date(item.end.date + 'T00:00:00');
-                            } else {
-
-                                start = new Date(item.start.dateTime);
-                                end = new Date(item.end.dateTime);
-                            }
-
-                            return {
-                                title: item.summary,
-                                start,
-                                end,
-                                allDay: !!item.start.date,
-                                resource: { type: 'holiday', data: item }
-                            };
-                        });
-                    }
-                }
-
-
-                let projectEvents: CalendarEvent[] = [];
-                const user = auth.currentUser;
-                if (user) {
-                    try {
-                        const projects = await fetchProjects();
-                        projectEvents = projects.map(p => ({
-                            title: `🚀 Project: ${p.name}`,
-                            start: new Date(p.createdAt),
-                            end: new Date(p.createdAt),
-                            allDay: true,
-                            resource: { type: 'project', id: p._id }
-                        }));
-                    } catch (e) {
-                        console.error("Failed to fetch projects for calendar", e);
-                    }
-                }
+                const holidayEvents: CalendarEvent[] = holidays.map((h) => {
+                    const date = new Date(h.date + 'T00:00:00');
+                    const nextDay = new Date(date);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    return {
+                        title: h.name,
+                        start: date,
+                        end: nextDay,
+                        allDay: true,
+                        resource: { type: 'holiday', localName: h.localName, countryCode: h.countryCode },
+                    };
+                });
 
                 setEvents([...holidayEvents, ...projectEvents]);
-
             } catch (error) {
                 console.error("Error loading calendar data:", error);
             } finally {
@@ -105,7 +93,13 @@ const CalendarView = () => {
         };
 
         loadData();
-    }, []);
+    }, [selectedCountry]);
+
+    // Sorted countries for the dropdown
+    const sortedCountries = useMemo(
+        () => [...countries].sort((a, b) => a.name.localeCompare(b.name)),
+        [countries],
+    );
 
     const eventStyleGetter = (event: CalendarEvent) => {
         let backgroundColor = '#3174ad';
@@ -131,7 +125,26 @@ const CalendarView = () => {
 
     return (
         <div className="h-full w-full p-6 flex flex-col">
-            <h2 className="text-2xl font-bold tracking-tight mb-6">Calendar</h2>
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold tracking-tight">Calendar</h2>
+                {countries.length > 0 && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Holidays:</span>
+                        <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select country" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sortedCountries.map((c) => (
+                                    <SelectItem key={c.countryCode} value={c.countryCode}>
+                                        {c.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+            </div>
             <Card className="flex-1 p-4 shadow-sm border-none bg-background/50 backdrop-blur-sm">
                 {loading ? (
                     <CalendarSkeleton />
@@ -154,5 +167,23 @@ const CalendarView = () => {
         </div>
     );
 };
+
+async function loadProjectEvents(): Promise<CalendarEvent[]> {
+    const user = auth.currentUser;
+    if (!user) return [];
+
+    try {
+        const projects = await fetchProjects();
+        return projects.map(p => ({
+            title: `🚀 Project: ${p.name}`,
+            start: new Date(p.createdAt),
+            end: new Date(p.createdAt),
+            allDay: true,
+            resource: { type: 'project', id: p._id }
+        }));
+    } catch {
+        return [];
+    }
+}
 
 export default CalendarView;

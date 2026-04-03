@@ -34,6 +34,12 @@ const userSchema = new mongoose.Schema(
     status:   { type: String, default: 'offline' },
     lastSeen: { type: Date, default: Date.now },
 
+    // Location (resolved via GeoJS / browser timezone)
+    timezone:     { type: String, default: null },
+    country:      { type: String, default: null },
+    countryCode:  { type: String, default: null },
+    city:         { type: String, default: null },
+
     // Role
     role: { type: String, default: 'user' },
 
