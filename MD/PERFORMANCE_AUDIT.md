@@ -2,7 +2,45 @@
 
 **Date:** April 3, 2026  
 **Scope:** Full stack analysis (Frontend, Backend, Database, External APIs)  
-**Status:** Audit complete. Recommendations documented. No changes implemented.
+**Status:** Audit complete. Implementation in progress.
+
+---
+
+## Implementation Tracker
+
+### P0: High Impact, Low Effort (Do First)
+
+- [x] ~~#2 — Fix N+1 in GET /api/teams/:teamId/details~~ (`499702a`)
+- [x] ~~#4 — Replace 500-message fetch with $group aggregation (chatRoutes.js)~~ (`725474d`)
+- [ ] #1 — Add missing DB indexes (ProjectTask.stepId, Project.ownerId, Project.team, Team.members, Team.ownerId, Note.sharedWith, Folder.collaborators, User text index)
+- [ ] #3 — Replace in-memory task search with MongoDB $regex (projectRoutes.js:745)
+- [ ] #5 — Add React.lazy() code splitting for pages
+
+### P1: Medium Impact, Medium Effort
+
+- [ ] #6 — Denormalize ownerUid on Project (2 queries → 1 for auth checks)
+- [ ] #7 — Batch step/task creation with insertMany (5 sequential → 1 bulk)
+- [ ] #8 — Parallelize independent queries with Promise.all (GET /api/projects, /users)
+- [ ] #9 — Add Redis caching for /me, project listings, GitHub API responses
+- [ ] #10 — Consolidate to single ORM (keep Mongoose, remove Prisma)
+- [ ] #11 — Consolidate encryption to single library (Node crypto, remove CryptoJS)
+
+### P2: Medium Impact, Medium Effort
+
+- [ ] #12 — Add pagination to all list endpoints
+- [ ] #13 — Remove dead ownerId parameter from frontend fetch
+- [ ] #14 — Deduplicate project fetching (useSyncData vs useProjects)
+- [ ] #15 — Reuse Puppeteer browser instance OR switch to API
+- [ ] #16 — Cache architecture analysis results
+
+### P3: Low-Medium Impact, Low Effort
+
+- [ ] #17 — Add server-side filtering for pinned notes
+- [ ] #18 — Add text index for user search
+- [ ] #19 — Remove console.log statements, use structured logger
+- [ ] #20 — Remove unused Redux Toolkit dependency
+- [ ] #21 — Use ETags for GitHub API calls
+- [ ] #22 — Support pagination for GitHub repo listing
 
 ---
 
