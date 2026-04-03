@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Chart from 'chart.js/auto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import {
-    Bell,
     Calendar,
     CheckSquare,
     ChevronDown,
@@ -147,7 +145,6 @@ export default function ActivityLogView({
     tasks = [],
     users = [],
 }: ActivityLogViewProps) {
-    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [showAllLogs, setShowAllLogs] = useState(false);
     const [myProgressWeekly, setMyProgressWeekly] = useState(true);
@@ -574,24 +571,6 @@ export default function ActivityLogView({
                                 }}
                             />
                         </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-10 w-10 rounded-[8px] shrink-0"
-                            style={{ borderColor: T.border, background: T.bgCard, color: T.text2 }}
-                            aria-label="Notifications"
-                        >
-                            <Bell className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            type="button"
-                            className="h-10 rounded-[8px] px-4 font-medium"
-                            style={{ background: T.blue, color: '#fff' }}
-                            onClick={() => navigate('/dashboard/new-project')}
-                        >
-                            + New Project
-                        </Button>
                     </div>
                 </header>
 

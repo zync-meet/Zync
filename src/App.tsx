@@ -19,6 +19,7 @@ const ProjectDetails = lazy(() => import("./pages/ProjectDetails"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
+const WelcomeToZync = lazy(() => import("./pages/WelcomeToZync"));
 import { useActivityTracker } from "./hooks/use-activity-tracker";
 import { useChatNotifications } from "./hooks/use-chat-notifications";
 import { useUserSync } from "./hooks/use-user-sync";
@@ -59,6 +60,7 @@ const AppContent = () => {
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/welcome" element={<WelcomeToZync />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/workspace" element={<Dashboard />} />
               <Route path="/dashboard/projects" element={<Dashboard />} />
