@@ -5,11 +5,28 @@ let ready = false;
 
 function getRedisClient() {
   if (!client) {
+    const rawRedisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const tlsEnv = String(process.env.REDIS_TLS || '').trim().toLowerCase();
+    const rejectUnauthorizedEnv = String(process.env.REDIS_TLS_REJECT_UNAUTHORIZED || '').trim().toLowerCase();
+    const useTls = tlsEnv
+      ? ['1', 'true', 'yes', 'on'].includes(tlsEnv)
+      : rawRedisUrl.startsWith('rediss://');
+    const rejectUnauthorized = rejectUnauthorizedEnv
+      ? ['1', 'true', 'yes', 'on'].includes(rejectUnauthorizedEnv)
+      : false;
+    const redisUrl = useTls
+      ? rawRedisUrl.replace(/^redis:\/\//i, 'rediss://')
+      : rawRedisUrl.replace(/^rediss:\/\//i, 'redis://');
+
     client = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      url: redisUrl,
       socket: {
         connectTimeout: 5000,
-        socketTimeout: 10000,
+        socketTimeout: 0,
+        keepAlive: true,
+        keepAliveInitialDelay: 10000,
+        tls: useTls,
+        rejectUnauthorized: useTls ? rejectUnauthorized : undefined,
         reconnectStrategy: (retries) => {
           if (retries > 20) {
             console.error('[Redis] Max reconnection attempts reached');

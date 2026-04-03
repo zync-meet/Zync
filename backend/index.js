@@ -191,8 +191,9 @@ const startServer = (port, retriesLeft = 10) => {
     server.off('error', onError);
 
     if (error.code === 'EADDRINUSE' && retriesLeft > 0) {
-      console.warn(`⚠️ Port ${port} is in use, trying ${port + 1}...`);
-      setTimeout(() => startServer(port + 1, retriesLeft - 1), 100);
+      const nextPort = Number(port) + 1;
+      console.warn(`⚠️ Port ${port} is in use, trying ${nextPort}...`);
+      setTimeout(() => startServer(nextPort, retriesLeft - 1), 100);
       return;
     }
 
