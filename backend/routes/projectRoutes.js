@@ -176,17 +176,14 @@ router.post('/', authMiddleware, async (req, res) => {
       name,
       description: description || 'No description',
       ownerId: owner._id,
+      ownerUid: owner.uid,
       githubRepoName,
       githubRepoOwner,
       isTrackingActive: !!(githubRepoName && githubRepoOwner),
     });
 
-    // Create default steps
-    const createdSteps = [];
-    for (const s of defaultSteps) {
-      const step = await Step.create({ ...s, projectId: newProject._id });
-      createdSteps.push(step);
-    }
+    // Create default steps (bulk insert)
+    await Step.insertMany(defaultSteps.map(s => ({ ...s, projectId: newProject._id })));
 
     const result = await getProjectWithSteps(newProject._id);
     res.status(201).json(result);
@@ -204,8 +201,7 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || owner.uid !== req.user.uid) {
+    if (project.ownerUid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -215,7 +211,8 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Project is not linked to a GitHub repository' });
     }
 
-    const github = owner.githubIntegration;
+    const owner = await User.findById(project.ownerId).lean();
+    const github = owner?.githubIntegration;
     if (!github?.accessToken) {
       return res.status(400).json({ message: 'Owner is not connected to GitHub' });
     }
@@ -329,31 +326,37 @@ router.post('/generate', authMiddleware, async (req, res) => {
       name,
       description,
       ownerId: owner._id,
+      ownerUid: owner.uid,
       architecture: generatedData.architecture || {},
       team: [],
     });
 
-    // Create steps and tasks
-    for (const [idx, stepData] of (generatedData.steps || []).entries()) {
-      const step = await Step.create({
-        title: stepData.title,
-        description: stepData.description || '',
-        type: stepData.type || 'Other',
-        page: stepData.page || 'General',
-        order: idx,
-        projectId: newProject._id,
-      });
+    // Create steps and tasks (bulk insert)
+    const stepsData = (generatedData.steps || []).map((stepData, idx) => ({
+      title: stepData.title,
+      description: stepData.description || '',
+      type: stepData.type || 'Other',
+      page: stepData.page || 'General',
+      order: idx,
+      projectId: newProject._id,
+      tasks: stepData.tasks || [],
+    }));
 
-      if (stepData.tasks && stepData.tasks.length > 0) {
-        for (const task of stepData.tasks) {
-          await ProjectTask.create({
-            title: task.title,
-            description: task.description || '',
-            status: 'Pending',
-            stepId: step._id,
-          });
-        }
-      }
+    const createdSteps = await Step.insertMany(
+      stepsData.map(({ tasks, ...stepFields }) => stepFields)
+    );
+
+    const allTasks = createdSteps.flatMap((step, i) =>
+      stepsData[i].tasks.map(task => ({
+        title: task.title,
+        description: task.description || '',
+        status: 'Pending',
+        stepId: step._id,
+      }))
+    );
+
+    if (allTasks.length > 0) {
+      await ProjectTask.insertMany(allTasks);
     }
 
     const fullProject = await getProjectWithSteps(newProject._id);
@@ -373,16 +376,16 @@ router.get('/', authMiddleware, async (req, res) => {
     const user = await User.findOne({ uid: ownerUid }).lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Projects owned by user or where user is a team member
-    const projects = await getProjectsWithSteps({
-      $or: [
-        { ownerId: user._id },
-        { team: ownerUid }
-      ]
-    });
-
-    // Projects where user has assigned tasks
-    const assignedTasks = await ProjectTask.find({ assignedTo: ownerUid }).select('stepId').lean();
+    // Fetch owned/team projects and assigned tasks in parallel
+    const [projects, assignedTasks] = await Promise.all([
+      getProjectsWithSteps({
+        $or: [
+          { ownerId: user._id },
+          { team: ownerUid }
+        ]
+      }),
+      ProjectTask.find({ assignedTo: ownerUid }).select('stepId').lean()
+    ]);
     const assignedStepIds = [...new Set(assignedTasks.map(t => t.stepId.toString()))];
 
     let assignedProjects = [];
@@ -416,12 +419,11 @@ router.post('/:id/team', authMiddleware, async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || owner.uid !== req.user.uid) {
+    if (project.ownerUid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    if (!project.team.includes(userId) && owner.uid !== userId) {
+    if (!project.team.includes(userId) && project.ownerUid !== userId) {
       const newTeam = [...project.team, userId];
       await Project.updateOne({ _id: req.params.id }, { $set: { team: newTeam } });
     }
@@ -439,13 +441,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const project = await Project.findById(req.params.id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
+    const [owner, stepCount] = await Promise.all([
+      User.findById(project.ownerId).lean(),
+      Step.countDocuments({ projectId: project._id })
+    ]);
+
     if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
-
-    // Check if project has any steps
-    const stepCount = await Step.countDocuments({ projectId: project._id });
 
     if (stepCount === 0) {
       const defaultSteps = [
@@ -455,9 +458,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         { title: 'Database', description: 'Schema design and data management', type: 'Database', order: 3, projectId: project._id },
         { title: 'Deployment', description: 'CI/CD and hosting setup', type: 'Other', order: 4, projectId: project._id }
       ];
-      for (const s of defaultSteps) {
-        await Step.create(s);
-      }
+      await Step.insertMany(defaultSteps);
     }
 
     const full = await getProjectWithSteps(req.params.id);
