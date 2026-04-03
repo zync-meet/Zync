@@ -21,6 +21,28 @@ const decryptToken = (ciphertext) => {
   return bytes.toString(CryptoJS.enc.Utf8);
 };
 
+const githubCache = new Map();
+
+const fetchWithEtag = async (url, config, cacheKey) => {
+  const cached = githubCache.get(cacheKey);
+  const headers = { ...config.headers };
+  if (cached && cached.etag) {
+    headers['If-None-Match'] = cached.etag;
+  }
+  
+  try {
+    const res = await axios.get(url, { ...config, headers });
+    if (res.headers?.etag) {
+      githubCache.set(cacheKey, { etag: res.headers.etag, data: res.data });
+    }
+    return res;
+  } catch (error) {
+    if (error.response && error.response.status === 304 && cached) {
+      return { ...error.response, status: 304, data: cached.data };
+    }
+    throw error;
+  }
+};
 
 router.post('/connect', verifyToken, async (req, res) => {
   const { accessToken } = req.body;
@@ -197,7 +219,11 @@ router.get('/repos', verifyToken, async (req, res) => {
       return res.status(500).json({ message: 'Invalid stored token' });
     }
 
-    const githubResponse = await axios.get('https://api.github.com/user/repos', {
+    const page = parseInt(req.query.page) || 1;
+    const per_page = parseInt(req.query.per_page) || 30;
+
+    const cacheKey = `repos_${uid}_${page}_${per_page}`;
+    const githubResponse = await fetchWithEtag('https://api.github.com/user/repos', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/vnd.github.v3+json'
@@ -205,11 +231,15 @@ router.get('/repos', verifyToken, async (req, res) => {
       params: {
         sort: 'updated',
         visibility: 'all',
-        per_page: 100
+        per_page,
+        page
       }
-    });
+    }, cacheKey);
 
-    res.json(githubResponse.data);
+    const linkHeader = githubResponse.headers.link;
+    const hasNextPage = !!(linkHeader && linkHeader.includes('rel="next"'));
+
+    res.json({ repos: githubResponse.data, hasNextPage, page });
 
   } catch (error) {
     console.error('Error fetching GitHub repos:', error.message);
@@ -348,7 +378,29 @@ router.get('/user-repos', verifyToken, async (req, res) => {
     }
 
     try {
-      const response = await octokit.request('GET /installation/repositories', { per_page: 100 });
+      const page = parseInt(req.query.page) || 1;
+      const per_page = parseInt(req.query.per_page) || 30;
+      
+      const cacheKey = `user_repos_${uid}_${page}_${per_page}`;
+      const cached = githubCache.get(cacheKey);
+      const headers = cached && cached.etag ? { 'If-None-Match': cached.etag } : {};
+
+      let response;
+      try {
+        response = await octokit.request('GET /installation/repositories', { per_page, page, headers });
+        if (response.headers?.etag) {
+          githubCache.set(cacheKey, { etag: response.headers.etag, data: response.data });
+        }
+      } catch (err) {
+        if (err.status === 304 && cached) {
+          response = { headers: err.response?.headers || {}, data: cached.data };
+        } else {
+          throw err;
+        }
+      }
+
+      const linkHeader = response.headers?.link;
+      const hasNextPage = !!(linkHeader && linkHeader.includes('rel="next"'));
 
       const repos = response.data.repositories.map(repo => ({
         id: repo.id,
@@ -359,7 +411,7 @@ router.get('/user-repos', verifyToken, async (req, res) => {
         html_url: repo.html_url
       }));
 
-      res.json(repos);
+      res.json({ repos, hasNextPage, page });
     } catch (requestErr) {
       console.error("Error fetching repositories from GitHub:", requestErr.message);
       await disconnectGithub(uid, { installationId: null });
@@ -401,12 +453,13 @@ router.get('/stats', verifyToken, async (req, res) => {
     const accessToken = decryptToken(github.accessToken);
     const username = github.username;
 
-    const userResponse = await axios.get(`https://api.github.com/users/${username}`, {
+    const cacheKey = `stats_${username}`;
+    const userResponse = await fetchWithEtag(`https://api.github.com/users/${username}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
-    });
+    }, cacheKey);
 
     res.json({
       login: userResponse.data.login,
@@ -440,12 +493,13 @@ router.get('/events', verifyToken, async (req, res) => {
     const accessToken = decryptToken(github.accessToken);
     const username = github.username;
 
-    const eventsResponse = await axios.get(`https://api.github.com/users/${username}/events?per_page=30`, {
+    const cacheKey = `events_${username}`;
+    const eventsResponse = await fetchWithEtag(`https://api.github.com/users/${username}/events?per_page=30`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
-    });
+    }, cacheKey);
 
     const events = eventsResponse.data.map(event => ({
       id: event.id,

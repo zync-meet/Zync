@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { launchBrowser, scrapeDribbble } = require('../services/scraperService');
+const { getSharedBrowser, scrapeDribbble } = require('../services/scraperService');
+const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 
 const DATA_FILE = path.join(__dirname, '../data/inspiration.json');
 
@@ -48,9 +49,8 @@ async function getInspiration(req, res) {
 
     if (allItems.length < 5 && query) {
       console.log(`⚠️ Low cache results for "${query}". Triggering live Dribbble fallback...`);
-      let browser = null;
       try {
-        browser = await launchBrowser();
+        const browser = await getSharedBrowser();
         const dribbbleItems = await scrapeDribbble(browser, query);
 
         if (dribbbleItems.length > 0) {
@@ -64,9 +64,6 @@ async function getInspiration(req, res) {
         }
       } catch (err) {
         console.error('Live Fallback Error:', err.message);
-
-      } finally {
-        if (browser) await browser.close();
       }
     }
 
@@ -76,10 +73,14 @@ async function getInspiration(req, res) {
       [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
     }
 
+    const { items, pagination } = paginateArray(allItems, req.query);
+    setPaginationHeaders(res, pagination);
+
     res.json({
       ok: true,
-      count: allItems.length,
-      items: allItems
+      count: items.length,
+      total: allItems.length,
+      items
     });
 
   } catch (error) {

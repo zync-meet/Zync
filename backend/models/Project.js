@@ -18,6 +18,8 @@ const projectSchema = new mongoose.Schema(
 
     // AI-generated architecture
     architecture: { type: mongoose.Schema.Types.Mixed, default: null },
+    architectureCacheKey: { type: String, default: null },
+    architectureAnalyzedAt: { type: Date, default: null },
 
     // Google Meet
     meetLink: { type: String, default: null },

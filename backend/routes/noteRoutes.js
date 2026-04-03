@@ -4,6 +4,7 @@ const Note = require('../models/Note');
 const Folder = require('../models/Folder');
 const verifyToken = require('../middleware/authMiddleware');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
+const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 
 
 router.post('/folders', verifyToken, async (req, res) => {
@@ -47,7 +48,10 @@ router.get('/folders', verifyToken, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json(normalizeDocs(folders));
+    const { items, pagination } = paginateArray(normalizeDocs(folders), req.query);
+    setPaginationHeaders(res, pagination);
+
+    res.json(items);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -208,7 +212,10 @@ router.get('/', verifyToken, async (req, res) => {
     const notes = await Note.find(filter)
       .sort({ updatedAt: -1 })
       .lean();
-    res.json(normalizeDocs(notes));
+    const { items, pagination } = paginateArray(normalizeDocs(notes), req.query);
+    setPaginationHeaders(res, pagination);
+
+    res.json(items);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -28,10 +28,14 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
   const { data: userData, isLoading: userLoading } = useMe();
   const isConnected = userData?.githubIntegration?.connected;
 
+  const [page, setPage] = useState(1);
   const { 
-    data: repos = [], 
+    data: reposData, 
     isLoading: reposLoading 
-  } = useGitHubRepos(!!isConnected);
+  } = useGitHubRepos(!!isConnected, page);
+
+  const repos = reposData?.repos || [];
+  const hasNextPage = reposData?.hasNextPage || false;
 
   const loading = userLoading || reposLoading;
   const [searchTerm, setSearchTerm] = useState("");
@@ -266,6 +270,26 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
             );
           })}
         </Tabs>
+      )}
+
+      {isConnected && !loading && (repos.length > 0 || page > 1) && (
+        <div className="flex justify-center items-center gap-4 py-8">
+          <Button 
+            variant="outline" 
+            disabled={page === 1} 
+            onClick={() => setPage(p => p - 1)}
+          >
+            Previous
+          </Button>
+          <span className="text-sm font-medium">Page {page}</span>
+          <Button 
+            variant="outline" 
+            disabled={!hasNextPage} 
+            onClick={() => setPage(p => p + 1)}
+          >
+            Next
+          </Button>
+        </div>
       )}
     </div>
   );

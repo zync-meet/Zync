@@ -177,9 +177,29 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server successfully started on port ${PORT}`);
-});
+const startServer = (port, retriesLeft = 10) => {
+  const onError = (error) => {
+    server.off('error', onError);
+
+    if (error.code === 'EADDRINUSE' && retriesLeft > 0) {
+      console.warn(`⚠️ Port ${port} is in use, trying ${port + 1}...`);
+      setTimeout(() => startServer(port + 1, retriesLeft - 1), 100);
+      return;
+    }
+
+    console.error('Failed to start backend server:', error);
+    process.exit(1);
+  };
+
+  server.once('error', onError);
+
+  server.listen(port, '0.0.0.0', () => {
+    server.off('error', onError);
+    console.log(`🚀 Server successfully started on port ${port}`);
+  });
+};
+
+startServer(PORT);
 
 
 app.use((err, req, res, next) => {

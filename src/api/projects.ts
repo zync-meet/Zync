@@ -31,9 +31,9 @@ const getAuthHeaders = async () => {
     };
 };
 
-export const fetchProjects = async (userId: string): Promise<Project[]> => {
+export const fetchProjects = async (): Promise<Project[]> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}?ownerId=${userId}`, { headers });
+    const response = await fetch(API_URL, { headers });
     if (!response.ok) {return [];}
     return response.json();
 };
