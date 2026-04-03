@@ -44,56 +44,55 @@ router.post('/sync', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
   try {
-    let user = await User.findOne({ uid })
-      .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
-      .lean();
-
     let finalDisplayName = displayName;
     if (!finalDisplayName && email) {
       finalDisplayName = email.split('@')[0];
     }
 
-    if (user) {
-      const updateData = {
-        email,
-        status: 'online',
-        lastSeen: new Date()
-      };
-      if (finalDisplayName) updateData.displayName = finalDisplayName;
-      if (photoURL) updateData.photoURL = photoURL;
-      if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
-      if (!user.firstName && firstName) updateData.firstName = firstName;
-      if (!user.lastName && lastName) updateData.lastName = lastName;
+    const updateData = {
+      email,
+      status: 'online',
+      lastSeen: new Date()
+    };
+    if (finalDisplayName) updateData.displayName = finalDisplayName;
+    if (photoURL) updateData.photoURL = photoURL;
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+    if (firstName) updateData.firstName = firstName;
+    if (lastName) updateData.lastName = lastName;
 
-      user = await User.findOneAndUpdate(
-        { uid },
-        { $set: updateData },
-        { returnDocument: 'after', lean: true }
-      );
-    } else {
-      const created = await User.create({
-        uid,
-        email,
-        displayName: finalDisplayName || 'User',
-        firstName: firstName || null,
-        lastName: lastName || null,
-        photoURL: photoURL || null,
-        phoneNumber: phoneNumber || null,
-        status: 'online',
-        lastSeen: new Date()
-      });
-      user = created.toObject();
+    const result = await User.findOneAndUpdate(
+      { uid },
+      { 
+        $set: updateData,
+        $setOnInsert: {
+          uid,
+          displayName: finalDisplayName || 'User',
+          firstName: firstName || null,
+          lastName: lastName || null,
+          photoURL: photoURL || null,
+          phoneNumber: phoneNumber || null,
+          status: 'online',
+          lastSeen: new Date(),
+          createdAt: new Date()
+        }
+      },
+      { upsert: true, returnDocument: 'after', lean: true }
+    );
 
+    const user = result.value || result;
+    const isNew = user.createdAt && (Date.now() - new Date(user.createdAt).getTime() < 5000);
+
+    if (isNew) {
       try {
         await sendZyncEmail(
           'consolemaster.app@gmail.com',
           '🚀 New User Joined ZYNC!',
           getNewUserRegistrationTemplate({
-            name: displayName || 'N/A',
+            name: finalDisplayName || 'N/A',
             email: email,
             uid: uid
           }),
-          `New User Alert! Name: ${displayName || 'N/A'}, Email: ${email}`
+          `New User Alert! Name: ${finalDisplayName || 'N/A'}, Email: ${email}`
         );
         console.log(`Notification email sent for new user: ${email}`);
       } catch (emailError) {

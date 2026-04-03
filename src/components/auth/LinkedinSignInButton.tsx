@@ -1,55 +1,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { OAuthProvider, signInWithPopup, Auth } from "firebase/auth";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { Auth } from "firebase/auth";
+import { API_BASE_URL } from "@/lib/utils";
 
 interface LinkedinSignInButtonProps {
   auth: Auth;
   disabled?: boolean;
 }
 
-export const LinkedinSignInButton = ({ auth, disabled }: LinkedinSignInButtonProps) => {
+export const LinkedinSignInButton = ({ disabled }: LinkedinSignInButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
 
-  const handleLinkedinLogin = async () => {
+  const handleLinkedinLogin = () => {
     setIsLoading(true);
-    try {
-      const provider = new OAuthProvider('oidc.linkedin');
-      
-      // Request standard OpenID Connect Scopes
-      provider.addScope('openid');
-      provider.addScope('profile');
-      provider.addScope('email');
-
-      await signInWithPopup(auth, provider);
-      
-      toast({
-        title: "Success",
-        description: "Logged in with LinkedIn successfully",
-      });
-      navigate("/dashboard");
-    } catch (error: any) {
-      console.error(error);
-      
-      if (error.code === 'auth/account-exists-with-different-credential') {
-         toast({
-          variant: "destructive",
-          title: "Account Exists",
-          description: "An account already exists with the same email. Please sign in with your original provider and link the accounts.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "LinkedIn Auth Error",
-          description: error.message || "Failed to sign in with LinkedIn.",
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    window.location.href = `${API_BASE_URL}/api/linkedin/auth`;
   };
 
   return (
