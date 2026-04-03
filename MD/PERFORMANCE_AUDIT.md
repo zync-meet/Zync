@@ -12,9 +12,9 @@
 
 - [x] ~~#2 — Fix N+1 in GET /api/teams/:teamId/details~~ (`499702a`)
 - [x] ~~#4 — Replace 500-message fetch with $group aggregation (chatRoutes.js)~~ (`725474d`)
-- [ ] #1 — Add missing DB indexes (ProjectTask.stepId, Project.ownerId, Project.team, Team.members, Team.ownerId, Note.sharedWith, Folder.collaborators, User text index)
-- [ ] #3 — Replace in-memory task search with MongoDB $regex (projectRoutes.js:745)
-- [ ] #5 — Add React.lazy() code splitting for pages
+- [x] ~~#1 — Add missing DB indexes (ProjectTask.stepId, Project.ownerId, Project.team, Team.members, Team.ownerId, Note.sharedWith, Folder.collaborators, User text index)~~
+- [x] ~~#3 — Replace in-memory task search with MongoDB $regex (projectRoutes.js:745)~~
+- [x] ~~#5 — Add React.lazy() code splitting for pages~~
 
 ### P1: Medium Impact, Medium Effort
 
