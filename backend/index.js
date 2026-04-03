@@ -11,6 +11,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Render/Reverse proxy support: required for correct client IP detection with express-rate-limit.
+app.set('trust proxy', 1);
+
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
