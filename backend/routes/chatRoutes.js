@@ -53,26 +53,20 @@ router.get('/conversations', verifyToken, requireDb, async (req, res) => {
   try {
     const uid = req.user.uid;
 
-    // Fetch recent messages where user is involved, sorted newest-first
-    const recentMessages = await Message.find({
-      $or: [{ senderId: uid }, { receiverId: uid }]
-    })
-      .sort({ createdAt: -1 })
-      .limit(500)
-      .lean();
+    // Use aggregation to get the latest message per conversation directly from DB
+    const conversations = await Message.aggregate([
+      { $match: { $or: [{ senderId: uid }, { receiverId: uid }] } },
+      { $sort: { createdAt: -1 } },
+      { $group: {
+        _id: '$chatId',
+        doc: { $first: '$$ROOT' }
+      }},
+      { $replaceRoot: { newRoot: '$doc' } },
+      { $sort: { createdAt: -1 } },
+      { $limit: 100 }
+    ]);
 
-    // Deduplicate by chatId, keeping the newest message per chat
-    const seen = new Set();
-    const conversations = [];
-    for (const m of recentMessages) {
-      if (!seen.has(m.chatId)) {
-        seen.add(m.chatId);
-        conversations.push({ ...m, id: String(m._id) });
-      }
-      if (conversations.length >= 100) break;
-    }
-
-    res.json(conversations);
+    res.json(conversations.map(m => ({ ...m, id: String(m._id) })));
   } catch (error) {
     console.error('[ChatRoutes] conversations error:', error);
     res.status(500).json({ error: error.message });

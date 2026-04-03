@@ -284,18 +284,18 @@ router.get('/:teamId/details', verifyToken, async (req, res) => {
         const team = await Team.findById(teamId).lean();
         if (!team) return res.status(404).json({ message: 'Team not found' });
 
-        const memberDetails = await Promise.all(
-            team.members.map(async (memberUid) => {
-                const user = await User.findOne({ uid: memberUid }).lean();
-                return user ? {
-                    uid: user.uid,
-                    displayName: user.displayName || user.email?.split('@')[0] || 'Unknown',
-                    email: user.email,
-                    photoURL: user.photoURL,
-                    isOwner: memberUid === team.ownerId
-                } : { uid: memberUid, displayName: 'Unknown User', email: '', photoURL: null, isOwner: false };
-            })
-        );
+        const users = await User.find({ uid: { $in: team.members } }).lean();
+        const userMap = new Map(users.map(u => [u.uid, u]));
+        const memberDetails = team.members.map(memberUid => {
+            const user = userMap.get(memberUid);
+            return user ? {
+                uid: user.uid,
+                displayName: user.displayName || user.email?.split('@')[0] || 'Unknown',
+                email: user.email,
+                photoURL: user.photoURL,
+                isOwner: memberUid === team.ownerId
+            } : { uid: memberUid, displayName: 'Unknown User', email: '', photoURL: null, isOwner: false };
+        });
 
         res.json({
             ...normalizeDoc(team),
