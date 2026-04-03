@@ -24,7 +24,7 @@ import { useProjects, useProjectMutations } from "@/hooks/useProjects";
 import { usePinnedNotes } from "@/hooks/useNotes";
 
 interface Project {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   ownerId: string;
@@ -96,7 +96,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     if (!selectedProjectForLink) {return;}
     try {
       await linkGitHub({
-        projectId: selectedProjectForLink._id,
+        projectId: selectedProjectForLink.id,
         repoData: {
           githubRepoName: repo.name,
           githubRepoOwner: repo.owner.login
@@ -200,7 +200,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
 
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -354,7 +354,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
         ) : (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project._id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-primary" onClick={() => onSelectProject(project._id)}>
+              <Card key={project.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-primary" onClick={() => onSelectProject(project.id)}>
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <Badge variant="outline" className="mb-2">Project</Badge>
@@ -442,7 +442,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteProject(project._id);
+                      deleteProject(project.id);
                     }}
                     >
                       <Trash2 className="w-4 h-4" />

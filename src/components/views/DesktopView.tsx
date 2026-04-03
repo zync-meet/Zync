@@ -724,7 +724,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
       case "New Project":
         return (
-          <CreateProject onProjectCreated={(data) => navigate(`/projects/${data._id}`)} />
+          <CreateProject onProjectCreated={(data) => navigate(`/projects/${data.id}`)} />
         );
 
       case "Messages":

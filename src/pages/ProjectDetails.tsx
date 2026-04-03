@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 
 interface Project {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   architecture: {
@@ -129,7 +129,7 @@ const ProjectDetails = () => {
     if (!project) {return;}
     setIsAnalyzing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}/analyze-architecture`, {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/analyze-architecture`, {
         method: 'POST',
       });
 
@@ -168,7 +168,7 @@ const ProjectDetails = () => {
         senderPhotoURL: auth.currentUser.photoURL || undefined,
         text: `Start collaborating on project "${project.name}"`,
         type: 'project-invite',
-        projectId: project._id,
+        projectId: project.id,
         projectName: project.name,
         projectOwnerId: project.ownerId,
       });
@@ -336,7 +336,7 @@ const ProjectDetails = () => {
 
       if (!realStepId || !realTaskId) {return;}
 
-      await fetch(`${API_BASE_URL}/api/projects/${project._id}/steps/${realStepId}/tasks/${realTaskId}`, {
+      await fetch(`${API_BASE_URL}/api/projects/${project.id}/steps/${realStepId}/tasks/${realTaskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -376,7 +376,7 @@ const ProjectDetails = () => {
 
 
       const token = await auth.currentUser?.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}/steps/${realStepId}/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/steps/${realStepId}/tasks/${taskId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -427,7 +427,7 @@ const ProjectDetails = () => {
       const assignedUser = users.find(u => u.uid === selectedAssigneeId);
       const assignedToName = assignedUser ? (assignedUser.displayName || assignedUser.email) : undefined;
 
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}/steps/${selectedStepId}/tasks`, {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/steps/${selectedStepId}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

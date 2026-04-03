@@ -3,7 +3,7 @@ import { API_BASE_URL } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 
 export interface Project {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   ownerId: string;
