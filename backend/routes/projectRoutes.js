@@ -373,14 +373,11 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const ownerUid = req.user.uid;
 
-    const user = await User.findOne({ uid: ownerUid }).lean();
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
     // Fetch owned/team projects and assigned tasks in parallel
     const [projects, assignedTasks] = await Promise.all([
       getProjectsWithSteps({
         $or: [
-          { ownerId: user._id },
+          { ownerUid },
           { team: ownerUid }
         ]
       }),
@@ -441,15 +438,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const project = await Project.findById(req.params.id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const [owner, stepCount] = await Promise.all([
-      User.findById(project.ownerId).lean(),
-      Step.countDocuments({ projectId: project._id })
-    ]);
-
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
+    const stepCount = await Step.countDocuments({ projectId: project._id });
     if (stepCount === 0) {
       const defaultSteps = [
         { title: 'Planning', description: 'Initial requirements and design', type: 'Design', order: 0, projectId: project._id },
@@ -474,8 +467,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     const project = await Project.findById(req.params.id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || owner.uid !== req.user.uid) {
+    if (project.ownerUid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -501,8 +493,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
     const project = await Project.findById(id).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -539,8 +530,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -601,8 +591,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -677,8 +666,7 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || owner.uid !== userId) {
+    if (project.ownerUid !== userId) {
       return res.status(403).json({ message: 'Permission denied. Only the project owner can delete tasks.' });
     }
 
@@ -709,11 +697,8 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
 
     if (!query) return res.json([]);
 
-    const user = await User.findOne({ uid: userId }).lean();
-    if (!user) return res.json([]);
-
     // Get all projects user has access to
-    const ownedProjects = await Project.find({ ownerId: user._id }).select('_id name').lean();
+    const ownedProjects = await Project.find({ ownerUid: userId }).select('_id name').lean();
     const teamProjects = await Project.find({ team: userId }).select('_id name').lean();
 
     // Get projects via task assignment
@@ -776,8 +761,7 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const owner = await User.findById(project.ownerId).lean();
-    if (!owner || (owner.uid !== req.user.uid && !project.team.includes(req.user.uid))) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
