@@ -121,6 +121,9 @@ const Signup = () => {
       const provider = new GithubAuthProvider();
       provider.addScope('repo');
       provider.addScope('read:user');
+      provider.setCustomParameters({
+        prompt: 'consent'
+      });
 
       const result = await signInWithPopup(auth, provider);
 
@@ -152,6 +155,9 @@ const Signup = () => {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
       await signInWithPopup(auth, provider);
       toast({ title: "Success", description: "Signed up with Google successfully" });
     } catch (error: any) {
