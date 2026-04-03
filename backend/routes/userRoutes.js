@@ -16,6 +16,7 @@ const {
 } = require('../utils/emailTemplates');
 const { deleteCloudinaryAsset } = require('../services/cloudinaryService');
 const { checkPassword } = require('../services/haveIBeenPwnedService');
+const { resolveIp } = require('../services/geoService');
 const cache = require('../utils/cache');
 
 
@@ -72,7 +73,7 @@ router.get('/me', verifyToken, async (req, res) => {
 
 
 router.post('/sync', verifyToken, async (req, res) => {
-  const { uid: bodyUid, email, displayName, photoURL, phoneNumber, firstName, lastName } = req.body;
+  const { uid: bodyUid, email, displayName, photoURL, phoneNumber, firstName, lastName, timezone } = req.body;
   const uid = req.user.uid;
 
   try {
@@ -91,10 +92,11 @@ router.post('/sync', verifyToken, async (req, res) => {
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
+    if (timezone) updateData.timezone = timezone;
 
     const result = await User.findOneAndUpdate(
       { uid },
-      { 
+      {
         $set: updateData,
         $setOnInsert: {
           uid,
@@ -132,6 +134,19 @@ router.post('/sync', verifyToken, async (req, res) => {
         email,
         new Date().toISOString()
       ).catch(err => console.error('Failed to log user to Google Sheets:', err));
+    }
+
+    // Fire-and-forget: enrich location from IP if country is missing
+    if (!user.country) {
+      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+      resolveIp(clientIp).then((geo) => {
+        if (geo) {
+          User.updateOne(
+            { uid },
+            { $set: { country: geo.country, countryCode: geo.countryCode, city: geo.city } }
+          ).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     const teams = await Team.find({ members: user.uid }).lean();
@@ -181,6 +196,32 @@ router.post('/sync-github', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error syncing GitHub data:', error);
     res.status(500).json({ message: 'Server error updating GitHub integration' });
+  }
+});
+
+
+// Detect location from client IP via GeoJS
+router.get('/detect-location', verifyToken, async (req, res) => {
+  try {
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+    const geo = await resolveIp(clientIp);
+
+    if (!geo) {
+      return res.json({ timezone: null, country: null, countryCode: null, city: null });
+    }
+
+    // Persist to user profile
+    const uid = req.user.uid;
+    await User.updateOne(
+      { uid },
+      { $set: { country: geo.country, countryCode: geo.countryCode, city: geo.city } }
+    );
+    cache.invalidate(`user:me:${uid}`);
+
+    res.json(geo);
+  } catch (error) {
+    console.error('Error detecting location:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
