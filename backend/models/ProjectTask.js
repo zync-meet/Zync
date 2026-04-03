@@ -29,6 +29,8 @@ const projectTaskSchema = new mongoose.Schema(
   }
 );
 
+projectTaskSchema.index({ stepId: 1 });
+projectTaskSchema.index({ title: 'text' });
 projectTaskSchema.index({ assignedTo: 1 });
 projectTaskSchema.index({ status: 1 });
 projectTaskSchema.index({ displayId: 1 }, { unique: true, sparse: true });
