@@ -4,30 +4,17 @@ const verifyToken = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Team = require('../models/Team');
 const { encrypt } = require('../utils/encryption');
-const { sendZyncEmail } = require('../services/mailer');
+const { sendEmail } = require('../services/mailer');
 const { appendRow } = require('../services/sheetLogger');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
-const {
-  getNewUserRegistrationTemplate,
-  getPhoneVerificationEmailHtml,
-  getChatRequestEmailHtml,
-  getAccountDeletionCodeEmailHtml,
-} = require('../utils/emailTemplates');
 const { deleteCloudinaryAsset } = require('../services/cloudinaryService');
 const { checkPassword } = require('../services/haveIBeenPwnedService');
 const { resolveIp } = require('../services/geoService');
 const cache = require('../utils/cache');
 
 
-const sendVerificationEmail = async (email, code) => {
-  return sendZyncEmail(
-    email,
-    'Phone Verification Code',
-    getPhoneVerificationEmailHtml({ code }),
-    `Your verification code is: ${code}`
-  );
-};
+
 
 
 router.post('/check-breached-password', async (req, res) => {
@@ -118,15 +105,15 @@ router.post('/sync', verifyToken, async (req, res) => {
 
     if (isNew) {
       // Fire-and-forget: don't block response on external notifications
-      sendZyncEmail(
+      sendEmail(
+        'meet-new-user',
         'consolemaster.app@gmail.com',
-        '🚀 New User Joined ZYNC!',
-        getNewUserRegistrationTemplate({
+        {
           name: finalDisplayName || 'N/A',
           email: email,
           uid: uid
-        }),
-        `New User Alert! Name: ${finalDisplayName || 'N/A'}, Email: ${email}`
+        },
+        '🚀 New User Joined ZYNC!'
       ).catch(err => console.error("Failed to send admin notification:", err));
 
       appendRow(
@@ -288,14 +275,14 @@ router.post('/chat-request', verifyToken, async (req, res) => {
       { $set: { chatRequests: [...existingRequests, newRequest] } }
     );
 
-    await sendZyncEmail(
+    await sendEmail(
+      'chat-request',
       recipient.email,
-      `New Chat Request from ${sender.displayName || 'a Zync User'}`,
-      getChatRequestEmailHtml({
-        senderName: sender.displayName || 'A Zync user',
+      {
+        senderName: sender.displayName || 'A user',
         message: message || '',
-      }),
-      `New Chat Request from ${sender.displayName}: "${message}"`
+      },
+      `New Chat Request from ${sender.displayName || 'a Zync User'}`
     );
 
     res.json({ message: 'Chat request sent successfully' });
@@ -506,11 +493,11 @@ router.post('/delete/request', verifyToken, async (req, res) => {
       }
     );
 
-    await sendZyncEmail(
+    await sendEmail(
+      'account-deletion-code',
       user.email,
-      'Account Deletion Verification Code',
-      getAccountDeletionCodeEmailHtml({ code }),
-      `Verification Code: ${code}`
+      { name: user.displayName || 'there', otp: code.split('') },
+      'Account Deletion Verification Code'
     );
 
     res.status(200).json({ message: 'Verification code sent to email' });
@@ -606,7 +593,12 @@ router.post('/verify-phone/request', async (req, res) => {
       }
     );
 
-    await sendVerificationEmail(user.email, code);
+    await sendEmail(
+      'phone-verification-code',
+      user.email,
+      { name: user.displayName || 'there', otp: code.split('') },
+      'Phone Verification Code'
+    );
 
     res.status(200).json({ message: 'Verification code sent to email' });
   } catch (error) {

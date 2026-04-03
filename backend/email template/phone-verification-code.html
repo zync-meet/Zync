@@ -3,17 +3,285 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Phone verification</title>
+  <title>Verify Your Phone Number</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #060b14;
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      color: #e2e8f0;
+      padding: 40px 16px;
+    }
+
+    .email-wrapper {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* ── Main card ── */
+    .card {
+      background: #0d1421;
+      border: 1px solid #1c2a3f;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      padding: 52px 48px 44px;
+      text-align: center;
+      border-bottom: 1px solid #1c2a3f;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 340px;
+      height: 220px;
+      background: radial-gradient(ellipse, rgba(26, 143, 209, 0.11) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(26, 143, 209, 0.1);
+      border: 1px solid rgba(26, 143, 209, 0.25);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #1a8fd1;
+      margin-bottom: 24px;
+      letter-spacing: 0.3px;
+    }
+
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f0f6ff;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      letter-spacing: -0.4px;
+    }
+
+    .hero h1 span {
+      color: #1a8fd1;
+    }
+
+    .hero p {
+      font-size: 15px;
+      color: #6e8ca8;
+      line-height: 1.7;
+      max-width: 380px;
+      margin: 0 auto;
+    }
+
+    /* ── Body ── */
+    .body {
+      padding: 40px 48px;
+    }
+
+    .greeting {
+      font-size: 15px;
+      color: #cbd5e1;
+      line-height: 1.75;
+      margin-bottom: 16px;
+    }
+
+    .greeting strong { color: #f0f4f8; font-weight: 600; }
+
+    .intro-text {
+      font-size: 15px;
+      color: #8da2b8;
+      line-height: 1.75;
+      margin-bottom: 36px;
+    }
+
+    /* ── OTP block ── */
+    .otp-wrap {
+      background: #0a1525;
+      border: 1px solid #1c2a3f;
+      border-radius: 14px;
+      padding: 32px 24px;
+      text-align: center;
+      margin-bottom: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .otp-wrap::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #1a8fd1, transparent);
+    }
+
+    .otp-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: #3a5a78;
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+      margin-bottom: 18px;
+    }
+
+    .otp-digits {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .otp-digit {
+      width: 42px;
+      height: 52px;
+      background: #101b2e;
+      border: 1px solid #1c2a3f;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 26px;
+      font-weight: 600;
+      color: #f0f6ff;
+      letter-spacing: 0;
+    }
+
+    .otp-digit.highlight {
+      border-color: rgba(26, 143, 209, 0.45);
+      background: rgba(26, 143, 209, 0.07);
+      color: #5bb8f5;
+    }
+
+    .otp-copy-hint {
+      font-size: 13px;
+      color: #3a5a78;
+    }
+
+    /* ── Expiry strip ── */
+    .expiry-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(26, 143, 209, 0.07);
+      border: 1px solid rgba(26, 143, 209, 0.18);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 36px;
+    }
+
+    .expiry-strip p {
+      font-size: 13px;
+      color: #5a8ab8;
+      line-height: 1.5;
+    }
+
+    .expiry-strip strong {
+      color: #1a8fd1;
+      font-weight: 600;
+    }
+
+    /* ── Sign off ── */
+    .signoff {
+      font-size: 15px;
+      color: #8da2b8;
+      line-height: 1.75;
+    }
+
+    .signoff strong { color: #dde8f4; font-weight: 600; }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 24px 48px;
+      border-top: 1px solid #1c2a3f;
+      background: #090f1c;
+    }
+
+    .footer p {
+      font-size: 12px;
+      color: #2d4560;
+      text-align: center;
+      line-height: 1.6;
+    }
+  </style>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f4f5; margin: 0; padding: 32px 16px; color: #18181b;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; margin: 0 auto; background: #fff; border-radius: 12px; border: 1px solid #e4e4e7; padding: 28px;">
-    <tr>
-      <td>
-        <h1 style="font-size: 20px; margin: 0 0 16px; color: #09090b;">Phone verification</h1>
-        <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5;">Use this code to verify your phone number:</p>
-        <p style="font-size: 24px; font-weight: 700; letter-spacing: 0.2em; margin: 0; color: #18181b;">{{code}}</p>
-      </td>
-    </tr>
-  </table>
+<body>
+  <div class="email-wrapper">
+
+    <!-- Card -->
+    <div class="card">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          PHONE VERIFICATION
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <img src="{{logo}}" alt="Zync" width="48" height="48" style="border-radius: 12px; display: block; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+        </div>
+
+        <h1>Verify your <span>phone</span></h1>
+        <p>Use the one-time code below to complete your phone verification.</p>
+      </div>
+
+      <!-- Body -->
+      <div class="body">
+
+        <p class="greeting">Hey <strong>{{name}}</strong> 👋</p>
+        <p class="intro-text">
+          To ensure the security of your Zync account, we need to verify your phone number. Please enter the OTP below in the app to continue.
+        </p>
+
+        <!-- OTP Block -->
+        <div class="otp-wrap">
+          <p class="otp-label">Your verification code</p>
+          <div class="otp-digits">
+            {{#each otp}}
+              <div class="otp-digit highlight">{{this}}</div>
+            {{/each}}
+          </div>
+          <p class="otp-copy-hint">Enter this code in the app to verify</p>
+        </div>
+
+        <!-- Expiry strip -->
+        <div class="expiry-strip">
+          <p>This code expires in <strong>10 minutes</strong>.</p>
+        </div>
+
+        <p class="signoff">
+          Stay secure,<br>
+          <strong>The Zync Team</strong>
+        </p>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>
+          © 2026 Zync. All rights reserved.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
 </body>
 </html>

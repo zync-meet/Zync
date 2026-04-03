@@ -150,7 +150,18 @@ router.post('/schedule', verifyToken, async (req, res) => {
                             projectName: title,
                         });
 
-                        await sendZyncEmail(receiver.email, emailSubject, htmlContent, textContent);
+                        await sendZyncEmail(
+                            receiver.email,
+                            emailSubject,
+                            'meet-invitation',
+                            { 
+                                inviterName: senderName, 
+                                attendeeName: recipientName,
+                                date: new Date(startTime).toLocaleDateString(),
+                                time: new Date(startTime).toLocaleTimeString(),
+                                meetingLink: meetingUrl
+                            }
+                        );
                     } catch (err) {
                         console.error("Invite email failed for", receiver.email, err);
                     }
@@ -244,7 +255,18 @@ router.post('/invite', verifyToken, async (req, res) => {
                                 projectName,
                             });
 
-                            await sendZyncEmail(receiver.email, emailSubject, htmlContent, textContent);
+                            await sendZyncEmail(
+                                receiver.email, 
+                                emailSubject, 
+                                'meet-invitation',
+                                {
+                                    inviterName: senderName,
+                                    attendeeName: recipientName,
+                                    date: new Date().toLocaleDateString(),
+                                    time: new Date().toLocaleTimeString(),
+                                    meetingLink: meetingUrl
+                                }
+                            );
                         } catch (emailErr) {
                             console.error(`Failed to email ${receiver.email}:`, emailErr);
                         }

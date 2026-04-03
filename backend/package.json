@@ -28,6 +28,7 @@
     "firebase-admin": "^13.7.0",
     "googleapis": "^170.0.0",
     "groq-sdk": "^0.37.0",
+    "handlebars": "^4.7.9",
     "helmet": "^8.1.0",
     "mime-types": "^3.0.2",
     "mongodb": "^7.1.0",

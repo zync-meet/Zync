@@ -75,20 +75,18 @@ router.post('/create', verifyToken, async (req, res) => {
         await User.updateOne({ uid }, { $set: { teamMemberships: memberships } });
 
         if (initialInvites && Array.isArray(initialInvites) && initialInvites.length > 0) {
-            const { sendZYNCEmail } = require('../services/mailer');
+            const { sendEmail } = require('../services/mailer');
             initialInvites.forEach(async (email) => {
                 if (!email) return;
                 try {
-                    await sendZYNCEmail(
+                    await sendEmail(
+                        'welcome',
                         email,
-                        `Join ${name} on ZYNC!`,
-                        `
-                          <h2>You've been invited to join a team!</h2>
-                          <p>${user.displayName || 'A colleague'} has invited you to join the <strong>${name}</strong> team on ZYNC.</p>
-                          <p><strong>Invite Code: ${inviteCode}</strong></p>
-                          <p>Login to ZYNC and enter this code to join.</p>
-                        `,
-                        `You've been invited to join ${name}. Invite Code: ${inviteCode}`
+                        { 
+                            name: 'there',
+                            message: `${user.displayName || 'A colleague'} has invited you to join the ${name} team on ZYNC. Invite Code: ${inviteCode}`
+                        },
+                        `Join ${name} on ZYNC!`
                     );
                 } catch (err) {
                     console.error(`Failed to send invite to ${email}:`, err);
@@ -226,17 +224,15 @@ router.post('/invite', verifyToken, async (req, res) => {
         const team = await Team.findById(teamId).lean();
         if (!team) return res.status(404).json({ message: 'Team not found' });
 
-        const { sendZYNCEmail } = require('../services/mailer');
-        await sendZYNCEmail(
+        const { sendEmail } = require('../services/mailer');
+        await sendEmail(
             email,
             `You're invited to join ${team.name} on ZYNC!`,
-            `
-              <h2>Team Invitation</h2>
-              <p>${user.displayName || 'A colleague'} has invited you to join the <strong>${team.name}</strong> team.</p>
-              <p><strong>Invite Code: ${team.inviteCode}</strong></p>
-              <p>Login to ZYNC and enter this code to join the team.</p>
-            `,
-            `You've been invited to join ${team.name}. Invite Code: ${team.inviteCode}`
+            'welcome',
+            {
+                name: 'there',
+                message: `${user.displayName || 'A colleague'} has invited you to join the ${team.name} team. Invite Code: ${team.inviteCode}`
+            }
         );
 
         res.status(200).json({ message: 'Invitation sent successfully' });

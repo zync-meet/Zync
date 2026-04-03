@@ -3,18 +3,236 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Task assignment</title>
+  <title>New Task Assignment – Zync</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #060b14;
+      font-family: 'DM Sans', Arial, sans-serif;
+      color: #e2e8f0;
+      padding: 40px 16px;
+    }
+  </style>
 </head>
-<body style="font-family: Arial, Helvetica, sans-serif; color: #333; margin: 0; padding: 24px 16px; background: #f9fafb;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; margin: 0 auto;">
+<body>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr>
-      <td>
-        <h2 style="font-size: 20px; margin: 0 0 16px;">New task assignment</h2>
-        <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5;">You have been assigned a new task in project <strong>{{projectName}}</strong>.</p>
-        <div style="background: #f4f4f4; padding: 15px; border-radius: 8px; margin: 15px 0;">
-          {{taskDetails}}
-        </div>
-        <p style="margin: 0; font-size: 14px; color: #52525b;">Please log in to Zync to view more details.</p>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px;">
+
+          <!-- Brand bar -->
+          <tr>
+            <td style="padding: 0 4px 24px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width:34px; height:34px; border-radius:9px; text-align:center; vertical-align:middle;">
+                          <img src="{{logo}}" alt="Zync" width="34" height="34" style="border-radius:9px; display:block;">
+                        </td>
+                        <td style="padding-left:10px; font-size:17px; font-weight:700; color:#f0f4f8; letter-spacing:0.3px;">Zync</td>
+                        <td style="padding-left:8px;">
+                          <span style="font-size:10px; font-weight:600; color:#1a8fd1; background:rgba(26,143,209,0.12); border:1px solid rgba(26,143,209,0.3); padding:3px 9px; border-radius:999px; letter-spacing:0.8px;">BETA</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main card -->
+          <tr>
+            <td style="background:#0d1421; border:1px solid #1c2a3f; border-radius:18px; overflow:hidden;">
+
+              <!-- Hero -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:44px 48px 36px; text-align:center; border-bottom:1px solid #1c2a3f; background:linear-gradient(180deg, rgba(26,143,209,0.06) 0%, transparent 100%);">
+
+                    <!-- Badge -->
+                    <div style="display:inline-block; background:rgba(26,143,209,0.1); border:1px solid rgba(26,143,209,0.25); border-radius:999px; padding:5px 14px; font-size:12px; font-weight:500; color:#5bb8f5; margin-bottom:20px; letter-spacing:0.3px;">
+                      ✦ &nbsp;NEW TASK ASSIGNED
+                    </div>
+
+                    <!-- Icon -->
+                    <div style="width:60px; height:60px; background:rgba(26,143,209,0.1); border:1px solid rgba(26,143,209,0.2); border-radius:14px; margin:0 auto 20px; display:flex; align-items:center; justify-content:center;">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1a8fd1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                      </svg>
+                    </div>
+
+                    <h1 style="font-size:26px; font-weight:700; color:#f0f6ff; line-height:1.25; margin-bottom:10px; letter-spacing:-0.4px;">You've got a new task</h1>
+                    <p style="font-size:15px; color:#6e8ca8; line-height:1.7; max-width:360px; margin:0 auto;">
+                      A task has been assigned to you in <strong style="color:#5bb8f5;">{{projectName}}</strong>. Head to your workspace to get started.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Body -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:36px 48px;">
+
+                    <!-- Greeting -->
+                    <p style="font-size:15px; color:#cbd5e1; line-height:1.75; margin-bottom:24px;">
+                      Hey <strong style="color:#f0f4f8;">{{firstName}}</strong> 👋
+                    </p>
+
+                    <!-- Task details card -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                      <tr>
+                        <td style="background:#0a1525; border:1px solid #1c2a3f; border-radius:14px; overflow:hidden;">
+
+                          <!-- Card top accent line -->
+                          <div style="height:2px; background:linear-gradient(90deg, transparent, #1a8fd1, transparent);"></div>
+
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="padding:20px 22px 16px;">
+                                <p style="font-family:'DM Mono',monospace; font-size:10px; font-weight:500; color:#3a5a78; text-transform:uppercase; letter-spacing:1.3px; margin-bottom:14px;">Task Details</p>
+
+                                <!-- Task name -->
+                                <p style="font-size:17px; font-weight:700; color:#f0f6ff; margin-bottom:16px; line-height:1.3;">{{taskName}}</p>
+
+                                <!-- Meta rows -->
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+
+                                  <tr>
+                                    <td style="padding:7px 0; border-top:1px solid #1c2a3f;">
+                                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                          <td style="font-size:12.5px; color:#3a5a78; width:100px;">
+                                            <svg style="vertical-align:middle; margin-right:5px;" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a5a78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                                            Project
+                                          </td>
+                                          <td style="font-size:13px; font-weight:600; color:#dde8f4; text-align:right;">{{projectName}}</td>
+                                        </tr>
+                                      </table>
+                                    </td>
+                                  </tr>
+
+                                  <tr>
+                                    <td style="padding:7px 0; border-top:1px solid #1c2a3f;">
+                                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                          <td style="font-size:12.5px; color:#3a5a78; width:100px;">
+                                            <svg style="vertical-align:middle; margin-right:5px;" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a5a78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                                            Assigned by
+                                          </td>
+                                          <td style="font-size:13px; font-weight:600; color:#dde8f4; text-align:right;">{{assignedBy}}</td>
+                                        </tr>
+                                      </table>
+                                    </td>
+                                  </tr>
+
+                                  <tr>
+                                    <td style="padding:7px 0; border-top:1px solid #1c2a3f;">
+                                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                          <td style="font-size:12.5px; color:#3a5a78; width:100px;">
+                                            <svg style="vertical-align:middle; margin-right:5px;" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a5a78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                            Due date
+                                          </td>
+                                          <td style="font-size:13px; font-weight:600; color:#fb923c; text-align:right;">{{dueDate}}</td>
+                                        </tr>
+                                      </table>
+                                    </td>
+                                  </tr>
+
+                                  <tr>
+                                    <td style="padding:7px 0; border-top:1px solid #1c2a3f;">
+                                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                          <td style="font-size:12.5px; color:#3a5a78; width:100px;">
+                                            <svg style="vertical-align:middle; margin-right:5px;" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a5a78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                            Priority
+                                          </td>
+                                          <td style="text-align:right;">
+                                            <span style="font-size:11px; font-weight:600; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); padding:3px 10px; border-radius:999px;">{{priority}}</span>
+                                          </td>
+                                        </tr>
+                                      </table>
+                                    </td>
+                                  </tr>
+
+                                </table>
+                              </td>
+                            </tr>
+
+                            <!-- Task description -->
+                            <tr>
+                              <td style="padding:0 22px 20px;">
+                                <div style="background:#101b2e; border:1px solid #1c2a3f; border-radius:10px; padding:14px 16px;">
+                                  <p style="font-family:'DM Mono',monospace; font-size:10px; color:#3a5a78; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Description</p>
+                                  <p style="font-size:13.5px; color:#8da2b8; line-height:1.65;">{{taskDescription}}</p>
+                                </div>
+                              </td>
+                            </tr>
+
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- CTA -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+                      <tr>
+                        <td align="center">
+                          <a href="{{taskUrl}}" style="display:inline-block; background:#1a8fd1; color:#ffffff; text-decoration:none; font-size:15px; font-weight:600; padding:14px 36px; border-radius:10px; letter-spacing:0.2px;">
+                            View Task →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Divider -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                      <tr><td style="border-top:1px solid #1c2a3f; height:1px;"></td></tr>
+                    </table>
+
+                    <!-- Sign off -->
+                    <p style="font-size:15px; color:#8da2b8; line-height:1.75;">
+                      Good luck with the task,<br>
+                      <strong style="color:#dde8f4;">The Zync Team</strong>
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Footer -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:#090f1c; border-top:1px solid #1c2a3f; padding:22px 48px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+                      <tr>
+                        <td align="center">
+                          <a href="#" style="font-size:12px; color:#3a5a78; text-decoration:none; margin:0 10px;">Features</a>
+                          <a href="#" style="font-size:12px; color:#3a5a78; text-decoration:none; margin:0 10px;">Mobile App</a>
+                          <a href="#" style="font-size:12px; color:#3a5a78; text-decoration:none; margin:0 10px;">Contact</a>
+                          <a href="#" style="font-size:12px; color:#3a5a78; text-decoration:none; margin:0 10px;">Unsubscribe</a>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="font-size:12px; color:#2d4560; text-align:center; line-height:1.6;">
+                      You received this because a task was assigned to you on
+                      <a href="https://zync-meet.vercel.app" style="color:#3a6f96; text-decoration:none;">zync-meet.vercel.app</a><br>
+                      © 2026 Zync. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+        </table>
       </td>
     </tr>
   </table>

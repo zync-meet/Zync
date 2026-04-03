@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { sendZyncEmail } = require('../services/mailer');
-const { getTaskAssignmentEmailHtml } = require('../utils/emailTemplates');
+const { sendEmail } = require('../services/mailer');
 const { escapeRegExp } = require('../utils/regexUtils');
 const User = require('../models/User');
 const Team = require('../models/Team');
@@ -678,7 +677,13 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
           ],
         });
         try {
-          await sendZyncEmail(assigneeUser.email, subject, html, text);
+          await sendEmail('task-assignment', assigneeUser.email, {
+            name: assigneeUser.displayName || 'there',
+            projectName: project.name,
+            taskName: title,
+            assignedBy: assignedBy || 'Admin',
+            taskDescription: description || 'No description'
+          }, subject);
         } catch (emailError) {
           console.error("Failed to send assignment email:", emailError);
         }
@@ -748,7 +753,13 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
           });
 
           try {
-            await sendZyncEmail(assigneeUser.email, subject, html, text);
+            await sendEmail('task-assignment', assigneeUser.email, {
+              name: assigneeUser.displayName || 'there',
+              projectName: project.name,
+              taskName: task.title,
+              assignedBy: assignedBy || 'Admin',
+              taskDescription: task.description || 'No description'
+            }, subject);
           } catch (emailError) {
             console.error("Failed to send assignment email:", emailError);
           }
@@ -928,16 +939,14 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
       if (assigneeUser && assigneeUser.email) {
         const subject = `New Task Assigned: ${newTask.title}`;
         const text = `You have been assigned a new task in project "${project.name}".\n\nTask: ${newTask.title}\nDescription: ${newTask.description || 'No description'}\nAssigned By: Admin`;
-        const html = getTaskAssignmentEmailHtml({
-          projectName: project.name,
-          lines: [
-            { label: 'Task', value: newTask.title },
-            { label: 'Description', value: newTask.description || 'No description' },
-            { label: 'Assigned By', value: 'Admin' },
-          ],
-        });
         try {
-          await sendZyncEmail(assigneeUser.email, subject, html, text);
+          await sendEmail('task-assignment', assigneeUser.email, {
+            name: assigneeUser.displayName || 'there',
+            projectName: project.name,
+            taskName: newTask.title,
+            assignedBy: 'Admin',
+            taskDescription: newTask.description || 'No description'
+          }, subject);
         } catch (emailError) {
           console.error("Failed to send assignment email:", emailError);
         }
