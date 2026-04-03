@@ -405,7 +405,7 @@ export default function ActivityLogView({
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => {
+                            label: (ctx: any) => {
                                 const v = Number(ctx.raw) || 0;
                                 const m = Math.round(v / 60);
                                 return `${ctx.label}: ${m} min`;
@@ -466,7 +466,7 @@ export default function ActivityLogView({
                         ticks: {
                             color: T.text3,
                             font: { family: 'DM Mono', size: 10 },
-                            callback: (v) => `${v}m`,
+                            callback: (v: any) => `${v}m`,
                         },
                     },
                 },

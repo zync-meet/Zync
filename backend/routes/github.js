@@ -5,6 +5,7 @@ const CryptoJS = require('crypto-js');
 const User = require('../models/User');
 const verifyToken = require('../middleware/authMiddleware');
 const { normalizeDoc } = require('../utils/normalize');
+const { getInstallationAccessToken } = require('../utils/githubAppAuth');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
@@ -53,12 +54,16 @@ router.post('/connect', verifyToken, async (req, res) => {
   }
 
   try {
-    const githubResponse = await axios.get('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
+    const githubResponse = await fetchWithEtag(
+      'https://api.github.com/user',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      },
+      `connect_user_${uid}`
+    );
 
     const githubUsername = githubResponse.data.login;
     const encryptedToken = encryptToken(accessToken);
@@ -160,12 +165,16 @@ router.post('/callback', verifyToken, async (req, res) => {
       return res.status(400).json({ message: error_description || 'Failed to exchange code for token' });
     }
 
-    const userResponse = await axios.get('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
+    const userResponse = await fetchWithEtag(
+      'https://api.github.com/user',
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      },
+      `callback_user_${uid}`
+    );
 
     const githubUser = userResponse.data;
     const encryptedToken = encryptToken(access_token);
@@ -615,22 +624,24 @@ router.get('/readme', verifyToken, async (req, res) => {
     }
 
     const installationId = github.installationId;
-    const appId = process.env.GITHUB_APP_ID;
-    let privateKey = process.env.GITHUB_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-    const { App } = await import('octokit');
-    const app = new App({ appId, privateKey });
-    const octokit = await app.getInstallationOctokit(parseInt(installationId));
+    const accessToken = await getInstallationAccessToken(installationId);
+    const readmeCacheKey = `readme_${uid}_${owner}_${repo}_${installationId}`;
 
     try {
-      const response = await octokit.request('GET /repos/{owner}/{repo}/readme', {
-        owner,
-        repo,
-        mediaType: { format: 'raw' }
-      });
+      const response = await fetchWithEtag(
+        `https://api.github.com/repos/${owner}/${repo}/readme`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/vnd.github.raw+json'
+          }
+        },
+        readmeCacheKey
+      );
+
       res.send(response.data);
     } catch (err) {
-      if (err.status === 404) {
+      if (err.response && err.response.status === 404) {
         return res.send("# No README found");
       }
       throw err;
