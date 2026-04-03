@@ -22,6 +22,10 @@ export interface UserData {
     teamId?: Team | string | null;
     teamMemberships?: string[];
     closeFriends?: string[];
+    timezone?: string | null;
+    country?: string | null;
+    countryCode?: string | null;
+    city?: string | null;
     [key: string]: any;
 }
 

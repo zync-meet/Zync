@@ -36,6 +36,26 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Check if password appears in known data breaches
+      const breachRes = await fetch(`${API_BASE_URL}/api/users/check-breached-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (breachRes.ok) {
+        const breachData = await breachRes.json();
+        if (breachData.isCompromised) {
+          toast({
+            variant: 'destructive',
+            title: 'Compromised password',
+            description: `This password has appeared in ${breachData.count.toLocaleString()} known data breaches. Please choose a different password.`,
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       const result = await createUserWithEmailAndPassword(auth, email, password);
       const token = await result.user.getIdToken();
 
