@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Github } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/utils";
+import { postLoginRedirect } from "@/lib/postLoginRedirect";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -26,12 +27,9 @@ const Signup = () => {
   }, [location.state]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        navigate("/dashboard");
-      }
-    });
-    return () => unsubscribe();
+    if (auth.currentUser) {
+      void postLoginRedirect(navigate, auth.currentUser);
+    }
   }, [navigate]);
 
   const handleEmailSignup = async (e: React.FormEvent) => {
@@ -61,7 +59,7 @@ const Signup = () => {
         title: "Success",
         description: "Account created successfully",
       });
-      navigate("/dashboard");
+      await postLoginRedirect(navigate, result.user);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -104,6 +102,7 @@ const Signup = () => {
             await linkWithCredential(result.user, pendingCred);
 
             toast({ title: "Success", description: "Accounts linked successfully!" });
+            await postLoginRedirect(navigate, result.user);
           }
         }
       } catch (linkError: any) {
@@ -144,6 +143,7 @@ const Signup = () => {
       }
 
       toast({ title: "Success", description: "Signed up with GitHub successfully" });
+      await postLoginRedirect(navigate, result.user);
     } catch (error: any) {
       await handleAccountLinking(error);
     } finally {
@@ -158,8 +158,9 @@ const Signup = () => {
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       toast({ title: "Success", description: "Signed up with Google successfully" });
+      await postLoginRedirect(navigate, result.user);
     } catch (error: any) {
       await handleAccountLinking(error);
     } finally {

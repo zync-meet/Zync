@@ -12,6 +12,7 @@ const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const authMiddleware = require('../middleware/authMiddleware');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
+const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 const { getProjectWithSteps, getProjectsWithSteps } = require('../utils/projectHelper');
 const cache = require('../utils/cache');
 
@@ -26,6 +27,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
 const MODEL_NAME = "gemini-2.5-flash";
 console.log(`[Config] Using Gemini Model: ${MODEL_NAME}`);
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+const ARCHITECTURE_CACHE_TTL_MS = Number.parseInt(process.env.ARCHITECTURE_CACHE_TTL_MS || '21600000', 10);
+const architectureAnalysisCache = new Map();
 
 
 const decryptToken = (ciphertext) => {
@@ -53,6 +56,48 @@ const logDebug = (message) => {
   const timestamp = new Date().toISOString();
   logStream.write(`[${timestamp}] ${message}\n`);
   console.log(`[DEBUG] ${message}`);
+};
+
+const makeArchitectureCacheId = (projectId, repoCacheKey) => `${projectId}:${repoCacheKey}`;
+
+const getArchitectureFromMemoryCache = (projectId, repoCacheKey) => {
+  if (!projectId || !repoCacheKey) return null;
+  const cacheId = makeArchitectureCacheId(projectId, repoCacheKey);
+  const cacheEntry = architectureAnalysisCache.get(cacheId);
+  if (!cacheEntry) return null;
+
+  if (cacheEntry.expiresAt <= Date.now()) {
+    architectureAnalysisCache.delete(cacheId);
+    return null;
+  }
+
+  return cacheEntry.architecture;
+};
+
+const setArchitectureInMemoryCache = (projectId, repoCacheKey, architecture) => {
+  if (!projectId || !repoCacheKey || !architecture) return;
+  const cacheId = makeArchitectureCacheId(projectId, repoCacheKey);
+  architectureAnalysisCache.set(cacheId, {
+    architecture,
+    expiresAt: Date.now() + ARCHITECTURE_CACHE_TTL_MS,
+  });
+};
+
+const buildRepoFreshnessKey = async (accessToken, owner, repo) => {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: 'application/vnd.github.v3+json'
+  };
+
+  const repoRes = await axios.get(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+  const repoData = repoRes.data || {};
+
+  return [
+    repoData.full_name || `${owner}/${repo}`,
+    repoData.default_branch || '',
+    repoData.pushed_at || '',
+    repoData.updated_at || ''
+  ].join('|');
 };
 
 
@@ -207,6 +252,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+    const forceRefresh = req.query.forceRefresh === 'true' || req.body?.forceRefresh === true;
     const project = await Project.findById(id).lean();
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
@@ -232,6 +278,31 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
       return res.status(500).json({ message: 'Failed to decrypt GitHub token' });
     }
 
+    let repoCacheKey = null;
+    try {
+      repoCacheKey = await buildRepoFreshnessKey(accessToken, githubRepoOwner, githubRepoName);
+    } catch (cacheKeyError) {
+      logDebug(`Failed to build repo freshness key: ${cacheKeyError.message}`);
+    }
+
+    if (!forceRefresh && repoCacheKey) {
+      const memoryCachedArch = getArchitectureFromMemoryCache(id, repoCacheKey);
+      if (memoryCachedArch) {
+        await Project.updateOne(
+          { _id: id },
+          { $set: { architecture: memoryCachedArch, architectureCacheKey: repoCacheKey } }
+        );
+        const cachedProject = await getProjectWithSteps(id);
+        return res.json(cachedProject);
+      }
+
+      if (project.architecture && project.architectureCacheKey === repoCacheKey) {
+        setArchitectureInMemoryCache(id, repoCacheKey, project.architecture);
+        const cachedProject = await getProjectWithSteps(id);
+        return res.json(cachedProject);
+      }
+    }
+
     console.log(`Analyzing GitHub Repo: ${githubRepoOwner}/${githubRepoName}...`);
     const context = await fetchRepoContext(accessToken, githubRepoOwner, githubRepoName);
     const analyzedArch = await analyzeWithGemini(context, project.name);
@@ -239,7 +310,16 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
     console.log("Analysis Result:", JSON.stringify(analyzedArch, null, 2));
 
     if (analyzedArch && Object.keys(analyzedArch).length > 0) {
-      await Project.updateOne({ _id: id }, { $set: { architecture: analyzedArch } });
+      const updates = {
+        architecture: analyzedArch,
+        architectureAnalyzedAt: new Date(),
+      };
+      if (repoCacheKey) {
+        updates.architectureCacheKey = repoCacheKey;
+        setArchitectureInMemoryCache(id, repoCacheKey, analyzedArch);
+      }
+
+      await Project.updateOne({ _id: id }, { $set: updates });
       console.log("Project architecture saved successfully.");
       const updatedProject = await getProjectWithSteps(id);
       invalidateProjectCache(project);
@@ -418,9 +498,11 @@ router.get('/', authMiddleware, async (req, res) => {
     const projectMap = new Map();
     [...projects, ...assignedProjects].forEach(p => projectMap.set(p.id, p));
     const allProjects = Array.from(projectMap.values());
+    const { items, pagination } = paginateArray(allProjects, req.query);
+    setPaginationHeaders(res, pagination);
 
     cache.setJson(cacheKey, allProjects, 60);
-    res.json(allProjects);
+    res.json(items);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -762,7 +844,10 @@ router.get('/tasks/search', authMiddleware, async (req, res) => {
       };
     });
 
-    res.json(results);
+    const { items, pagination } = paginateArray(results, req.query, { defaultLimit: 10, maxLimit: 50 });
+    setPaginationHeaders(res, pagination);
+
+    res.json(items);
   } catch (error) {
     console.error('Error searching tasks:', error);
     res.status(500).json({ message: 'Server error' });

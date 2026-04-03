@@ -92,12 +92,22 @@ export interface Repository {
     };
 }
 
-export const useGitHubRepos = (enabled: boolean) => {
-    return useQuery<Repository[]>({
-        queryKey: ['github', 'repos'],
+export interface GitHubReposResponse {
+    repos: Repository[];
+    hasNextPage: boolean;
+    page: number;
+}
+
+export const useGitHubRepos = (enabled: boolean, page: number = 1) => {
+    return useQuery<GitHubReposResponse>({
+        queryKey: ['github', 'repos', page],
         queryFn: async () => {
-            const data = await fetchWithAuth(`${API_BASE_URL}/api/github/repos`);
-            return data.repos || data;
+            const data = await fetchWithAuth(`${API_BASE_URL}/api/github/repos?page=${page}`);
+            return {
+                repos: data.repos || (Array.isArray(data) ? data : []),
+                hasNextPage: data.hasNextPage || false,
+                page: data.page || page
+            };
         },
         enabled,
     });

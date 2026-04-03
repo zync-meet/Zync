@@ -7,6 +7,7 @@ const { encrypt } = require('../utils/encryption');
 const { sendZyncEmail } = require('../services/mailer');
 const { appendRow } = require('../services/sheetLogger');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
+const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 const {
   getNewUserRegistrationTemplate,
   getPhoneVerificationEmailHtml,
@@ -185,10 +186,12 @@ router.get('/search', verifyToken, async (req, res) => {
       ]
     })
       .select('uid displayName email photoURL status lastSeen teamMemberships')
-      .limit(20)
       .lean();
 
-    res.json(normalizeDocs(users));
+    const { items, pagination } = paginateArray(normalizeDocs(users), req.query, { defaultLimit: 20, maxLimit: 100 });
+    setPaginationHeaders(res, pagination);
+
+    res.json(items);
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ message: 'Server error during search' });
@@ -344,7 +347,9 @@ router.get('/', verifyToken, async (req, res) => {
         .sort({ lastSeen: -1 })
         .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
         .lean();
-      return res.status(200).json(normalizeDocs(users));
+      const { items, pagination } = paginateArray(normalizeDocs(users), req.query);
+      setPaginationHeaders(res, pagination);
+      return res.status(200).json(items);
     }
 
     const relatedUids = new Set(currentUser.connections || []);
@@ -365,7 +370,9 @@ router.get('/', verifyToken, async (req, res) => {
       .select('-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires')
       .sort({ lastSeen: -1 })
       .lean();
-    res.status(200).json(normalizeDocs(users));
+    const { items, pagination } = paginateArray(normalizeDocs(users), req.query);
+    setPaginationHeaders(res, pagination);
+    res.status(200).json(items);
 
   } catch (error) {
     console.error('Error fetching users:', error);

@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const verifyToken = require('../middleware/authMiddleware');
+const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 
 // Middleware: reject early if DB not connected
 const requireDb = (req, res, next) => {
@@ -62,11 +63,14 @@ router.get('/conversations', verifyToken, requireDb, async (req, res) => {
         doc: { $first: '$$ROOT' }
       }},
       { $replaceRoot: { newRoot: '$doc' } },
-      { $sort: { createdAt: -1 } },
-      { $limit: 100 }
+      { $sort: { createdAt: -1 } }
     ]);
 
-    res.json(conversations.map(m => ({ ...m, id: String(m._id) })));
+    const normalized = conversations.map(m => ({ ...m, id: String(m._id) }));
+    const { items, pagination } = paginateArray(normalized, req.query, { defaultLimit: 100, maxLimit: 200 });
+    setPaginationHeaders(res, pagination);
+
+    res.json(items);
   } catch (error) {
     console.error('[ChatRoutes] conversations error:', error);
     res.status(500).json({ error: error.message });

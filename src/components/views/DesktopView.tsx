@@ -434,7 +434,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       const fetchLeaderTasks = async () => {
         try {
           const token = await currentUser.getIdToken();
-          const response = await fetch(`${API_BASE_URL}/api/projects?ownerId=${currentUser.uid}`, {
+          const response = await fetch(`${API_BASE_URL}/api/projects`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (response.ok) {

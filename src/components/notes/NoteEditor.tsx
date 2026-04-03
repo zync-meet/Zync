@@ -69,7 +69,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
 
   useEffect(() => {
     if (user.uid) {
-      fetchProjects(user.uid).then(setProjects).catch(e => console.error(e));
+      fetchProjects().then(setProjects).catch(e => console.error(e));
     }
   }, [user.uid]);
 

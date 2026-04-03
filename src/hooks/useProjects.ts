@@ -1,35 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
-
-export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  ownerId: string;
-  createdAt: string;
-  githubRepoName?: string;
-  githubRepoOwner?: string;
-  isTrackingActive?: boolean;
-}
-
-const fetchProjects = async (userId: string): Promise<Project[]> => {
-    const user = auth.currentUser;
-    const token = await user?.getIdToken();
-    const response = await fetch(`${API_BASE_URL}/api/projects?userId=${userId}`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-    if (!response.ok) {throw new Error('Failed to fetch projects');}
-    return response.json();
-};
+import { fetchProjects, type Project } from "@/api/projects";
 
 export const useProjects = () => {
     const user = auth.currentUser;
     return useQuery<Project[]>({
         queryKey: ['projects', user?.uid],
-        queryFn: () => fetchProjects(user?.uid || ""),
+        queryFn: fetchProjects,
         enabled: !!user,
         refetchOnMount: false,
     });
