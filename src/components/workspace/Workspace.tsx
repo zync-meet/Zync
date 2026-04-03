@@ -6,7 +6,7 @@ import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FolderGit2, Plus, ArrowRight, Calendar, User, Trash2, Pin, FileText, Unlink, Search, Github } from "lucide-react";
+import { FolderGit2, Plus, ArrowRight, Calendar, User, Trash2, Pin, FileText, Unlink, Search, Github, CheckSquare } from "lucide-react";
 import { RepositoryListSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +24,15 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProjects, useProjectMutations } from "@/hooks/useProjects";
 import { usePinnedNotes } from "@/hooks/useNotes";
+import TaskAssignmentDrawer from "@/components/workspace/TaskAssignmentDrawer";
 
 interface Project {
   id: string;
   name: string;
   description: string;
   ownerId: string;
+  ownerUid?: string;
+  team?: string[];
   createdAt: string;
   githubRepoName?: string;
   githubRepoOwner?: string;
@@ -50,7 +53,13 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const { data: pinnedNotes = [], isLoading: notesLoading } = usePinnedNotes();
-  const { deleteProject, linkGitHub, createProject, isCreating: creatingProject } = useProjectMutations();
+  const {
+    deleteProject,
+    linkGitHub,
+    createProject,
+    isCreating: creatingProject,
+    isDeleting: deletingProject,
+  } = useProjectMutations();
 
   const loading = projectsLoading || notesLoading;
 
@@ -62,9 +71,26 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedRepos, setSelectedRepos] = useState<any[]>([]);
   const [creatingProjects, setCreatingProjects] = useState(false);
+  const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
+  const [selectedProjectForTask, setSelectedProjectForTask] = useState<Project | null>(null);
+  const [taskName, setTaskName] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
+  const [activeCollaborators, setActiveCollaborators] = useState<any[]>([]);
+  const [availableTeamMembers, setAvailableTeamMembers] = useState<any[]>([]);
+  const [loadingAssignableUsers, setLoadingAssignableUsers] = useState(false);
+  const [invitingCollaborator, setInvitingCollaborator] = useState(false);
+  const [assigningTask, setAssigningTask] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  const normalizeRepoList = (payload: any) => {
+    if (Array.isArray(payload)) {return payload;}
+    if (Array.isArray(payload?.repos)) {return payload.repos;}
+    if (Array.isArray(payload?.repositories)) {return payload.repositories;}
+    return [];
+  };
 
   const handleOpenLinkModal = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
@@ -83,7 +109,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
           });
           if (response.ok) {
             const data = await response.json();
-            setRepos(data);
+            setRepos(normalizeRepoList(data));
           }
         }
       } catch (err) {
@@ -126,7 +152,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
           });
           if (response.ok) {
             const data = await response.json();
-            setRepos(data);
+            setRepos(normalizeRepoList(data));
           }
         }
       } catch (err) {
@@ -228,13 +254,154 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
   const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this project?")) { return; }
+    if (!confirm("Are you sure you want to delete this project? This action cannot be undone.")) { return; }
 
     try {
       await deleteProject(projectId);
       toast({ title: "Project deleted", description: "The project has been successfully removed." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete project.", variant: "destructive" });
+    }
+  };
+
+  const fetchCollaboratorData = async (projectId: string) => {
+    setLoadingAssignableUsers(true);
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : null;
+
+      const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/collaborator-assignees`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody?.message || "Failed to fetch collaborator assignees");
+      }
+
+      const data = await response.json();
+      setActiveCollaborators(Array.isArray(data?.activeCollaborators) ? data.activeCollaborators : []);
+      setAvailableTeamMembers(Array.isArray(data?.availableTeamMembers) ? data.availableTeamMembers : []);
+    } catch (error) {
+      console.error("Failed to load users for task assignment", error);
+      toast({ title: "Error", description: "Failed to load collaborator data.", variant: "destructive" });
+    } finally {
+      setLoadingAssignableUsers(false);
+    }
+  };
+
+  const handleOpenTaskDrawer = async (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    setSelectedProjectForTask(project);
+    setTaskName("");
+    setTaskDescription("");
+    setSelectedAssigneeId(null);
+    setActiveCollaborators([]);
+    setAvailableTeamMembers([]);
+    setTaskDrawerOpen(true);
+
+    await fetchCollaboratorData(project.id);
+  };
+
+  const handleInviteCollaborator = async (userId: string) => {
+    if (!selectedProjectForTask) { return; }
+    setInvitingCollaborator(true);
+
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : null;
+
+      const response = await fetch(`${API_BASE_URL}/api/projects/${selectedProjectForTask.id}/invite-collaborator`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody?.message || "Failed to invite collaborator");
+      }
+
+      const data = await response.json();
+      toast({ title: "Invite Sent", description: data?.message || "Repository invitation sent." });
+
+      if (selectedProjectForTask) {
+        await fetchCollaboratorData(selectedProjectForTask.id);
+      }
+    } catch (error: any) {
+      console.error("Invite collaborator error:", error);
+      toast({ title: "Invite Failed", description: error?.message || "Could not send invite.", variant: "destructive" });
+    } finally {
+      setInvitingCollaborator(false);
+    }
+  };
+
+  const handleSelectAssignee = (userId: string) => {
+    setSelectedAssigneeId((prev) => (prev === userId ? null : userId));
+  };
+
+  const handleSubmitTaskAssignment = async () => {
+    if (!selectedProjectForTask) { return; }
+
+    const trimmedName = taskName.trim();
+    if (!trimmedName) {
+      toast({ title: "Validation Error", description: "Task Name is required.", variant: "destructive" });
+      return;
+    }
+
+    if (!selectedAssigneeId) {
+      toast({ title: "Validation Error", description: "Select one assignee.", variant: "destructive" });
+      return;
+    }
+
+    setAssigningTask(true);
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : null;
+
+      const response = await fetch(`${API_BASE_URL}/api/tasks/assign`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          projectId: selectedProjectForTask.id,
+          taskName: trimmedName,
+          description: taskDescription,
+          assignedUserId: selectedAssigneeId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody?.message || "Failed to assign task");
+      }
+
+      toast({
+        title: "Task assigned",
+        description: `Task has been assigned successfully.`,
+      });
+
+      setTaskDrawerOpen(false);
+      setSelectedProjectForTask(null);
+      setTaskName("");
+      setTaskDescription("");
+      setSelectedAssigneeId(null);
+    } catch (error: any) {
+      console.error("Task assignment error:", error);
+      toast({
+        title: "Assignment Failed",
+        description: error?.message || "Could not assign task.",
+        variant: "destructive",
+      });
+    } finally {
+      setAssigningTask(false);
     }
   };
 
@@ -279,9 +446,14 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     }
   }, [location.search, currentUser, navigate, toast]);
 
-  const filteredRepos = repos.filter(repo =>
+  const safeRepos = Array.isArray(repos) ? repos : normalizeRepoList(repos);
+  const filteredRepos = safeRepos.filter(repo =>
     repo.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getProjectOwnerUid = (project: Project) => project.ownerUid || project.ownerId;
+  const isProjectOwner = (project: Project) => getProjectOwnerUid(project) === currentUser?.uid;
+  const canAssignTaskForProject = (project: Project) => isProjectOwner(project);
 
   if (loading) {
     return <RepositoryListSkeleton />;
@@ -356,7 +528,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <Badge variant="outline" className="mb-2">Project</Badge>
-                    {project.ownerId === currentUser?.uid && (
+                    {isProjectOwner(project) && (
                       <Badge variant="secondary" className="text-xs">Owner</Badge>
                     )}
                   </div>
@@ -375,27 +547,27 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                     </div>
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4" />
-                      {project.ownerId === currentUser?.uid ? (
+                      {isProjectOwner(project) ? (
                         <span>By You</span>
                       ) : (
                         <div className="flex items-center gap-2">
                           <span>By</span>
                           <div className="flex items-center gap-1 bg-secondary/50 pr-2 pl-1 py-0.5 rounded-full">
                             <Avatar className="w-4 h-4">
-                              <AvatarImage src={getFullUrl(usersList?.find(u => u.uid === project.ownerId)?.photoURL)} />
+                              <AvatarImage src={getFullUrl(usersList?.find(u => u.uid === getProjectOwnerUid(project))?.photoURL)} />
                               <AvatarFallback className="text-[8px]">
-                                {usersList?.find(u => u.uid === project.ownerId)?.displayName?.substring(0, 2) || '??'}
+                                {usersList?.find(u => u.uid === getProjectOwnerUid(project))?.displayName?.substring(0, 2) || '??'}
                               </AvatarFallback>
                             </Avatar>
                             <span className="font-medium text-xs">
-                              {usersList?.find(u => u.uid === project.ownerId)?.displayName || 'Unknown'}
+                              {usersList?.find(u => u.uid === getProjectOwnerUid(project))?.displayName || 'Unknown'}
                             </span>
                           </div>
                         </div>
                       )}
                     </div>
                   </div>
-                  {!project.githubRepoName && project.ownerId === currentUser?.uid && (
+                  {!project.githubRepoName && isProjectOwner(project) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -411,7 +583,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                       <Github className="w-3 h-3 flex-shrink-0" />
                       <span className="truncate flex-1">{project.githubRepoOwner}/{project.githubRepoName}</span>
 
-                      {project.ownerId === currentUser?.uid && (
+                      {isProjectOwner(project) && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -433,15 +605,24 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                     View Architecture
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
-                  {project.ownerId === currentUser?.uid && (
+                  {canAssignTaskForProject(project) && (
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={(e) => handleOpenTaskDrawer(e, project)}
+                      title="Assign Task"
+                    >
+                      <CheckSquare className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {isProjectOwner(project) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={deletingProject}
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteProject(project.id);
-                    }}
+                      onClick={(e) => handleDeleteProject(e, project.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -634,6 +815,25 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TaskAssignmentDrawer
+        open={taskDrawerOpen}
+        onOpenChange={setTaskDrawerOpen}
+        project={selectedProjectForTask ? { id: selectedProjectForTask.id, name: selectedProjectForTask.name } : null}
+        taskName={taskName}
+        onTaskNameChange={setTaskName}
+        taskDescription={taskDescription}
+        onTaskDescriptionChange={setTaskDescription}
+        activeCollaborators={activeCollaborators}
+        availableTeamMembers={availableTeamMembers}
+        selectedUserId={selectedAssigneeId}
+        onSelectUser={handleSelectAssignee}
+        onInviteCollaborator={handleInviteCollaborator}
+        onSubmit={handleSubmitTaskAssignment}
+        isSubmitting={assigningTask}
+        isLoadingUsers={loadingAssignableUsers}
+        isInvitingCollaborator={invitingCollaborator}
+      />
     </div>
   );
 };
