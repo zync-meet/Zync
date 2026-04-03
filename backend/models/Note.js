@@ -21,5 +21,6 @@ const noteSchema = new mongoose.Schema(
 
 noteSchema.index({ ownerId: 1 });
 noteSchema.index({ folderId: 1 });
+noteSchema.index({ sharedWith: 1 });
 
 module.exports = mongoose.model('Note', noteSchema);

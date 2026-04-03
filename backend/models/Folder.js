@@ -20,5 +20,6 @@ const folderSchema = new mongoose.Schema(
 );
 
 folderSchema.index({ ownerId: 1, parentId: 1, name: 1 }, { unique: true });
+folderSchema.index({ collaborators: 1 });
 
 module.exports = mongoose.model('Folder', folderSchema);
