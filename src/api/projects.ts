@@ -7,6 +7,11 @@ export interface Project {
     name: string;
     description: string;
     ownerId: string;
+    owner?: {
+        uid: string;
+        displayName: string;
+        photoURL?: string | null;
+    } | null;
     steps: any[];
     createdAt: string;
     githubRepoName?: string;

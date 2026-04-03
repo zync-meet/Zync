@@ -677,7 +677,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
         return (
           <Workspace
             onNavigate={handleSectionChange}
-            onSelectProject={(id) => navigate(`/projects/${id}`)}
+            onSelectProject={(id) => navigate(`/projects/${id}`, { state: { from: '/dashboard/workspace' } })}
             onOpenNote={(noteId) => {
               setActiveNoteId(noteId);
               handleSectionChange("Notes");
