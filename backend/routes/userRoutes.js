@@ -28,11 +28,8 @@ router.get('/me', verifyToken, async (req, res) => {
       .lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    let teamInfo = null;
-    if (user.teamMemberships && user.teamMemberships.length > 0) {
-      teamInfo = await Team.findById(user.teamMemberships[0]).lean();
-      if (teamInfo) teamInfo = normalizeDoc(teamInfo);
-    }
+    const teams = await Team.find({ members: user.uid }).lean();
+    const teamInfo = teams.length > 0 ? normalizeDoc(teams[0]) : null;
 
     res.json({ ...normalizeDoc(user), teamId: teamInfo });
   } catch (error) {
@@ -115,11 +112,8 @@ router.post('/sync', verifyToken, async (req, res) => {
       }
     }
 
-    let teamInfo = null;
-    if (user.teamMemberships && user.teamMemberships.length > 0) {
-      teamInfo = await Team.findById(user.teamMemberships[0]).lean();
-      if (teamInfo) teamInfo = normalizeDoc(teamInfo);
-    }
+    const teams = await Team.find({ members: user.uid }).lean();
+    const teamInfo = teams.length > 0 ? normalizeDoc(teams[0]) : null;
 
     res.status(200).json({ ...normalizeDoc(user), teamId: teamInfo });
   } catch (error) {
