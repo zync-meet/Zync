@@ -25,7 +25,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
-    "firebase-admin": "^13.6.0",
+    "firebase-admin": "^13.7.0",
     "googleapis": "^170.0.0",
     "groq-sdk": "^0.37.0",
     "helmet": "^8.1.0",
@@ -33,7 +33,7 @@
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.4",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.12",
+    "nodemailer": "^8.0.4",
     "octokit": "^5.0.5",
     "pg": "^8.16.3",
     "puppeteer": "^24.35.0",
@@ -59,6 +59,7 @@
     "braces": "^3.0.3",
     "micromatch": "^4.0.8",
     "cross-spawn": "^7.0.6",
-    "got": "^11.8.5"
+    "got": "^11.8.5",
+    "@tootallnate/once": "^3.0.1"
   }
 }
