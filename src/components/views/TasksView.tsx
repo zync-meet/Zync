@@ -137,7 +137,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
 
         try {
             const token = await auth.currentUser?.getIdToken();
-            await fetch(`${API_BASE_URL}/api/projects/${task.projectId}/steps/${task.stepId}/tasks/${task._id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/projects/${task.projectId}/steps/${task.stepId}/tasks/${task._id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -146,9 +146,15 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                 body: JSON.stringify({ status: 'Active' })
             });
 
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(errBody?.message || 'Failed to mark task active');
+            }
+
             await loadTasks();
         } catch (error) {
             console.error("Failed to mark task active", error);
+            toast({ title: "Update Failed", description: "Could not move task to Active.", variant: "destructive" });
         }
     };
 
@@ -163,8 +169,8 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
         navigate(`/dashboard/workspace/project/${task.projectId}`, { state: { from: '/dashboard/tasks' } });
     };
 
-    const handleOpenRepository = (task: FlattenedTask) => {
-        markTaskActive(task);
+    const handleOpenRepository = async (task: FlattenedTask) => {
+        await markTaskActive(task);
         window.open(`https://github.com/${task.githubRepoOwner}/${task.githubRepoName}`, '_blank');
     };
 

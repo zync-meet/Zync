@@ -801,15 +801,17 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
     const step = await Step.findOne({ _id: stepId, projectId: project._id }).lean();
     if (!step) return res.status(404).json({ message: 'Step not found' });
 
     const task = await ProjectTask.findOne({ _id: taskId, stepId }).lean();
     if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    const isOwnerOrTeamMember = project.ownerUid === req.user.uid || project.team.includes(req.user.uid);
+    const isAssignedUser = task.assignedTo === req.user.uid;
+    if (!isOwnerOrTeamMember && !isAssignedUser) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
 
     const oldStatus = task.status;
 
