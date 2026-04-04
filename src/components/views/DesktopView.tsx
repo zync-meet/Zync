@@ -461,7 +461,12 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           const allTasks = projects.flatMap((p: any) =>
             p.steps.flatMap((s: any) => s.tasks || [])
           );
-          setLeaderTasks(allTasks);
+          const myTasks = allTasks.filter((task: any) => {
+            const assignedTo = task?.assignedTo;
+            const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+            return assignedTo === currentUser.uid || assignedUserIds.includes(currentUser.uid);
+          });
+          setLeaderTasks(myTasks);
         }
       } catch (error) {
         if (!cancelled) {
@@ -494,7 +499,12 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             const allTasks = projects.flatMap((p: any) =>
               p.steps.flatMap((s: any) => s.tasks || [])
             );
-            setLeaderTasks(allTasks);
+            const myTasks = allTasks.filter((task: any) => {
+              const assignedTo = task?.assignedTo;
+              const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+              return assignedTo === currentUser.uid || assignedUserIds.includes(currentUser.uid);
+            });
+            setLeaderTasks(myTasks);
           }
         } catch (error) {
           console.error("Failed to fetch tasks for activity graph", error);
