@@ -643,6 +643,7 @@ router.post('/verify-phone/confirm', async (req, res) => {
       }
     );
 
+    cache.invalidate(`user:me:${uid}`);
     res.status(200).json({ message: 'Phone number verified successfully' });
   } catch (error) {
     console.error('Error verifying phone:', error);
