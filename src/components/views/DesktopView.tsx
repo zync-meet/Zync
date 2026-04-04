@@ -726,7 +726,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     { icon: Github, label: "My Projects", active: activeSection === "My Projects" },
     { icon: CheckSquare, label: "Tasks", active: activeSection === "Tasks" },
     { icon: FileText, label: "Notes", active: activeSection === "Notes" },
-
+    { icon: Star, label: "Design", active: activeSection === "Design" },
     { icon: Clock, label: "Activity log", active: activeSection === "Activity log" },
     { icon: Users, label: "People", active: activeSection === "People" },
     { icon: Video, label: "Meet", active: activeSection === "Meet" },
