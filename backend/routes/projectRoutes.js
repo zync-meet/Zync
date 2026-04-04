@@ -9,6 +9,7 @@ const Team = require('../models/Team');
 const Project = require('../models/Project');
 const Step = require('../models/Step');
 const ProjectTask = require('../models/ProjectTask');
+const Session = require('../models/Session');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const authMiddleware = require('../middleware/authMiddleware');
@@ -22,6 +23,68 @@ async function invalidateProjectCache(project) {
   const uids = [project.ownerUid, ...(project.team || [])];
   const keys = uids.map(uid => `projects:${uid}`);
   await cache.invalidate(...keys);
+}
+
+async function logTaskAssignedActivity({ assigneeUid, taskTitle, projectName, actorName, projectId, taskId }) {
+  if (!assigneeUid) return;
+  const now = new Date();
+  await Session.create({
+    userId: assigneeUid,
+    startTime: now,
+    endTime: now,
+    duration: 0,
+    activeDuration: 0,
+    date: now.toISOString().split('T')[0],
+    eventType: 'task-assigned',
+    title: `New task assigned: ${taskTitle}`,
+    source: projectName || 'Workspace',
+    actorName: actorName || 'Admin',
+    metadata: {
+      projectId: String(projectId || ''),
+      taskId: String(taskId || ''),
+      projectName: projectName || null,
+    },
+  });
+}
+
+const normalizeTaskStatus = (value) => String(value || '').trim().toLowerCase();
+
+const isReadyLikeStatus = (value) => {
+  const normalized = normalizeTaskStatus(value);
+  return normalized === 'pending' || normalized === 'ready' || normalized === 'backlog';
+};
+
+const isActiveLikeStatus = (value) => {
+  const normalized = normalizeTaskStatus(value);
+  return normalized === 'active' || normalized === 'in progress';
+};
+
+async function logTaskProgressActivity({ recipients, taskTitle, projectName, actorName, projectId, taskId, fromStatus, toStatus }) {
+  const uniqueRecipients = [...new Set((recipients || []).filter(Boolean))];
+  if (uniqueRecipients.length === 0) return;
+
+  const now = new Date();
+  await Session.insertMany(
+    uniqueRecipients.map((uid) => ({
+      userId: uid,
+      startTime: now,
+      endTime: now,
+      duration: 0,
+      activeDuration: 0,
+      date: now.toISOString().split('T')[0],
+      eventType: 'task-progressed',
+      title: `Task moved to ${toStatus}: ${taskTitle}`,
+      source: projectName || 'Tasks',
+      actorName: actorName || 'Workspace',
+      metadata: {
+        projectId: String(projectId || ''),
+        taskId: String(taskId || ''),
+        projectName: projectName || null,
+        fromStatus: fromStatus || null,
+        toStatus: toStatus || null,
+      },
+    }))
+  );
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
@@ -548,22 +611,29 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.post('/:id/team', authMiddleware, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const requestedUid = typeof req.body?.userId === 'string' && req.body.userId.trim()
+      ? req.body.userId.trim()
+      : req.user.uid;
+    const actorUid = req.user.uid;
     const project = await Project.findById(req.params.id).lean();
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    if (project.ownerUid !== req.user.uid) {
+    // Owner can add anyone. Non-owner can only add themselves (accept invite).
+    const isOwner = project.ownerUid === actorUid;
+    const isSelfJoin = requestedUid === actorUid;
+    if (!isOwner && !isSelfJoin) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    if (!project.team.includes(userId) && project.ownerUid !== userId) {
-      const newTeam = [...project.team, userId];
+    const team = Array.isArray(project.team) ? project.team : [];
+    if (!team.includes(requestedUid) && project.ownerUid !== requestedUid) {
+      const newTeam = [...team, requestedUid];
       await Project.updateOne({ _id: req.params.id }, { $set: { team: newTeam } });
     }
 
     const full = await getProjectWithSteps(req.params.id);
-    invalidateProjectCache({ ownerUid: project.ownerUid, team: [...project.team, userId] });
+    invalidateProjectCache({ ownerUid: project.ownerUid, team: [...team, requestedUid] });
     res.json(full);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -700,7 +770,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       }
     }
 
-    await ProjectTask.create({
+    const createdTask = await ProjectTask.create({
       title,
       description: description || null,
       status: 'Pending',
@@ -710,6 +780,23 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       createdBy: req.user ? req.user.uid : (assignedBy || 'Admin'),
       stepId
     });
+
+    if (assignedTo && assignedTo !== project.ownerUid) {
+      await Project.updateOne({ _id: projectId }, { $addToSet: { team: assignedTo } });
+      await cache.invalidate(`projects:${assignedTo}`);
+    }
+
+    if (assignedTo) {
+      const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
+      await logTaskAssignedActivity({
+        assigneeUid: assignedTo,
+        taskTitle: title,
+        projectName: project.name,
+        actorName: actorUser?.displayName || actorUser?.email || assignedBy || 'Admin',
+        projectId,
+        taskId: createdTask?._id,
+      });
+    }
 
     const updatedProject = await getProjectWithSteps(projectId);
     invalidateProjectCache(project);
@@ -729,15 +816,19 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
     const step = await Step.findOne({ _id: stepId, projectId: project._id }).lean();
     if (!step) return res.status(404).json({ message: 'Step not found' });
 
     const task = await ProjectTask.findOne({ _id: taskId, stepId }).lean();
     if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    const isOwnerOrTeamMember = project.ownerUid === req.user.uid || project.team.includes(req.user.uid);
+    const isAssignedUser = task.assignedTo === req.user.uid;
+    if (!isOwnerOrTeamMember && !isAssignedUser) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const oldStatus = task.status;
 
     const taskUpdate = {};
     if (status) taskUpdate.status = status;
@@ -768,10 +859,39 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
             console.error("Failed to send assignment email:", emailError);
           }
         }
+
+        if (assignedTo !== project.ownerUid) {
+          await Project.updateOne({ _id: projectId }, { $addToSet: { team: assignedTo } });
+          await cache.invalidate(`projects:${assignedTo}`);
+        }
+
+        const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
+        await logTaskAssignedActivity({
+          assigneeUid: assignedTo,
+          taskTitle: task.title,
+          projectName: project.name,
+          actorName: actorUser?.displayName || actorUser?.email || assignedBy || 'Admin',
+          projectId,
+          taskId,
+        });
       }
     }
 
     await ProjectTask.updateOne({ _id: taskId }, { $set: taskUpdate });
+
+    if (status && isReadyLikeStatus(oldStatus) && isActiveLikeStatus(status)) {
+      const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
+      await logTaskProgressActivity({
+        recipients: [task.assignedTo, project.ownerUid],
+        taskTitle: task.title,
+        projectName: project.name,
+        actorName: actorUser?.displayName || actorUser?.email || req.user.uid,
+        projectId,
+        taskId,
+        fromStatus: oldStatus,
+        toStatus: status,
+      });
+    }
 
     const updatedProject = await getProjectWithSteps(projectId);
 

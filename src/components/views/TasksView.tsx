@@ -81,8 +81,11 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                         if (t.assignedTo !== currentUser.uid) {return;}
 
                         if (!groups[p._id]) {
-                            groups[p._id] = {
-                                projectId: p._id,
+                            const projectId = p._id || p.id;
+                            if (!projectId) {return;}
+
+                            groups[projectId] = {
+                                projectId,
                                 projectName: p.name,
                                 isOwner: p.ownerId === currentUser.uid,
                                 githubRepoName: p.githubRepoName,
@@ -91,18 +94,23 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                             };
                         }
 
-                        groups[p._id].tasks.push({
-                            id: t._id || t.id || `${p._id}-${step.id || step.name}-${idx}`,
-                            _id: t._id,
+                        const projectId = p._id || p.id;
+                        const taskId = t._id || t.id;
+                        const stepId = step._id || step.id;
+                        if (!projectId || !taskId || !stepId) {return;}
+
+                        groups[projectId].tasks.push({
+                            id: taskId,
+                            _id: taskId,
                             title: t.title || t.name || t,
                             description: t.description,
                             status: t.status || "Pending",
                             priority: t.priority || 'Medium',
                             projectName: p.name,
-                            projectId: p._id,
+                            projectId,
                             projectOwnerId: p.ownerId,
                             stepName: step.title || step.name,
-                            stepId: step._id || step.id,
+                            stepId,
                             assignedTo: t.assignedTo,
                             assignedToName: t.assignedToName,
                             createdAt: t.createdAt,
@@ -133,12 +141,18 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
 
 
     const markTaskActive = async (task: FlattenedTask) => {
-
-        if (task.status !== 'Pending') {return;}
+        if (!['Pending', 'Ready', 'Backlog'].includes(task.status)) {return;}
 
         try {
+            const projectId = task.projectId;
+            const stepId = task.stepId;
+            const taskId = task._id || task.id;
+            if (!projectId || !stepId || !taskId) {
+                throw new Error('Task identifiers are missing');
+            }
+
             const token = await auth.currentUser?.getIdToken();
-            await fetch(`${API_BASE_URL}/api/projects/${task.projectId}/steps/${task.stepId}/tasks/${task._id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/steps/${stepId}/tasks/${taskId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -147,25 +161,31 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                 body: JSON.stringify({ status: 'Active' })
             });
 
-            loadTasks();
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(errBody?.message || 'Failed to mark task active');
+            }
+
+            await loadTasks();
         } catch (error) {
             console.error("Failed to mark task active", error);
+            toast({ title: "Update Failed", description: "Could not move task to Active.", variant: "destructive" });
         }
     };
 
-    const handleOpenGitHelper = (task: FlattenedTask) => {
-        markTaskActive(task);
+    const handleOpenGitHelper = async (task: FlattenedTask) => {
+        await markTaskActive(task);
         setSelectedGitTask(task);
         setIsGitDrawerOpen(true);
     };
 
-    const handleOpenArchitecture = (task: FlattenedTask) => {
-        markTaskActive(task);
-        navigate(`/projects/${task.projectId}`);
+    const handleOpenArchitecture = async (task: FlattenedTask) => {
+        await markTaskActive(task);
+        navigate(`/dashboard/workspace/project/${task.projectId}`, { state: { from: '/dashboard/tasks' } });
     };
 
-    const handleOpenRepository = (task: FlattenedTask) => {
-        markTaskActive(task);
+    const handleOpenRepository = async (task: FlattenedTask) => {
+        await markTaskActive(task);
         window.open(`https://github.com/${task.githubRepoOwner}/${task.githubRepoName}`, '_blank');
     };
 

@@ -33,6 +33,7 @@ interface Project {
   id: string;
   name: string;
   description: string;
+  ownerUid?: string;
   architecture: {
     highLevel: string;
     frontend: {
@@ -334,8 +335,8 @@ const ProjectDetails = () => {
 
     try {
       const step = project.steps[stepIndex];
-      const realStepId = step._id;
-      const realTaskId = step.tasks[taskIndex]._id;
+      const realStepId = step._id || step.id;
+      const realTaskId = step.tasks[taskIndex]._id || step.tasks[taskIndex].id;
 
       if (!realStepId || !realTaskId) {return;}
 
@@ -491,7 +492,7 @@ const ProjectDetails = () => {
     );
   }
 
-  const isOwner = project.ownerId === auth.currentUser?.uid;
+  const isOwner = (project.ownerUid || project.ownerId) === auth.currentUser?.uid;
   const isGitHubProject = !!(project.githubRepoName && project.githubRepoOwner);
 
   return (

@@ -29,7 +29,7 @@ async function invalidate(...keys) {
   if (!isAvailable() || keys.length === 0) return;
 
   try {
-    await getRedisClient().del(keys);
+    await getRedisClient().del(...keys);
   } catch (err) {
     console.warn(`[Cache] invalidate failed:`, err.message);
   }

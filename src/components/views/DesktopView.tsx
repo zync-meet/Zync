@@ -79,6 +79,7 @@ import PeopleView from "./PeopleView";
 import ChatLayout from "./ChatLayout";
 import MessagesPage from "./MessagesPage";
 import CreateProject from "@/components/dashboard/CreateProject";
+import ProjectDetails from "@/pages/ProjectDetails";
 import TeamGateway from "./TeamGateway";
 import MeetView from "./MeetView";
 import { usePresence } from "@/hooks/usePresence";
@@ -213,7 +214,9 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
 
   useEffect(() => {
-    const section = pathToSection[location.pathname];
+    const section = location.pathname.startsWith('/dashboard/workspace/project/')
+      ? 'My Workspace'
+      : pathToSection[location.pathname];
     if (section && section !== activeSection) {
       setActiveSection(section);
     }
@@ -440,10 +443,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           if (response.ok) {
             const projects = await response.json();
 
-            const ownedProjects = projects.filter((p: any) => p.ownerId === currentUser.uid);
-
-
-            const allTasks = ownedProjects.flatMap((p: any) =>
+            const allTasks = projects.flatMap((p: any) =>
               p.steps.flatMap((s: any) => s.tasks || [])
             );
             setLeaderTasks(allTasks);
@@ -673,10 +673,13 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
         return <DashboardView currentUser={currentUser} />;
 
       case "My Workspace":
+        if (location.pathname.startsWith('/dashboard/workspace/project/')) {
+          return <ProjectDetails />;
+        }
         return (
           <Workspace
             onNavigate={handleSectionChange}
-            onSelectProject={(id) => navigate(`/projects/${id}`, { state: { from: '/dashboard/workspace' } })}
+            onSelectProject={(id) => navigate(`/dashboard/workspace/project/${id}`, { state: { from: '/dashboard/workspace' } })}
             onOpenNote={(noteId) => {
               setActiveNoteId(noteId);
               handleSectionChange("Notes");

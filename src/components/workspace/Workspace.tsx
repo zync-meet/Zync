@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FolderGit2, Plus, ArrowRight, Calendar, User, Trash2, Pin, FileText, Unlink, Search, Github, CheckSquare } from "lucide-react";
+import { FolderGit2, Plus, ArrowRight, Calendar, User, Trash2, Pin, FileText, Search, Github, CheckSquare } from "lucide-react";
 import { RepositoryListSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +53,6 @@ interface WorkspaceProps {
 
 const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }: WorkspaceProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const { data: pinnedNotes = [], isLoading: notesLoading } = usePinnedNotes();
@@ -241,38 +239,6 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     }
   };
 
-  const handleUnlinkRepo = async (e: React.MouseEvent, project: Project) => {
-    e.stopPropagation();
-    if (!confirm(`Unlink ${project.githubRepoName} from this project?`)) { return; }
-
-    try {
-      const user = auth.currentUser;
-      const token = user ? await user.getIdToken() : null;
-
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          githubRepoName: null,
-          githubRepoOwner: null,
-          isTrackingActive: false
-        })
-      });
-
-      if (response.ok) {
-        toast({ title: "Success", description: "Repository unlinked." });
-        queryClient.invalidateQueries({ queryKey: ['projects'] });
-      } else {
-        throw new Error("Failed to unlink");
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to unlink repository.", variant: "destructive" });
-    }
-  };
-
   const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
     if (!confirm("Are you sure you want to delete this project? This action cannot be undone.")) { return; }
@@ -283,6 +249,11 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete project.", variant: "destructive" });
     }
+  };
+
+  const handleOpenArchitecture = (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    onSelectProject(project.id);
   };
 
   const fetchCollaboratorData = async (projectId: string) => {
@@ -574,7 +545,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
         ) : (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-primary" onClick={() => onSelectProject(project.id)}>
+              <Card key={project.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <Badge variant="outline" className="mb-2">Project</Badge>
@@ -625,21 +596,9 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                     </Button>
                   )}
                   {project.githubRepoName && (
-                    <div className="flex items-center gap-2 mt-3 p-2 bg-secondary/30 rounded-md text-xs group/repo relative pr-8">
+                    <div className="flex items-center gap-2 mt-3 p-2 bg-secondary/30 rounded-md text-xs">
                       <Github className="w-3 h-3 flex-shrink-0" />
                       <span className="truncate flex-1">{project.githubRepoOwner}/{project.githubRepoName}</span>
-
-                      {isProjectOwner(project) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 absolute right-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => handleUnlinkRepo(e, project)}
-                          title="Unlink Repository"
-                        >
-                          <Unlink className="w-3 h-3" />
-                        </Button>
-                      )}
                     </div>
                   )}
                 </CardContent>
@@ -647,6 +606,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                   <Button
                     variant="ghost"
                     className="flex-1 justify-between hover:bg-transparent px-0 text-primary"
+                    onClick={(e) => handleOpenArchitecture(e, project)}
                   >
                     View Architecture
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

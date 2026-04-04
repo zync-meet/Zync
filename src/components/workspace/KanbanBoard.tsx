@@ -48,6 +48,21 @@ const COLUMNS = ['Ready', 'Active', 'In Progress', 'Done'];
 const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnly, onDeleteTask }: KanbanBoardProps) => {
   const [draggedTask, setDraggedTask] = useState<{ task: Task, stepId: string } | null>(null);
 
+  const handleTaskOpen = (task: Task & { stepId: string }) => {
+    const isReadyLike = ['Ready', 'Pending', 'Backlog'].includes(task.status);
+    const isAssignee = task.assignedTo && currentUser?.uid && task.assignedTo === currentUser.uid;
+    const resolvedTaskId = task._id || task.id;
+    const resolvedStepId = task.stepId;
+
+    if (!resolvedTaskId || !resolvedStepId) {
+      return;
+    }
+
+    if (!isOwner && isAssignee && isReadyLike) {
+      onUpdateTask(resolvedStepId, resolvedTaskId, { status: 'Active' });
+    }
+  };
+
   const allTasks = useMemo(() => {
     return steps.flatMap(step =>
       step.tasks.map(task => ({
@@ -80,11 +95,16 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnl
   const handleDrop = (e: React.DragEvent, targetStatus: string) => {
     e.preventDefault();
     if (!draggedTask) {return;}
+    const resolvedTaskId = draggedTask.task._id || draggedTask.task.id;
+    if (!resolvedTaskId) {
+      setDraggedTask(null);
+      return;
+    }
 
     if (draggedTask.task.status !== targetStatus) {
       let schemaStatus = targetStatus;
       if (targetStatus === 'Done') {schemaStatus = 'Completed';}
-      onUpdateTask(draggedTask.stepId, draggedTask.task._id, { status: schemaStatus });
+      onUpdateTask(draggedTask.stepId, resolvedTaskId, { status: schemaStatus });
     }
     setDraggedTask(null);
   };
@@ -155,6 +175,7 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnl
                     <div
                       draggable
                       onDragStart={(e) => handleDragStart(e, task, task.stepId)}
+                      onClick={() => handleTaskOpen(task)}
                       className={`
                         relative w-full p-4 rounded-xl backdrop-blur-md transition-all duration-300
                         bg-white/5 border border-white/10 shadow-sm
@@ -163,6 +184,13 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnl
                         cursor-grab active:cursor-grabbing
                       `}
                     >
+                      {(() => {
+                        const assignedUser = users.find((u: any) => u.uid === task.assignedTo);
+                        const assignedLabel = task.assignedToName || assignedUser?.displayName || assignedUser?.email || 'Unknown';
+                        const assignedInitials = assignedLabel.substring(0, 2).toUpperCase();
+
+                        return (
+                          <>
                       <div className="flex justify-between items-start gap-2 mb-3">
                         <span className="text-sm font-medium leading-tight text-white/90 z-10 relative">
                           {task.title}
@@ -174,11 +202,11 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnl
                         <div className="flex items-center gap-2 mb-3">
                           <Avatar className="w-5 h-5 ring-1 ring-white/20">
                             <AvatarFallback className="text-[10px] bg-white/10 text-white/80">
-                              {task.assignedToName?.substring(0, 2).toUpperCase() || 'U'}
+                              {assignedInitials || 'U'}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-xs text-white/50 truncate max-w-[120px]">
-                            {task.assignedToName}
+                            {assignedLabel}
                           </span>
                         </div>
                       )}
@@ -238,13 +266,20 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnl
                             className="w-full h-7 text-xs border border-green-500/30 text-green-400 hover:bg-green-500/10 hover:text-green-300"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onUpdateTask(task.stepId, task._id, { status: 'Active' });
+                              const resolvedTaskId = task._id || task.id;
+                              if (!resolvedTaskId) {
+                                return;
+                              }
+                              onUpdateTask(task.stepId, resolvedTaskId, { status: 'Active' });
                             }}
                           >
                             Start Task
                           </Button>
                         </motion.div>
                       )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </motion.div>
                 ))}

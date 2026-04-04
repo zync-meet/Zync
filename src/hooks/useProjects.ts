@@ -9,7 +9,7 @@ export const useProjects = () => {
         queryKey: ['projects', user?.uid],
         queryFn: fetchProjects,
         enabled: !!user,
-        refetchOnMount: false,
+        refetchOnMount: 'always',
     });
 };
 
@@ -28,6 +28,12 @@ export const useProjectMutations = () => {
                 },
                 body: JSON.stringify(data),
             });
+
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(errBody?.message || 'Failed to create project');
+            }
+
             return response.json();
         },
         onSuccess: () => {
@@ -47,6 +53,12 @@ export const useProjectMutations = () => {
                 },
                 body: JSON.stringify(repoData),
             });
+
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(errBody?.message || 'Failed to link GitHub repository');
+            }
+
             return response.json();
         },
         onSuccess: () => {

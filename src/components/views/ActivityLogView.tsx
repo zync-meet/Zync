@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import {
     Calendar,
     CheckSquare,
@@ -21,7 +20,6 @@ import {
     startOfMonth,
     endOfMonth,
     subMonths,
-    subDays,
 } from 'date-fns';
 
 /** Design tokens — Activity Log page only */
@@ -49,6 +47,10 @@ interface ActivityLog {
     endTime: string;
     duration?: number;
     date: string;
+    eventType?: string;
+    title?: string | null;
+    source?: string | null;
+    actorName?: string | null;
 }
 
 interface ActivityLogViewProps {
@@ -104,16 +106,6 @@ function secondsForLogsInRange(logs: ActivityLog[], rangeStart: Date, rangeEnd: 
     return total;
 }
 
-function splitFocusMeetIdle(totalSeconds: number): [number, number, number] {
-    if (totalSeconds <= 0) {
-        return [1, 1, 1];
-    }
-    const focus = totalSeconds * 0.65;
-    const meetings = totalSeconds * 0.25;
-    const idle = totalSeconds * 0.1;
-    return [focus, meetings, idle];
-}
-
 type FeedTag = 'Commit' | 'Completed' | 'Invite' | 'Deadline' | 'Comment' | 'Session';
 
 interface FeedItem {
@@ -143,11 +135,9 @@ export default function ActivityLogView({
     handleClearLogs,
     handleDeleteLog,
     tasks = [],
-    users = [],
 }: ActivityLogViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [showAllLogs, setShowAllLogs] = useState(false);
-    const [myProgressWeekly, setMyProgressWeekly] = useState(true);
     const [projectAnalyticsThisMonth, setProjectAnalyticsThisMonth] = useState(false);
 
     const doughnutCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -197,18 +187,20 @@ export default function ActivityLogView({
     }, [taskList]);
 
     const myProgressSegments = useMemo(() => {
-        const end = new Date();
-        const start = myProgressWeekly ? subDays(end, 7) : subDays(end, 30);
-        const secs = secondsForLogsInRange(activityLogs, start, end);
-        const [f, m, i] = splitFocusMeetIdle(secs);
-        const sum = f + m + i || 1;
-        const pct = Math.round((f / sum) * 100);
+        const valuesRaw = [
+            taskStats.total,
+            taskStats.inProgress,
+            taskStats.completed,
+            taskStats.overdue,
+        ];
+        const hasData = valuesRaw.some((v) => v > 0);
         return {
-            values: [f, m, i],
-            labels: ['Focus', 'Meetings', 'Idle'],
-            centerPct: pct,
+            values: hasData ? valuesRaw : [1, 0, 0, 0],
+            displayValues: valuesRaw,
+            labels: ['Total Tasks', 'In Progress', 'Completed', 'Overdue'],
+            centerValue: taskStats.total,
         };
-    }, [activityLogs, myProgressWeekly]);
+    }, [taskStats]);
 
     const sixMonthBars = useMemo(() => {
         const end = new Date();
@@ -239,59 +231,6 @@ export default function ActivityLogView({
         };
     }, [activityLogs]);
 
-    const projectCards = useMemo(() => {
-        const map = new Map<
-            string,
-            { projectId: string; projectName: string; description: string; tasks: any[] }
-        >();
-        taskList.forEach((t) => {
-            const pid = String(t.projectId ?? 'unknown');
-            if (!map.has(pid)) {
-                map.set(pid, {
-                    projectId: pid,
-                    projectName: t.projectName || 'Project',
-                    description: (t as any).projectDescription || t.description || '—',
-                    tasks: [],
-                });
-            }
-            map.get(pid)!.tasks.push(t);
-        });
-        return Array.from(map.values())
-            .slice(0, 3)
-            .map((g) => {
-                const total = g.tasks.length;
-                const done = g.tasks.filter(isCompletedTask).length;
-                const progress = total ? Math.round((done / total) * 100) : 0;
-                let status: 'In Progress' | 'Pending' | 'Completed' = 'Pending';
-                if (total > 0 && done === total) {
-                    status = 'Completed';
-                } else if (g.tasks.some(isInProgressTask)) {
-                    status = 'In Progress';
-                }
-                const deadlineRaw = g.tasks.map((x) => (x as any).dueDate || (x as any).deadline).find(Boolean);
-                const deadlineLabel = deadlineRaw
-                    ? format(new Date(deadlineRaw), 'MMM d, yyyy')
-                    : '—';
-                const assignees = Array.from(
-                    new Set(g.tasks.map((x) => x.assignedTo).filter(Boolean) as string[])
-                ).slice(0, 4);
-                return {
-                    ...g,
-                    progress,
-                    status,
-                    deadlineLabel,
-                    assignees,
-                    taskCount: total,
-                    memberCount: assignees.length,
-                };
-            });
-    }, [taskList]);
-
-    const resolveUser = useCallback(
-        (uid: string) => users.find((u) => u.uid === uid || u.id === uid),
-        [users]
-    );
-
     const feedItems: FeedItem[] = useMemo(() => {
         const out: FeedItem[] = [];
 
@@ -299,6 +238,37 @@ export default function ActivityLogView({
             const start = new Date(log.startTime);
             const end = new Date(log.endTime);
             const dur = log.duration ?? Math.round((end.getTime() - start.getTime()) / 1000);
+
+            if (log.eventType === 'task-assigned') {
+                out.push({
+                    id: `task-assigned-${log._id ?? logIndex}`,
+                    sortTime: start.getTime(),
+                    actor: log.actorName || 'Workspace',
+                    entity: log.title || 'New task assigned',
+                    timeLabel: formatDistanceToNow(start, { addSuffix: true }),
+                    source: log.source || 'Tasks',
+                    tag: 'Invite',
+                    iconBg: T.bgSurface,
+                    onDelete: () => handleDeleteLog(log._id),
+                });
+                return;
+            }
+
+            if (log.eventType === 'task-progressed') {
+                out.push({
+                    id: `task-progressed-${log._id ?? logIndex}`,
+                    sortTime: start.getTime(),
+                    actor: log.actorName || 'Workspace',
+                    entity: log.title || 'Task moved to in progress',
+                    timeLabel: formatDistanceToNow(start, { addSuffix: true }),
+                    source: log.source || 'Tasks',
+                    tag: 'Comment',
+                    iconBg: T.bgSurface,
+                    onDelete: () => handleDeleteLog(log._id),
+                });
+                return;
+            }
+
             out.push({
                 id: `log-${log._id ?? logIndex}`,
                 sortTime: start.getTime(),
@@ -405,16 +375,15 @@ export default function ActivityLogView({
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => {
+                            label: (ctx: any) => {
                                 const v = Number(ctx.raw) || 0;
-                                const m = Math.round(v / 60);
-                                return `${ctx.label}: ${m} min`;
+                                return `${ctx.label}: ${v}`;
                             },
                         },
                     },
                 },
                 animation: {
-                    duration: 900,
+                        backgroundColor: [T.blue, '#f59e0b', T.green, T.red],
                     easing: 'easeInOutQuart' as const,
                 },
             },
@@ -466,7 +435,7 @@ export default function ActivityLogView({
                         ticks: {
                             color: T.text3,
                             font: { family: 'DM Mono', size: 10 },
-                            callback: (v) => `${v}m`,
+                            callback: (v: any) => `${v}m`,
                         },
                     },
                 },
@@ -635,116 +604,6 @@ export default function ActivityLogView({
                     ))}
                 </div>
 
-                {/* Project overview */}
-                <section>
-                    <h2 className="mb-3 text-sm font-semibold" style={{ color: T.text2 }}>
-                        Project Overview
-                    </h2>
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                        {(projectCards.length ? projectCards : [null, null, null]).map((p, i) => (
-                            <div
-                                key={p?.projectId ?? `empty-${i}`}
-                                className="al-fade-up rounded-[12px] border p-5 transition-colors"
-                                style={{
-                                    animationDelay: `${0.25 + i * 0.05}s`,
-                                    background: T.bgCard,
-                                    borderColor: T.border,
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.borderColor = 'rgba(26,143,209,0.35)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.borderColor = T.border;
-                                }}
-                            >
-                                {p ? (
-                                    <>
-                                        <div className="flex items-start justify-between gap-2">
-                                            <h3 className="font-semibold leading-tight" style={{ color: T.text1 }}>
-                                                {p.projectName}
-                                            </h3>
-                                            <span
-                                                className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase"
-                                                style={{
-                                                    background:
-                                                        p.status === 'Completed'
-                                                            ? 'rgba(34,197,94,0.15)'
-                                                            : p.status === 'In Progress'
-                                                              ? 'rgba(26,143,209,0.15)'
-                                                              : 'rgba(251,146,60,0.15)',
-                                                    color:
-                                                        p.status === 'Completed'
-                                                            ? T.green
-                                                            : p.status === 'In Progress'
-                                                              ? T.blue
-                                                              : T.orange,
-                                                }}
-                                            >
-                                                {p.status}
-                                            </span>
-                                        </div>
-                                        <p className="mt-2 line-clamp-2 text-sm" style={{ color: T.text2 }}>
-                                            {p.description}
-                                        </p>
-                                        <div
-                                            className="mt-3 flex items-center gap-2 font-mono text-xs"
-                                            style={{ color: T.text3 }}
-                                        >
-                                            <Calendar className="h-3.5 w-3.5 shrink-0" />
-                                            {p.deadlineLabel}
-                                        </div>
-                                        <div className="mt-3">
-                                            <div className="mb-1 flex justify-between text-xs" style={{ color: T.text2 }}>
-                                                <span>Progress</span>
-                                                <span className="font-mono">{p.progress}%</span>
-                                            </div>
-                                            <Progress value={p.progress} className="h-2 bg-[#101b2e]" />
-                                        </div>
-                                        <div className="mt-4 flex items-center justify-between">
-                                            <div className="flex -space-x-2">
-                                                {p.assignees.map((uid) => {
-                                                    const u = resolveUser(uid);
-                                                    const name = u?.displayName || u?.name || '?';
-                                                    const src = u?.photoURL;
-                                                    return (
-                                                        <div
-                                                            key={uid}
-                                                            className="h-8 w-8 overflow-hidden rounded-full border-2 text-center text-[10px] leading-8"
-                                                            style={{
-                                                                borderColor: T.border,
-                                                                background: T.bgSurface,
-                                                                color: T.text2,
-                                                            }}
-                                                            title={name}
-                                                        >
-                                                            {src ? (
-                                                                <img
-                                                                    src={src}
-                                                                    alt=""
-                                                                    className="h-full w-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                name.slice(0, 2).toUpperCase()
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                            <span className="font-mono text-[11px]" style={{ color: T.text3 }}>
-                                                {p.taskCount} tasks · {p.memberCount} members
-                                            </span>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="py-8 text-center text-sm" style={{ color: T.text3 }}>
-                                        No project data
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
                 {/* Charts row */}
                 <div
                     className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr]"
@@ -758,33 +617,6 @@ export default function ActivityLogView({
                             <h2 className="text-sm font-semibold" style={{ color: T.text1 }}>
                                 My Progress
                             </h2>
-                            <div
-                                className="flex rounded-[8px] border p-0.5 font-mono text-[11px]"
-                                style={{ borderColor: T.border, background: T.bgSurface }}
-                            >
-                                <button
-                                    type="button"
-                                    className="rounded-[6px] px-2 py-1 transition-colors"
-                                    style={{
-                                        background: myProgressWeekly ? T.blue : 'transparent',
-                                        color: myProgressWeekly ? '#fff' : T.text2,
-                                    }}
-                                    onClick={() => setMyProgressWeekly(true)}
-                                >
-                                    Weekly
-                                </button>
-                                <button
-                                    type="button"
-                                    className="rounded-[6px] px-2 py-1 transition-colors"
-                                    style={{
-                                        background: !myProgressWeekly ? T.blue : 'transparent',
-                                        color: !myProgressWeekly ? '#fff' : T.text2,
-                                    }}
-                                    onClick={() => setMyProgressWeekly(false)}
-                                >
-                                    Monthly
-                                </button>
-                            </div>
                         </div>
                         <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
                             <div className="relative mx-auto h-[200px] w-[200px] shrink-0">
@@ -794,10 +626,10 @@ export default function ActivityLogView({
                                     style={{ marginTop: -4 }}
                                 >
                                     <span className="text-3xl font-semibold tabular-nums" style={{ color: T.text1 }}>
-                                        {myProgressSegments.centerPct}%
+                                        {myProgressSegments.centerValue}
                                     </span>
                                     <span className="font-mono text-[10px]" style={{ color: T.text3 }}>
-                                        focus
+                                        tasks
                                     </span>
                                 </div>
                             </div>
@@ -807,12 +639,12 @@ export default function ActivityLogView({
                                         <span
                                             className="h-2.5 w-2.5 shrink-0 rounded-full"
                                             style={{
-                                                background: [T.blue, T.orange, T.bgSurface][idx],
+                                                background: [T.blue, '#f59e0b', T.green, T.red][idx],
                                             }}
                                         />
                                         <span className="flex-1">{lab}</span>
                                         <span style={{ color: T.text3 }}>
-                                            {Math.round((myProgressSegments.values[idx] || 0) / 60)}m
+                                            {myProgressSegments.displayValues[idx] || 0}
                                         </span>
                                     </li>
                                 ))}

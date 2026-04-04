@@ -412,8 +412,9 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
 
   useEffect(() => {
     if (!user?.uid) {return;}
-    const sharedFolderIds = folders
-      .filter(f => f.ownerId !== user.uid && f.collaborators?.includes(user.uid))
+    const safeFolders = Array.isArray(folders) ? folders : [];
+    const sharedFolderIds = safeFolders
+      .filter(f => f.ownerId !== user.uid && Array.isArray(f.collaborators) && f.collaborators.includes(user.uid))
       .map(f => f.id)
       .slice(0, 10);
 
@@ -444,18 +445,20 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
 
   // Filtered notes
   const filteredNotes = useMemo(() => {
-    if (!searchQuery.trim()) {return notes;}
+    const safeNotes = Array.isArray(notes) ? notes : [];
+    if (!searchQuery.trim()) {return safeNotes;}
     const q = searchQuery.toLowerCase();
-    return notes.filter(n =>
+    return safeNotes.filter(n =>
       n.title?.toLowerCase().includes(q) ||
       JSON.stringify(n.content)?.toLowerCase().includes(q)
     );
   }, [notes, searchQuery]);
 
-  // Categorized data
-  const myFolders = folders.filter(f => f.ownerId === user?.uid);
-  const sharedFolders = folders.filter(f => f.ownerId !== user?.uid);
-  const myUnorganizedNotes = filteredNotes.filter(n => !n.folderId && n.ownerId === user?.uid);
+  const safeFolders = Array.isArray(folders) ? folders : [];
+  const safeFilteredNotes = Array.isArray(filteredNotes) ? filteredNotes : [];
+  const myFolders = safeFolders.filter(f => f.ownerId === user?.uid);
+  const sharedFolders = safeFolders.filter(f => f.ownerId !== user?.uid);
+  const myUnorganizedNotes = safeFilteredNotes.filter(n => !n.folderId && n.ownerId === user?.uid);
 
   // Handlers
   const handleCreateNote = async (folderId?: string) => {
