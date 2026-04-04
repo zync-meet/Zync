@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { fetchProjects, Project } from "@/api/projects";
 import { CheckSquare, Terminal, Layout, Github, ExternalLink, Inbox, ArrowUpCircle, MinusCircle, ArrowDownCircle } from "lucide-react";
 import { TaskListSkeleton } from "@/components/ui/skeletons";
@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GitCommandsDrawer } from "./GitCommandsDrawer";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useTaskUpdates } from "@/hooks/use-task-updates";
 
 interface TasksViewProps {
     currentUser: any;
@@ -138,6 +139,20 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
             setLoading(false);
         }
     }, [currentUser]);
+
+    // Real-time task updates via socket
+    const loadTasksRef = useRef(loadTasks);
+    loadTasksRef.current = loadTasks;
+
+    const projectIds = useMemo(() => projects.map(p => p._id).filter(Boolean), [projects]);
+
+    useTaskUpdates({
+        userId: currentUser?.uid,
+        projectIds,
+        onTaskChange: useCallback(() => {
+            loadTasksRef.current();
+        }, []),
+    });
 
 
     const markTaskActive = async (task: FlattenedTask) => {
