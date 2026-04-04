@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createUserWithEmailAndPassword, signInWithPopup, GithubAuthProvider, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Github } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/utils";
@@ -16,6 +20,18 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmState, setConfirmState] = useState<{ message: string; resolve: (v: boolean) => void } | null>(null);
+
+  const showConfirm = useCallback((message: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setConfirmState({ message, resolve });
+    });
+  }, []);
+
+  const handleConfirm = useCallback((value: boolean) => {
+    confirmState?.resolve(value);
+    setConfirmState(null);
+  }, [confirmState]);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -115,7 +131,7 @@ const Signup = () => {
           else if (providerId === 'github.com') {provider = new GithubAuthProvider();}
 
           if (provider) {
-            const confirmLink = window.confirm(`You already have an account with ${providerId}. Sign in with it to link your new credential?`);
+            const confirmLink = await showConfirm(`You already have an account with ${providerId}. Sign in with it to link your new credential?`);
             if (!confirmLink) {return;}
 
             const result = await signInWithPopup(auth, provider);
@@ -268,6 +284,19 @@ const Signup = () => {
           </p>
         </CardFooter>
       </Card>
+
+      <AlertDialog open={!!confirmState} onOpenChange={(open) => { if (!open) handleConfirm(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Link Account</AlertDialogTitle>
+            <AlertDialogDescription>{confirmState?.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleConfirm(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleConfirm(true)}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
