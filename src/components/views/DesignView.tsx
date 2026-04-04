@@ -94,11 +94,16 @@ const DesignView = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>(savedState?.selectedCategory || "All");
   const [hasSearched, setHasSearched] = useState(false);
 
-  const { items, loading, hasMore, loadMore, search } = useInspiration();
+  const { items, loading, scraping, hasMore, loadMore, search } = useInspiration();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
 
+  // Fetch initial results on mount
+  useEffect(() => {
+    search("web design");
+    setHasSearched(true);
+  }, [search]);
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -168,11 +173,27 @@ const DesignView = () => {
         </div>
       </div>
 
+      {/* Scraping banner */}
+      {scraping && !loading && (
+        <div className="px-6 md:px-10 max-w-[1800px] mx-auto">
+          <div className="flex items-center gap-2 text-muted-foreground bg-secondary/20 rounded-lg px-4 py-2.5">
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 bg-foreground/30 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 bg-foreground/30 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 bg-foreground/30 rounded-full animate-bounce" />
+            </div>
+            <p className="text-xs uppercase tracking-widest">
+              Searching live sources for more results...
+            </p>
+          </div>
+        </div>
+      )}
+
       {}
       <div className="px-6 md:px-10 pb-20 max-w-[1800px] mx-auto">
         <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
 
-          {}
+          {/* Loading skeletons */}
           {loading && items.length === 0 && Array.from({ length: 12 }).map((_, i) => (
             <SkeletonCard key={`skel-${i}`} />
           ))}
@@ -188,7 +209,6 @@ const DesignView = () => {
         {}
         <div ref={observerTarget} className="py-20 flex justify-center w-full">
           {loading && items.length > 0 && (
-
             <div className="flex gap-1 items-center opacity-50">
               <span className="w-1.5 h-1.5 bg-foreground rounded-full animate-bounce [animation-delay:-0.3s]" />
               <span className="w-1.5 h-1.5 bg-foreground rounded-full animate-bounce [animation-delay:-0.15s]" />
@@ -196,7 +216,7 @@ const DesignView = () => {
             </div>
           )}
 
-          {!loading && items.length === 0 && (
+          {!loading && !scraping && items.length === 0 && (
             <div className="text-center space-y-2">
               <p className="text-2xl font-light text-muted-foreground">
                 {hasSearched ? `Nothing found for "${query}"` : "Explore the unknown."}
