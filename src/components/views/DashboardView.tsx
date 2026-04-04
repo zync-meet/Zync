@@ -34,14 +34,21 @@ import {
     AlertCircle,
     ChevronDown,
     BookMarked,
-    LogOut
+    LogOut,
+    Kanban,
+    StickyNote,
+    CalendarDays,
+    MessageSquare,
+    ArrowRight,
 } from "lucide-react";
 
 import { useGitHubStats, useGitHubEvents, useGitHubContributions } from "@/hooks/useGitHubData";
+import { useProjects } from "@/hooks/useProjects";
 import { useQueryClient } from "@tanstack/react-query";
 
 const DashboardView = ({ currentUser }: { currentUser: any }) => {
     const queryClient = useQueryClient();
+    const { data: projects = [] } = useProjects();
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
     const { 
@@ -163,36 +170,128 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
     }
 
     if (error && !stats) {
+        const totalTasks = projects.reduce((sum, p) => {
+            const steps = p.steps || [];
+            return sum + steps.reduce((s, step) => s + (step.tasks?.length || 0), 0);
+        }, 0);
+        const completedTasks = projects.reduce((sum, p) => {
+            const steps = p.steps || [];
+            return sum + steps.reduce((s, step) => s + (step.tasks?.filter((t: any) => t.status === 'Completed' || t.status === 'Done').length || 0), 0);
+        }, 0);
+
         return (
-            <div className="p-6 flex flex-col items-center justify-center h-full gap-4 min-h-[60vh]">
-                <Github
-                    className="h-20 w-20 text-muted-foreground animate-in fade-in zoom-in-50 duration-1000"
-                    style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
-                />
-                <h2
-                    className="text-2xl font-bold animate-in fade-in slide-in-from-bottom-4 duration-1000"
-                    style={{ animationDelay: '150ms', animationFillMode: 'backwards' }}
-                >
-                    Link GitHub Projects
-                </h2>
-                <p
-                    className="text-muted-foreground text-center max-w-md text-lg animate-in fade-in slide-in-from-bottom-4 duration-1000"
-                    style={{ animationDelay: '300ms', animationFillMode: 'backwards' }}
-                >
-                    Sign in with GitHub to view your activity, contributions, and repositories.
-                </p>
-                <div
-                    className="animate-in fade-in slide-in-from-bottom-8 duration-1000"
-                    style={{ animationDelay: '450ms', animationFillMode: 'backwards' }}
-                >
-                    <Button
-                        size="lg"
-                        onClick={() => window.location.href = "/login"}
-                        className="mt-2"
-                    >
-                        <Github className="mr-2 h-5 w-5" />
-                        Sign in with GitHub
-                    </Button>
+            <div className="p-6 max-w-7xl mx-auto space-y-6">
+                <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20 bg-card/40 backdrop-blur-sm">
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-6">
+                            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Github className="h-10 w-10 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <h1 className="text-2xl font-bold">Welcome to your Dashboard</h1>
+                                <p className="text-muted-foreground mt-1">Connect GitHub to unlock contribution graphs, commit tracking, and repo analytics.</p>
+                            </div>
+                            <Button size="lg" onClick={() => window.location.href = "/login"}>
+                                <Github className="mr-2 h-5 w-5" />
+                                Connect GitHub
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Card>
+                        <CardContent className="pt-6 text-center">
+                            <Kanban className="h-8 w-8 text-primary mx-auto mb-2" />
+                            <p className="text-2xl font-bold">{projects.length}</p>
+                            <p className="text-sm text-muted-foreground">Projects</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-6 text-center">
+                            <GitCommit className="h-8 w-8 text-primary mx-auto mb-2" />
+                            <p className="text-2xl font-bold">{totalTasks}</p>
+                            <p className="text-sm text-muted-foreground">Total Tasks</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-6 text-center">
+                            <Star className="h-8 w-8 text-primary mx-auto mb-2" />
+                            <p className="text-2xl font-bold">{completedTasks}</p>
+                            <p className="text-sm text-muted-foreground">Completed</p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {projects.length > 0 ? (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <BookMarked className="h-5 w-5" />
+                                Your Projects
+                            </CardTitle>
+                            <CardDescription>Quick overview of your active projects</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {projects.slice(0, 5).map((project: any) => {
+                                    const steps = project.steps || [];
+                                    const tasks = steps.flatMap((s: any) => s.tasks || []);
+                                    const done = tasks.filter((t: any) => t.status === 'Completed' || t.status === 'Done').length;
+                                    const total = tasks.length;
+                                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                                    return (
+                                        <div key={project.id || project._id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium truncate">{project.name}</p>
+                                                <p className="text-xs text-muted-foreground">{total} tasks</p>
+                                            </div>
+                                            <div className="w-24">
+                                                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                                </div>
+                                                <p className="text-xs text-muted-foreground text-right mt-1">{pct}%</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Card>
+                        <CardContent className="pt-6 text-center space-y-4">
+                            <Kanban className="h-12 w-12 text-muted-foreground mx-auto" />
+                            <div>
+                                <p className="text-lg font-semibold">No projects yet</p>
+                                <p className="text-sm text-muted-foreground">Create your first project to get started with task tracking.</p>
+                            </div>
+                            <Button onClick={() => window.location.href = "/new-project"}>
+                                Create a Project
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                        { icon: MessageSquare, title: "Chat", desc: "Message teammates in real-time", href: "/dashboard" },
+                        { icon: CalendarDays, title: "Calendar", desc: "Schedule meetings and track holidays", href: "/dashboard" },
+                        { icon: StickyNote, title: "Notes", desc: "Share project documentation", href: "/dashboard" },
+                    ].map((item) => (
+                        <Card key={item.title} className="hover:border-primary/30 transition-colors cursor-pointer">
+                            <CardContent className="pt-6 flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                    <item.icon className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                    <p className="font-medium">{item.title}</p>
+                                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             </div>
         );
