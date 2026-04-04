@@ -800,6 +800,19 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
 
     const updatedProject = await getProjectWithSteps(projectId);
     invalidateProjectCache(project);
+
+    // Emit real-time task event
+    const taskIO = req.app.get('taskIO');
+    if (taskIO) {
+      const taskObj = updatedProject.steps?.flatMap(s => s.tasks || []).find(t => String(t._id) === String(createdTask._id));
+      taskIO.emitToProject(projectId, 'task-created', {
+        projectId,
+        stepId,
+        task: taskObj || normalizeDoc(createdTask.toObject()),
+        actor: req.user?.uid,
+      });
+    }
+
     res.status(201).json(updatedProject);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -900,6 +913,20 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
       project: updatedProject
     });
 
+    // Emit real-time task event
+    const taskIO = req.app.get('taskIO');
+    if (taskIO) {
+      const updatedTask = updatedProject.steps?.flatMap(s => s.tasks || []).find(t => String(t._id) === String(taskId));
+      taskIO.emitToProject(projectId, 'task-updated', {
+        projectId,
+        stepId,
+        taskId,
+        task: updatedTask || null,
+        changes: taskUpdate,
+        actor: req.user?.uid,
+      });
+    }
+
     invalidateProjectCache(project);
     res.json(updatedProject);
   } catch (error) {
@@ -936,6 +963,17 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
       projectId: updatedProject.id,
       project: updatedProject
     });
+
+    // Emit real-time task event
+    const taskIO = req.app.get('taskIO');
+    if (taskIO) {
+      taskIO.emitToProject(projectId, 'task-deleted', {
+        projectId,
+        stepId,
+        taskId,
+        actor: userId,
+      });
+    }
 
     res.json({ message: 'Task deleted successfully', projectId, stepId, taskId });
     invalidateProjectCache(project);
@@ -1081,6 +1119,25 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
 
     const updatedProject = await getProjectWithSteps(projectId);
     const taskObj = normalizeDoc(newTask.toObject());
+
+    // Emit real-time task event
+    const taskIO = req.app.get('taskIO');
+    if (taskIO) {
+      taskIO.emitToProject(projectId, 'task-created', {
+        projectId,
+        stepId: step._id?.toString() || step.id,
+        task: taskObj,
+        actor: req.user?.uid,
+      });
+      // Also emit to the assignee directly in case they aren't viewing this project
+      if (assignedTo) {
+        taskIO.emitToUser(assignedTo, 'task-assigned', {
+          projectId,
+          task: taskObj,
+          projectName: project.name,
+        });
+      }
+    }
 
     invalidateProjectCache(project);
     res.json({ message: 'Task created', task: taskObj, stepId: step._id?.toString() || step.id, project: updatedProject });

@@ -200,6 +200,25 @@ router.post('/assign', verifyToken, async (req, res) => {
 
     await cache.invalidate(`projects:${requesterUid}`, `projects:${resolvedAssigneeId}`);
 
+    // Emit real-time task event
+    const taskIO = req.app.get('taskIO');
+    if (taskIO) {
+      const normalizedTasks = normalizeDocs(createdTasks.map(t => t.toObject()));
+      taskIO.emitToProject(projectId, 'task-created', {
+        projectId,
+        stepId: String(step._id),
+        tasks: normalizedTasks,
+        actor: requesterUid,
+      });
+      for (const uid of normalizedAssigneeIds) {
+        taskIO.emitToUser(uid, 'task-assigned', {
+          projectId,
+          tasks: normalizedTasks,
+          projectName: project.name || null,
+        });
+      }
+    }
+
     return res.status(200).json({
       message: 'Task created successfully.',
       commitCodes: createdTasks.map((task) => task.commitCode),
