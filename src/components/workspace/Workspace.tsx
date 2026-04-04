@@ -26,7 +26,8 @@ import { usePinnedNotes } from "@/hooks/useNotes";
 import TaskAssignmentDrawer from "@/components/workspace/TaskAssignmentDrawer";
 
 interface Project {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   description: string;
   ownerId: string;
@@ -108,6 +109,8 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   const makeRepoKey = (owner?: string | null, name?: string | null) =>
     `${String(owner || "").trim().toLowerCase()}/${String(name || "").trim().toLowerCase()}`;
 
+  const getProjectId = (project: Project | null | undefined) => project?._id || project?.id || "";
+
   const handleOpenLinkModal = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
     setSelectedProjectForLink(project);
@@ -141,7 +144,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     try {
       const ownerLogin = getRepoOwnerLogin(repo);
       await linkGitHub({
-        projectId: selectedProjectForLink.id,
+        projectId: getProjectId(selectedProjectForLink),
         repoData: {
           githubRepoName: repo.name,
           githubRepoOwner: ownerLogin
@@ -253,7 +256,9 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
   const handleOpenArchitecture = (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
-    onSelectProject(project.id);
+    const projectId = getProjectId(project);
+    if (!projectId) { return; }
+    onSelectProject(projectId);
   };
 
   const fetchCollaboratorData = async (projectId: string) => {
@@ -294,7 +299,10 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     setAvailableTeamMembers([]);
     setTaskDrawerOpen(true);
 
-    await fetchCollaboratorData(project.id);
+    const projectId = getProjectId(project);
+    if (projectId) {
+      await fetchCollaboratorData(projectId);
+    }
   };
 
   const handleInviteCollaborator = async (userId: string) => {
@@ -305,7 +313,8 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
 
-      const response = await fetch(`${API_BASE_URL}/api/projects/${selectedProjectForTask.id}/invite-collaborator`, {
+      const projectId = getProjectId(selectedProjectForTask);
+      const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/invite-collaborator`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -323,7 +332,10 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
       toast({ title: "Invite Sent", description: data?.message || "Repository invitation sent." });
 
       if (selectedProjectForTask) {
-        await fetchCollaboratorData(selectedProjectForTask.id);
+        const projectId = getProjectId(selectedProjectForTask);
+        if (projectId) {
+          await fetchCollaboratorData(projectId);
+        }
       }
     } catch (error: any) {
       console.error("Invite collaborator error:", error);
@@ -353,6 +365,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
     setAssigningTask(true);
     try {
+      const projectId = getProjectId(selectedProjectForTask);
       const user = auth.currentUser;
       const token = user ? await user.getIdToken() : null;
 
@@ -363,7 +376,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          projectId: selectedProjectForTask.id,
+          projectId,
           taskName: trimmedName,
           description: taskDescription,
           assignedUserId: selectedAssigneeId,
@@ -440,7 +453,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
   const safeRepos = Array.isArray(repos) ? repos : normalizeRepoList(repos);
 
-  const searchMatchedRepos = safeRepos.filter(repo =>
+  const searchMatchedRepos = safeRepos.filter((repo: any) =>
     repo.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -545,7 +558,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
         ) : (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary">
+              <Card key={getProjectId(project)} className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <Badge variant="outline" className="mb-2">Project</Badge>
@@ -628,7 +641,12 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                       size="icon"
                       disabled={deletingProject}
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={(e) => handleDeleteProject(e, project.id)}
+                      onClick={(e) => {
+                        const projectId = getProjectId(project);
+                        if (projectId) {
+                          handleDeleteProject(e, projectId);
+                        }
+                      }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -679,7 +697,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                   </a>
                 </div>
               ) : (
-                linkRepos.map(repo => (
+                linkRepos.map((repo: any) => (
                   <div
                     key={repo.id}
                     onClick={() => handleLinkRepo(repo)}
@@ -755,7 +773,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                         All matching repositories are already added to your workspace.
                       </div>
                   ) : (
-                      addProjectRepos.map(repo => {
+                      addProjectRepos.map((repo: any) => {
                         const isChecked = selectedRepos.some(r => r.id === repo.id);
                         return (
                           <div
@@ -825,7 +843,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
       <TaskAssignmentDrawer
         open={taskDrawerOpen}
         onOpenChange={setTaskDrawerOpen}
-        project={selectedProjectForTask ? { id: selectedProjectForTask.id, name: selectedProjectForTask.name } : null}
+        project={selectedProjectForTask ? { id: getProjectId(selectedProjectForTask), name: selectedProjectForTask.name } : null}
         taskName={taskName}
         onTaskNameChange={setTaskName}
         taskDescription={taskDescription}
