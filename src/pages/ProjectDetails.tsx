@@ -130,11 +130,16 @@ const ProjectDetails = () => {
 
 
   const handleAnalyzeArchitecture = async () => {
-    if (!project) {return;}
+    if (!project || !auth.currentUser) {return;}
     setIsAnalyzing(true);
     try {
+      const token = await auth.currentUser.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/analyze-architecture`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
