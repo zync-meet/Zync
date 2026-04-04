@@ -357,7 +357,7 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    if (project.ownerUid !== req.user.uid) {
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
