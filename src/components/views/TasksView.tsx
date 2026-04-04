@@ -133,8 +133,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
 
 
     const markTaskActive = async (task: FlattenedTask) => {
-
-        if (task.status !== 'Pending') {return;}
+        if (!['Pending', 'Ready', 'Backlog'].includes(task.status)) {return;}
 
         try {
             const token = await auth.currentUser?.getIdToken();
@@ -147,21 +146,21 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                 body: JSON.stringify({ status: 'Active' })
             });
 
-            loadTasks();
+            await loadTasks();
         } catch (error) {
             console.error("Failed to mark task active", error);
         }
     };
 
-    const handleOpenGitHelper = (task: FlattenedTask) => {
-        markTaskActive(task);
+    const handleOpenGitHelper = async (task: FlattenedTask) => {
+        await markTaskActive(task);
         setSelectedGitTask(task);
         setIsGitDrawerOpen(true);
     };
 
-    const handleOpenArchitecture = (task: FlattenedTask) => {
-        markTaskActive(task);
-        navigate(`/projects/${task.projectId}`);
+    const handleOpenArchitecture = async (task: FlattenedTask) => {
+        await markTaskActive(task);
+        navigate(`/dashboard/workspace/project/${task.projectId}`, { state: { from: '/dashboard/tasks' } });
     };
 
     const handleOpenRepository = (task: FlattenedTask) => {

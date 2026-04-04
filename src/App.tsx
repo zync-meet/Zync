@@ -62,6 +62,7 @@ const AppContent = () => {
               <Route path="/welcome" element={<WelcomeToZync />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/workspace" element={<Dashboard />} />
+              <Route path="/dashboard/workspace/project/:id" element={<Dashboard />} />
               <Route path="/dashboard/projects" element={<Dashboard />} />
               <Route path="/dashboard/calendar" element={<Dashboard />} />
               <Route path="/dashboard/design" element={<Dashboard />} />

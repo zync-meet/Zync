@@ -254,6 +254,21 @@ export default function ActivityLogView({
                 return;
             }
 
+            if (log.eventType === 'task-progressed') {
+                out.push({
+                    id: `task-progressed-${log._id ?? logIndex}`,
+                    sortTime: start.getTime(),
+                    actor: log.actorName || 'Workspace',
+                    entity: log.title || 'Task moved to in progress',
+                    timeLabel: formatDistanceToNow(start, { addSuffix: true }),
+                    source: log.source || 'Tasks',
+                    tag: 'Comment',
+                    iconBg: T.bgSurface,
+                    onDelete: () => handleDeleteLog(log._id),
+                });
+                return;
+            }
+
             out.push({
                 id: `log-${log._id ?? logIndex}`,
                 sortTime: start.getTime(),

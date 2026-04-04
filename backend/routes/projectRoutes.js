@@ -47,6 +47,46 @@ async function logTaskAssignedActivity({ assigneeUid, taskTitle, projectName, ac
   });
 }
 
+const normalizeTaskStatus = (value) => String(value || '').trim().toLowerCase();
+
+const isReadyLikeStatus = (value) => {
+  const normalized = normalizeTaskStatus(value);
+  return normalized === 'pending' || normalized === 'ready' || normalized === 'backlog';
+};
+
+const isActiveLikeStatus = (value) => {
+  const normalized = normalizeTaskStatus(value);
+  return normalized === 'active' || normalized === 'in progress';
+};
+
+async function logTaskProgressActivity({ recipients, taskTitle, projectName, actorName, projectId, taskId, fromStatus, toStatus }) {
+  const uniqueRecipients = [...new Set((recipients || []).filter(Boolean))];
+  if (uniqueRecipients.length === 0) return;
+
+  const now = new Date();
+  await Session.insertMany(
+    uniqueRecipients.map((uid) => ({
+      userId: uid,
+      startTime: now,
+      endTime: now,
+      duration: 0,
+      activeDuration: 0,
+      date: now.toISOString().split('T')[0],
+      eventType: 'task-progressed',
+      title: `Task moved to ${toStatus}: ${taskTitle}`,
+      source: projectName || 'Tasks',
+      actorName: actorName || 'Workspace',
+      metadata: {
+        projectId: String(projectId || ''),
+        taskId: String(taskId || ''),
+        projectName: projectName || null,
+        fromStatus: fromStatus || null,
+        toStatus: toStatus || null,
+      },
+    }))
+  );
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
 const MODEL_NAME = "gemini-2.5-flash";
 console.log(`[Config] Using Gemini Model: ${MODEL_NAME}`);
@@ -771,6 +811,8 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     const task = await ProjectTask.findOne({ _id: taskId, stepId }).lean();
     if (!task) return res.status(404).json({ message: 'Task not found' });
 
+    const oldStatus = task.status;
+
     const taskUpdate = {};
     if (status) taskUpdate.status = status;
 
@@ -819,6 +861,20 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     }
 
     await ProjectTask.updateOne({ _id: taskId }, { $set: taskUpdate });
+
+    if (status && isReadyLikeStatus(oldStatus) && isActiveLikeStatus(status)) {
+      const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
+      await logTaskProgressActivity({
+        recipients: [task.assignedTo, project.ownerUid],
+        taskTitle: task.title,
+        projectName: project.name,
+        actorName: actorUser?.displayName || actorUser?.email || req.user.uid,
+        projectId,
+        taskId,
+        fromStatus: oldStatus,
+        toStatus: status,
+      });
+    }
 
     const updatedProject = await getProjectWithSteps(projectId);
 
