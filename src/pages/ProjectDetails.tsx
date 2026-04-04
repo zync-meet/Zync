@@ -550,11 +550,6 @@ const ProjectDetails = () => {
             <TabsTrigger value="board" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 pb-2">
               Task Board
             </TabsTrigger>
-            {isOwner && (
-              <TabsTrigger value="team" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 pb-2">
-                Team & Assignments
-              </TabsTrigger>
-            )}
           </TabsList>
 
           <TabsContent value="architecture" className="flex-1 space-y-6">
@@ -860,81 +855,6 @@ const ProjectDetails = () => {
             </TabsContent>
           )}
 
-          {isOwner && (
-            <TabsContent value="team" className="flex-1">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Team Assignments</CardTitle>
-                    <CardDescription>Manage task assignments for {project.name}</CardDescription>
-                  </div>
-                  <Button onClick={() => setIsCreateTaskDialogOpen(true)} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Task
-                  </Button>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <ActivityGraph
-                    tasks={project.steps.flatMap(s => s.tasks || [])}
-                    users={users}
-                  />
-                  <ScrollArea className="h-[600px] pr-4">
-                    <div className="space-y-4">
-                      {project.steps.flatMap(step =>
-                        (step.tasks || []).map(task => ({ ...task, stepName: step.title, stepId: step._id }))
-                      ).map((task, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors group">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              {/* Delete Action */}
-                              {(auth.currentUser && (isOwner || task.createdBy === auth.currentUser.uid)) && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm("Delete this task?")) {
-                                      handleDeleteTask(task.stepId, task._id);
-                                    }
-                                  }}
-                                  className="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity mr-2"
-                                  title="Delete Task"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
-                              <span className="font-medium">{task.title}</span>
-                              <Badge variant="outline">{task.stepName}</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 min-w-[150px] justify-end">
-                              {task.assignedTo ? (
-                                <>
-                                  <Avatar className="h-6 w-6">
-                                    {(() => {
-                                      const u = users.find((user) => user.uid === task.assignedTo);
-                                      return <AvatarImage src={getFullUrl(u?.photoURL)} />;
-                                    })()}
-                                    <AvatarFallback>{task.assignedToName?.substring(0, 2) || "U"}</AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm">{task.assignedToName || "Unknown"}</span>
-                                </>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">Unassigned</span>
-                              )}
-                            </div>
-                            <Button size="sm" variant="outline" onClick={() => openAssignmentDialog(task.stepId, task)}>
-                              {task.assignedTo ? "Reassign" : "Assign User"}
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
         </Tabs>
       </main>
 

@@ -79,11 +79,15 @@ function normStatus(s: unknown): string {
 
 function isCompletedTask(t: any): boolean {
     const s = normStatus(t?.status);
+    // Auto-ticked implies status is 'done' or 'complete'
     return s.includes('complete') || s === 'done';
 }
 
 function isInProgressTask(t: any): boolean {
+    if (isCompletedTask(t)) return false;
     const s = normStatus(t?.status);
+    // User opened the task and made some commits, or status is explicitly in progress
+    if (t?.commitUrl || t?.commitMessage) return true;
     return s.includes('progress') || s === 'active';
 }
 
@@ -92,6 +96,13 @@ function isOverdueTask(t: any): boolean {
         return false;
     }
     const d = t?.dueDate || t?.deadline;
+    const hasCommits = !!(t?.commitUrl || t?.commitMessage);
+    
+    // Task opened and made some commits but wasn't completed via Zync's last commit logic
+    if (hasCommits && (!d || new Date(d).getTime() < Date.now())) {
+        return true;
+    }
+    
     if (!d) {
         return false;
     }
@@ -506,9 +517,8 @@ export default function ActivityLogView({
 
     return (
         <div
-            className="min-h-full overflow-y-auto overflow-x-hidden"
+            className="h-full w-full overflow-y-auto overflow-x-hidden transparent relative"
             style={{
-                background: T.bgBase,
                 fontFamily: '"DM Sans", system-ui, sans-serif',
                 color: T.text1,
             }}
