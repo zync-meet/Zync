@@ -97,6 +97,15 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
         return `${diffDays}d ago`;
     };
 
+    const getEventActor = (event: (typeof events)[number]) => {
+        const actor = event.actor;
+        return {
+            name: actor?.login || stats?.name || stats?.login || currentUser?.displayName || "GitHub user",
+            avatarUrl: actor?.avatar_url || stats?.avatar_url || currentUser?.photoURL || "",
+            profileUrl: actor?.html_url || stats?.html_url || `https://github.com/${stats?.login || actor?.login || ""}`,
+        };
+    };
+
     const handleUnlink = async () => {
         if (!confirm("Are you sure you want to unlink your GitHub account?")) { return; }
 
@@ -474,24 +483,53 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
                         ) : (
                             events.slice(0, 10).map(event => {
                                 const { label, icon } = formatEventType(event.type);
+                                const actor = getEventActor(event);
+                                const commitMessage = event.payload.commits?.[0]?.message || null;
                                 return (
                                     <div key={event.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                                         <div className="mt-1 p-2 rounded-full bg-muted">{icon}</div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-medium">{label}</span>
-                                                <a
-                                                    href={`https://github.com/${event.repo}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-primary hover:underline truncate"
-                                                >
-                                                    {event.repo}
-                                                </a>
+                                            <div className="flex items-start gap-3 flex-wrap">
+                                                <Avatar className="h-9 w-9 border">
+                                                    <AvatarImage src={actor.avatarUrl} alt={actor.name} />
+                                                    <AvatarFallback>
+                                                        {actor.name.slice(0, 2).toUpperCase()}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="font-medium">{label}</span>
+                                                        <a
+                                                            href={`https://github.com/${event.repo}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-primary hover:underline truncate"
+                                                        >
+                                                            {event.repo}
+                                                        </a>
+                                                    </div>
+                                                    <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+                                                        <a
+                                                            href={actor.profileUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="font-medium hover:text-foreground hover:underline truncate"
+                                                        >
+                                                            {actor.name}
+                                                        </a>
+                                                        <span className="shrink-0">made this commit</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            {event.payload.commits && event.payload.commits.length > 0 && (
-                                                <div className="mt-1 space-y-1">
-                                                    {event.payload.commits.map((commit, idx) => (
+                                            {commitMessage && (
+                                                <div className="mt-2 rounded-md border bg-muted/30 px-3 py-2">
+                                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Commit message</p>
+                                                    <p className="mt-1 text-sm text-foreground break-words">{commitMessage}</p>
+                                                </div>
+                                            )}
+                                            {event.payload.commits && event.payload.commits.length > 1 && (
+                                                <div className="mt-2 space-y-1">
+                                                    {event.payload.commits.slice(1).map((commit, idx) => (
                                                         <div key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
                                                             <code className="text-xs bg-muted px-1 py-0.5 rounded">{commit.sha}</code>
                                                             <span className="truncate">{commit.message}</span>

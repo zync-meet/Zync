@@ -550,6 +550,11 @@ router.get('/events', verifyToken, async (req, res) => {
       type: event.type,
       repo: event.repo.name,
       created_at: event.created_at,
+      actor: event.actor ? {
+        login: event.actor.login,
+        avatar_url: event.actor.avatar_url,
+        html_url: event.actor.html_url,
+      } : null,
       payload: {
         action: event.payload?.action,
         ref: event.payload?.ref,
