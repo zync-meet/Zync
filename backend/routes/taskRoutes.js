@@ -6,6 +6,7 @@ const Team = require('../models/Team');
 const Project = require('../models/Project');
 const Step = require('../models/Step');
 const ProjectTask = require('../models/ProjectTask');
+const Session = require('../models/Session');
 const { normalizeDocs } = require('../utils/normalize');
 const cache = require('../utils/cache');
 
@@ -170,6 +171,32 @@ router.post('/assign', verifyToken, async (req, res) => {
     }
 
     const createdTasks = await ProjectTask.insertMany(createdTasksPayload);
+
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    await Session.insertMany(
+      normalizedAssigneeIds.map((uid) => {
+        const assignee = assigneeMap.get(uid);
+        return {
+          userId: uid,
+          startTime: now,
+          endTime: now,
+          duration: 0,
+          activeDuration: 0,
+          date: today,
+          eventType: 'task-assigned',
+          title: `New task assigned: ${taskName.trim()}`,
+          source: project.name || 'Workspace',
+          actorName: requester?.displayName || requester?.email || requesterUid,
+          metadata: {
+            projectId: String(project._id),
+            projectName: project.name || null,
+            taskIds: createdTasks.map((task) => String(task._id)),
+            assignedToName: assignee?.displayName || assignee?.email || uid,
+          },
+        };
+      })
+    );
 
     await cache.invalidate(`projects:${requesterUid}`, `projects:${resolvedAssigneeId}`);
 

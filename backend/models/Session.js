@@ -12,6 +12,13 @@ const sessionSchema = new mongoose.Schema(
 
     date:       { type: String, required: true }, // YYYY-MM-DD
     deviceInfo: { type: String, default: null },
+
+    // Optional event log fields for activity feed (e.g., task assigned).
+    eventType:  { type: String, default: 'session' },
+    title:      { type: String, default: null },
+    source:     { type: String, default: null },
+    actorName:  { type: String, default: null },
+    metadata:   { type: mongoose.Schema.Types.Mixed, default: null },
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: false },
