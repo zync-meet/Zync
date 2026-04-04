@@ -298,6 +298,7 @@ router.post('/chat-request', verifyToken, async (req, res) => {
       `New Chat Request from ${sender.displayName}: "${message}"`
     );
 
+    cache.invalidate(`user:me:${recipientId}`);
     res.json({ message: 'Chat request sent successfully' });
   } catch (error) {
     console.error('Chat request error:', error);
