@@ -431,6 +431,54 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     }
   }, [activeSection, currentUser, isPreview]);
 
+  useEffect(() => {
+    if (activeSection !== "Activity log" || !currentUser || isPreview) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const refreshActivityData = async () => {
+      try {
+        const token = await currentUser.getIdToken();
+
+        const [logsRes, projectsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch(`${API_BASE_URL}/api/projects`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
+
+        if (!cancelled && logsRes.ok) {
+          const logsData = await logsRes.json();
+          setActivityLogs(logsData);
+        }
+
+        if (!cancelled && projectsRes.ok) {
+          const projects = await projectsRes.json();
+          const allTasks = projects.flatMap((p: any) =>
+            p.steps.flatMap((s: any) => s.tasks || [])
+          );
+          setLeaderTasks(allTasks);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to refresh activity data", error);
+        }
+      }
+    };
+
+    refreshActivityData();
+    const intervalId = setInterval(refreshActivityData, 10000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [activeSection, currentUser, isPreview]);
+
 
   useEffect(() => {
     if (activeSection === "Activity log" && currentUser && !isPreview) {

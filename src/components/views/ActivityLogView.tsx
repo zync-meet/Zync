@@ -51,6 +51,11 @@ interface ActivityLog {
     title?: string | null;
     source?: string | null;
     actorName?: string | null;
+    metadata?: {
+        toStatus?: string | null;
+        trigger?: string | null;
+        [key: string]: unknown;
+    } | null;
 }
 
 interface ActivityLogViewProps {
@@ -255,14 +260,22 @@ export default function ActivityLogView({
             }
 
             if (log.eventType === 'task-progressed') {
+                const trigger = String(log.metadata?.trigger || '').toLowerCase();
+                if (trigger && trigger !== 'commit') {
+                    return;
+                }
+
+                const toStatus = normStatus(log.metadata?.toStatus);
+                const isCompletedTransition = toStatus === 'done' || toStatus.includes('complete');
+
                 out.push({
                     id: `task-progressed-${log._id ?? logIndex}`,
                     sortTime: start.getTime(),
                     actor: log.actorName || 'Workspace',
-                    entity: log.title || 'Task moved to in progress',
+                    entity: log.title || (isCompletedTransition ? 'Task completed' : 'Task moved to In Progress'),
                     timeLabel: formatDistanceToNow(start, { addSuffix: true }),
                     source: log.source || 'Tasks',
-                    tag: 'Comment',
+                    tag: isCompletedTransition ? 'Completed' : 'Comment',
                     iconBg: T.bgSurface,
                     onDelete: () => handleDeleteLog(log._id),
                 });
@@ -297,7 +310,7 @@ export default function ActivityLogView({
                     iconBg: T.bgSurface,
                 });
             }
-            if (isCompletedTask(t)) {
+            if (isCompletedTask(t) && !ci?.message) {
                 const ts = t.updatedAt
                     ? new Date(t.updatedAt).getTime()
                     : t.createdAt

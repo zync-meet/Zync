@@ -12,6 +12,26 @@ const { normalizeDoc } = require('../utils/normalize');
 const { getProjectWithSteps } = require('../utils/projectHelper');
 
 const normalizeTaskStatus = (value) => String(value || '').trim().toLowerCase();
+const COMMIT_CODE_REGEX = /\b\d{10}\b/g;
+
+const extractCommitCodes = (message) => {
+  const matches = String(message || '').match(COMMIT_CODE_REGEX);
+  return [...new Set(matches || [])];
+};
+
+const computeStatusFromCommit = ({ fromStatus, hasOwnerGeneratedCommitCode }) => {
+  const normalizedFrom = normalizeTaskStatus(fromStatus);
+
+  if (hasOwnerGeneratedCommitCode) {
+    return 'Done';
+  }
+
+  if (normalizedFrom === 'done' || normalizedFrom.includes('complete')) {
+    return null;
+  }
+
+  return 'In Progress';
+};
 
 async function logTaskProgressActivity({ recipients, taskTitle, projectName, actorName, projectId, taskId, fromStatus, toStatus }) {
   const uniqueRecipients = [...new Set((recipients || []).filter(Boolean))];
@@ -89,32 +109,34 @@ router.post('/webhook', verifyGithub, async (req, res) => {
     for (const commit of commits) {
       const message = commit.message;
       const analysis = await analyzeCommit(message);
+      const commitCodesInMessage = extractCommitCodes(message);
 
-      if (!analysis.found || !analysis.id) {
+      let task = null;
+      let displayId = analysis.id || null;
+
+      if (analysis.found && analysis.id) {
+        displayId = analysis.id;
+        task = await ProjectTask.findOne({ displayId }).lean();
+        if (!task) {
+          const taskByDisplayRegex = await ProjectTask.findOne({
+            displayId: { $regex: `^${String(displayId).replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, $options: 'i' }
+          }).lean();
+          task = taskByDisplayRegex || null;
+        }
+      }
+
+      if (!task && commitCodesInMessage.length > 0) {
+        task = await ProjectTask.findOne({ commitCode: { $in: commitCodesInMessage } }).lean();
+      }
+
+      if (!task) {
         results.push({ commit: commit.id?.substring(0, 7), status: 'no_task_found' });
-        continue;
-      }
-
-      const displayId = analysis.id;
-
-      // Find task by displayId
-      let task = await ProjectTask.findOne({ displayId }).lean();
-
-      if (!task) {
-        // Try case-insensitive
-        const allTasks = await ProjectTask.find({
-          displayId: { $regex: `^${displayId.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, $options: 'i' }
-        }).lean();
-        task = allTasks[0] || null;
-      }
-
-      if (!task) {
-        results.push({ commit: commit.id?.substring(0, 7), displayId, status: 'task_not_found' });
         continue;
       }
 
       // Update task with commit info
       const fromStatus = task.status;
+      const hasOwnerGeneratedCommitCode = Boolean(task.commitCode && commitCodesInMessage.includes(String(task.commitCode)));
       const updateData = {
         commitMessage: message,
         commitUrl: commit.url,
@@ -122,12 +144,12 @@ router.post('/webhook', verifyGithub, async (req, res) => {
         commitTimestamp: commit.timestamp || new Date().toISOString(),
       };
 
-      if (normalizeTaskStatus(fromStatus) === 'active') {
-        updateData.status = 'In Progress';
-      } else if (analysis.action === 'Complete') {
-        updateData.status = 'Done';
-      } else if (analysis.action === 'In Progress') {
-        updateData.status = 'In Progress';
+      const nextStatus = computeStatusFromCommit({
+        fromStatus,
+        hasOwnerGeneratedCommitCode,
+      });
+      if (nextStatus) {
+        updateData.status = nextStatus;
       }
 
       await ProjectTask.updateOne({ _id: task._id }, { $set: updateData });
@@ -152,8 +174,11 @@ router.post('/webhook', verifyGithub, async (req, res) => {
         const projectData = await getProjectWithSteps(step.projectId);
         const io = req.app.get('io');
         if (io) {
+          const updatedTask = normalizeDoc({ ...task, ...updateData });
           io.emit('taskUpdated', {
-            task: normalizeDoc({ ...task, ...updateData }),
+            task: updatedTask,
+            taskId: String(task._id),
+            status: updateData.status || task.status,
             projectId: step.projectId.toString(),
           });
           io.emit('projectUpdate', {
@@ -165,9 +190,9 @@ router.post('/webhook', verifyGithub, async (req, res) => {
 
       results.push({
         commit: commit.id?.substring(0, 7),
-        displayId,
+        displayId: task.displayId || displayId || null,
         status: 'updated',
-        action: analysis.action,
+        action: hasOwnerGeneratedCommitCode ? 'Complete' : 'In Progress',
       });
     }
 
