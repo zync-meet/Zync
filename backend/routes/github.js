@@ -23,7 +23,16 @@ const decryptToken = (ciphertext) => {
   return bytes.toString(CryptoJS.enc.Utf8);
 };
 
+const GITHUB_CACHE_MAX_SIZE = 500;
 const githubCache = new Map();
+
+const githubCacheSet = (key, value) => {
+  if (githubCache.size >= GITHUB_CACHE_MAX_SIZE) {
+    const firstKey = githubCache.keys().next().value;
+    githubCache.delete(firstKey);
+  }
+  githubCache.set(key, value);
+};
 
 const fetchWithEtag = async (url, config, cacheKey) => {
   const cached = githubCache.get(cacheKey);
@@ -35,7 +44,7 @@ const fetchWithEtag = async (url, config, cacheKey) => {
   try {
     const res = await axios.get(url, { ...config, headers });
     if (res.headers?.etag) {
-      githubCache.set(cacheKey, { etag: res.headers.etag, data: res.data });
+      githubCacheSet(cacheKey, { etag: res.headers.etag, data: res.data });
     }
     return res;
   } catch (error) {
@@ -88,12 +97,12 @@ router.post('/connect', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    await cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
+
     res.json({
       message: 'GitHub connected successfully',
       username: githubUsername
     });
-
-    cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
 
   } catch (error) {
     console.error('Error connecting GitHub:', error.message);
@@ -128,8 +137,8 @@ router.delete('/disconnect', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    await cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
     res.json({ message: 'GitHub disconnected successfully' });
-    cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
   } catch (error) {
     console.error('Error disconnecting GitHub:', error.message);
     res.status(500).json({ message: 'Failed to disconnect GitHub' });
@@ -197,12 +206,12 @@ router.post('/callback', verifyToken, async (req, res) => {
       }
     );
 
+    await cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
+
     res.json({
       message: 'GitHub connected successfully',
       username: githubUser.login
     });
-
-    cache.delByPattern(`gh:*:${uid}*`).catch(() => {});
 
   } catch (error) {
     console.error('Error in GitHub OAuth callback:', error.message);
@@ -413,7 +422,7 @@ router.get('/user-repos', verifyToken, async (req, res) => {
       try {
         response = await octokit.request('GET /installation/repositories', { per_page, page, headers });
         if (response.headers?.etag) {
-          githubCache.set(cacheKey, { etag: response.headers.etag, data: response.data });
+          githubCacheSet(cacheKey, { etag: response.headers.etag, data: response.data });
         }
       } catch (err) {
         if (err.status === 304 && cached) {

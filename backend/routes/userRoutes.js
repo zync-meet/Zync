@@ -298,6 +298,7 @@ router.post('/chat-request', verifyToken, async (req, res) => {
       `New Chat Request from ${sender.displayName}: "${message}"`
     );
 
+    cache.invalidate(`user:me:${recipientId}`);
     res.json({ message: 'Chat request sent successfully' });
   } catch (error) {
     console.error('Chat request error:', error);
@@ -606,6 +607,7 @@ router.post('/verify-phone/request', async (req, res) => {
       }
     );
 
+    cache.invalidate(`user:me:${uid}`);
     await sendVerificationEmail(user.email, code);
 
     res.status(200).json({ message: 'Verification code sent to email' });
@@ -641,6 +643,7 @@ router.post('/verify-phone/confirm', async (req, res) => {
       }
     );
 
+    cache.invalidate(`user:me:${uid}`);
     res.status(200).json({ message: 'Phone number verified successfully' });
   } catch (error) {
     console.error('Error verifying phone:', error);

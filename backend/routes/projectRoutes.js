@@ -88,11 +88,22 @@ async function logTaskProgressActivity({ recipients, taskTitle, projectName, act
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-3-flash-preview";
 console.log(`[Config] Using Gemini Model: ${MODEL_NAME}`);
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const ARCHITECTURE_CACHE_TTL_MS = Number.parseInt(process.env.ARCHITECTURE_CACHE_TTL_MS || '21600000', 10);
+const ARCHITECTURE_CACHE_MAX_SIZE = 200;
 const architectureAnalysisCache = new Map();
+
+// Periodic cleanup of expired entries (every hour)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of architectureAnalysisCache) {
+    if (entry.expiresAt <= now) {
+      architectureAnalysisCache.delete(key);
+    }
+  }
+}, 3600000);
 
 
 const decryptToken = (ciphertext) => {
@@ -141,6 +152,10 @@ const getArchitectureFromMemoryCache = (projectId, repoCacheKey) => {
 const setArchitectureInMemoryCache = (projectId, repoCacheKey, architecture) => {
   if (!projectId || !repoCacheKey || !architecture) return;
   const cacheId = makeArchitectureCacheId(projectId, repoCacheKey);
+  if (architectureAnalysisCache.size >= ARCHITECTURE_CACHE_MAX_SIZE) {
+    const firstKey = architectureAnalysisCache.keys().next().value;
+    architectureAnalysisCache.delete(firstKey);
+  }
   architectureAnalysisCache.set(cacheId, {
     architecture,
     expiresAt: Date.now() + ARCHITECTURE_CACHE_TTL_MS,
