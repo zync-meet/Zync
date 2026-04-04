@@ -75,11 +75,11 @@ Zync targets a clear, relatable pain point: **dev teams juggle 5-6 disjointed to
 
 ### Gaps to Fix Before Presentation
 
-1. **Remove fake social proof** from `TrustSection.tsx` — replace with honest "Early Access" or "Join X beta testers" (use real Firebase auth count if available)
-2. **Improve onboarding**: Add 3-4 feature highlights to `WelcomeToZync.tsx` — even static cards showing "Here's what you can do" would help
-3. **Add non-GitHub dashboard fallback**: When GitHub isn't connected, show a project overview or task summary instead of an empty contribution graph
-4. **Replace `window.confirm()` dialogs** with proper `AlertDialog` components (already imported from Shadcn)
-5. **Consider hiding DesignView** unless it's a differentiator for the hackathon audience — it doesn't strengthen the "unified dev workspace" narrative
+1. ~~**Remove fake social proof**~~ — **DONE.** Replaced with honest developer highlights.
+2. ~~**Improve onboarding**~~ — **DONE.** Added feature highlights to `WelcomeToZync.tsx`.
+3. ~~**Add non-GitHub dashboard fallback**~~ — **DONE.** Shows project/task summary when GitHub isn't connected.
+4. ~~**Replace `window.confirm()` dialogs**~~ — **DONE** in auth flows. Remaining: SettingsView (5), NotesLayout (1), MeetView (1).
+5. ~~**Hide DesignView**~~ — **DONE.** Hidden from sidebar navigation.
 
 ### Jury Talking Points
 
@@ -115,7 +115,7 @@ Zync targets a clear, relatable pain point: **dev teams juggle 5-6 disjointed to
 │  │  └── ProjectDetails  Project deep-dive                           │   │
 │  │                                                                   │   │
 │  │  components/          UI + Feature components                     │   │
-│  │  ├── ui/              50 Shadcn/Radix primitives                 │   │
+│  │  ├── ui/              48 Shadcn/Radix primitives                 │   │
 │  │  ├── views/           15 feature views (Desktop, Chat, Tasks…)   │   │
 │  │  ├── workspace/       Kanban, RepoSelector, TaskAssignment       │   │
 │  │  ├── notes/           NotesView, NoteEditor, Yjs collab          │   │
@@ -238,7 +238,7 @@ Zync targets a clear, relatable pain point: **dev teams juggle 5-6 disjointed to
 #### 1. Folder Structure — **Mixed: Feature-based views, type-based libraries**
 
 **What works:**
-- `components/ui/` cleanly isolates 50 Shadcn primitives — consistent pattern, no business logic leakage
+- `components/ui/` cleanly isolates 48 Shadcn primitives — consistent pattern, no business logic leakage
 - `components/views/` groups all feature screens in one place — easy to find "where is the chat UI?"
 - `components/notes/` is a well-contained feature module with editor, sidebar, sharing, collaboration
 - `components/workspace/` groups Kanban, repo selector, and task assignment together
@@ -248,8 +248,8 @@ Zync targets a clear, relatable pain point: **dev teams juggle 5-6 disjointed to
 - `components/views/` is a dumping ground — 15 unrelated views with no sub-grouping. ChatLayout, ChatView, and MessagesPage are three separate files that form one feature but sit alongside CalendarView, DesignView, MeetView with no grouping
 - `api/` has only 4 files (calendar, notes, projects, geo) while the rest of the API calls are inline in components and hooks — incomplete abstraction
 - `services/` has 3 files that overlap with `api/` — `notesService.ts` does polling while `api/notes.ts` does REST, both for notes
-- `store/` directory exists with `slices/` and `thunks/` subdirectories but contains only `.gitkeep` files — Redux was planned but abandoned
-- Empty `atoms/`, `molecules/`, `organisms/`, `templates/` directories (Atomic Design was planned but not adopted)
+- `store/` directory existed with `slices/` and `thunks/` subdirectories containing only `.gitkeep` files — Redux was planned but abandoned. **These have since been removed.**
+- Empty `atoms/`, `molecules/`, `organisms/`, `templates/` directories (Atomic Design was planned but not adopted). **These have since been removed.**
 
 #### 2. Separation of Concerns — **Poor on frontend, Very poor on backend**
 
@@ -377,11 +377,11 @@ This is 5-6 different ways to manage state. The local-first architecture (`useSy
 
 ### Gaps to Fix Before Presentation
 
-1. **Extract an API client** (`lib/api.ts`) with centralized auth headers, error handling, and base URL — eliminates the `getAuthHeaders` duplication in 4+ files
-2. **Split DesktopView.tsx** into AppShell + SessionManager + ChatConnector + SidebarRouter — the 981-line god component is the single biggest architectural risk
+1. ~~**Extract an API client**~~ — **DONE.** `getAuthHeaders` centralized into `src/lib/auth-headers.ts`. Full API client still pending.
+2. **Split DesktopView.tsx** into AppShell + SessionManager + ChatConnector + SidebarRouter — the 979-line god component is the single biggest architectural risk
 3. **Choose one database driver** — remove either Mongoose or Prisma, don't use both for the same MongoDB
 4. **Add Socket.IO authentication** — verify Firebase tokens on WebSocket connections, don't trust client-provided userId
-5. **Remove empty directories** — `store/slices/`, `store/thunks/`, `components/atoms/`, `molecules/`, `organisms/`, `templates/`, `utils/`, `types/` are all `.gitkeep` placeholders that suggest unfinished architecture
+5. ~~**Remove empty directories**~~ — **DONE.** All `.gitkeep` placeholder directories removed.
 6. **Consolidate notes API** — pick either `api/notes.ts` or `services/notesService.ts`, not both
 7. **Standardize backend response format** — single envelope `{ success, data?, error?, meta? }` across all routes
 
@@ -574,7 +574,7 @@ Aggregates Dribbble, SiteInspire, Lapa Ninja, Awwwards, and Godly into one searc
 
 ### Strengths
 
-1. **Systematic UI primitive library** — 52 Shadcn/Radix components in `src/components/ui/` with consistent patterns: every component uses `forwardRef`, `React.ComponentPropsWithoutRef`, `cn()` class merging, and `variant` prop via CVA. No business logic leaks into primitives. This is a disciplined, scalable component library.
+1. **Systematic UI primitive library** — 48 Shadcn/Radix components in `src/components/ui/` with consistent patterns: every component uses `forwardRef`, `React.ComponentPropsWithoutRef`, `cn()` class merging, and `variant` prop via CVA. No business logic leaks into primitives. This is a disciplined, scalable component library.
 
 2. **10 dedicated skeleton loading components** — `src/components/ui/skeletons/` has `DashboardSkeleton`, `ProjectCardSkeleton`, `TaskListSkeleton`, `CalendarSkeleton`, `ChatSkeleton`, `PeopleSkeleton`, `NotesSkeleton`, `ActivitySkeleton`, `KanbanSkeleton`, and `SettingsSkeleton`. Every major view has a matching skeleton. This is not accidental — it's a deliberate, systematic pattern that prevents layout shift and improves perceived performance.
 
@@ -582,11 +582,11 @@ Aggregates Dribbble, SiteInspire, Lapa Ninja, Awwwards, and Godly into one searc
 
 ### Issues to Fix Before Demo
 
-1. **Remove unused dependencies** — `@reduxjs/toolkit`, `react-redux`, `redux-persist`, `i18next`, `react-i18next`, `i18next-browser-languagedetector`, `i18next-http-backend` are all installed with **zero usage** in the codebase. They add ~2MB to `node_modules` and signal incomplete planning. Remove from `package.json` (or `npm uninstall`).
+1. ~~**Remove unused dependencies**~~ — **DONE.** Redux Toolkit, react-redux, redux-persist, i18next packages have been removed from `package.json`.
 
-2. **Remove 19 `.gitkeep` placeholder directories** — `src/components/atoms/`, `molecules/`, `organisms/`, `templates/`, `src/store/slices/`, `src/store/thunks/`, `src/types/`, `src/utils/`, `src/routes/`, `src/locales/`, `src/layouts/`, `src/styles/`, `src/config/`, `src/assets/icons|images|fonts/`, `assets/icons|images|fonts/`, `config/`, `scripts/`. These suggest an abandoned Atomic Design + Redux architecture. Empty directories make the project look unfinished.
+2. ~~**Remove 19 `.gitkeep` placeholder directories**~~ — **DONE.** All empty `.gitkeep` directories have been removed.
 
-3. **Remove fake social proof from TrustSection** — `src/components/landing/TrustSection.tsx` shows "14,297 companies" with Google/Dropbox/Uber/Microsoft logos and a "4.6 rating based on 1,540 reviews" — all fabricated. This is a credibility risk during jury evaluation. Replace with honest "Early Access" or real Firebase user count.
+3. ~~**Remove fake social proof from TrustSection**~~ — **DONE.** Replaced with honest developer highlights.
 
 ### Current Assessment
 
@@ -606,16 +606,9 @@ Aggregates Dribbble, SiteInspire, Lapa Ninja, Awwwards, and Godly into one searc
 
 #### Reusability — Weak
 
-**The `getAuthHeaders()` function is duplicated in 4 files** with identical implementations:
-```
-src/api/notes.ts:27-34
-src/api/projects.ts:30-37
-src/api/calendar.ts:21-28
-src/services/notesService.ts:35-38
-```
-All four implement the same logic: get Firebase user → get ID token → return `Authorization: Bearer` header.
+**The `getAuthHeaders()` function was previously duplicated in 4 files** but has since been centralized into `src/lib/auth-headers.ts`. All four API files (`api/notes.ts`, `api/projects.ts`, `api/calendar.ts`, `services/notesService.ts`) now import from the single source.
 
-**The `currentUser.getIdToken()` pattern is duplicated 113+ times** across the codebase. `DesktopView.tsx` alone calls it 11 times. `SettingsView.tsx` calls it 12 times. There is no centralized API client — every component and hook does its own `fetch` with inline auth headers, error handling, and response parsing.
+**The `currentUser.getIdToken()` pattern is duplicated 83+ times** across the codebase. `DesktopView.tsx` alone calls it 11 times. `SettingsView.tsx` calls it 12 times. There is no centralized API client — every component and hook does its own `fetch` with inline auth headers, error handling, and response parsing.
 
 **Type definitions are duplicated:**
 - `Folder` interface defined identically in `api/notes.ts:6-14` AND `services/notesService.ts:4-13`
@@ -642,8 +635,8 @@ toast({ title: "Error", description: "Failed to update task", variant: "destruct
 
 | Category | Evidence | Impact |
 |----------|----------|--------|
-| **Redux Toolkit** | Installed (3 packages), zero usage | ~500KB dead weight, confusing for new devs |
-| **i18next** | Installed (4 packages), zero usage | ~300KB, no translation files exist |
+| **Redux Toolkit** | Previously installed, now **removed** | No longer an issue |
+| **i18next** | Previously installed, now **removed** | No longer an issue |
 | **Empty Atomic Design dirs** | 4 directories with only `.gitkeep` | Suggests abandoned architecture |
 | **Empty src/store/** | `slices/` and `thunks/` with `.gitkeep` only | Redux was planned, never implemented |
 | **Empty test dirs** | `tests/e2e/`, `tests/integration/`, `tests/unit/` | Only `.gitkeep` files, no actual tests |
@@ -676,7 +669,7 @@ Each of these handles data fetching + state management + UI rendering + side eff
 | Magic numbers | 15+ | Timeout `800`, `30000`, `2000` without named constants |
 | Hardcoded localhost URLs | 4 | SocketIOProvider, useNotePresence, usePresence, chatSocketService |
 | Prop drilling (8+ props) | 3+ | DesktopView → ActivityLogView (11 props) |
-| Inline auth token fetch | 113+ | `currentUser.getIdToken()` in every component |
+| Inline auth token fetch | 83+ | `currentUser.getIdToken()` in every component |
 
 ### Jury Talking Points
 
@@ -684,7 +677,7 @@ Each of these handles data fetching + state management + UI rendering + side eff
 
 2. "The 52 Radix UI primitives in our component library are the foundation of consistency — every dialog, dropdown, toast, and tooltip across the app behaves identically because they all use the same accessible, keyboard-navigable base components. We didn't build 52 different UI widgets; we composed 52 variations from one pattern."
 
-3. "We acknowledge the codebase has grown faster than the architecture — the main shell component is 979 lines and auth token handling is duplicated across 113 call sites. This is a deliberate trade-off of rapid prototyping: we shipped features over refactoring, and we know exactly which 5 components need splitting. The upside is that every feature works end-to-end; the downside is that the code needs consolidation before open-sourcing."
+3. "We acknowledge the codebase has grown faster than the architecture — the main shell component is 979 lines and auth token handling is duplicated across 83 call sites. This is a deliberate trade-off of rapid prototyping: we shipped features over refactoring, and we know exactly which 5 components need splitting. The upside is that every feature works end-to-end; the downside is that the code needs consolidation before open-sourcing."
 
 ### Self Score: 4/8 | Confidence: High
 
@@ -722,9 +715,9 @@ Each of these handles data fetching + state management + UI rendering + side eff
 
 ### Underutilized Tools (Fix or Remove)
 
-1. **Redux Toolkit + react-redux + redux-persist** — 3 packages installed, **zero usage**. The `src/store/` directory contains only `.gitkeep` files. State management is handled entirely by TanStack Query + local `useState`. Remove these dependencies to reduce bundle size by ~500KB and eliminate confusion about which state system to use.
+1. ~~**Redux Toolkit + react-redux + redux-persist**~~ — **Removed.** These packages were installed with zero usage and have since been cleaned up.
 
-2. **i18next (4 packages)** — `i18next`, `react-i18next`, `i18next-browser-languagedetector`, `i18next-http-backend` are all installed. **Zero translation files exist.** No `useTranslation()` calls anywhere. The `src/locales/` directory is empty. Either implement internationalization (which would be impressive for a hackathon) or remove these packages.
+2. ~~**i18next (4 packages)**~~ — **Removed.** These packages were installed with zero usage and have since been cleaned up.
 
 3. **Zod validation middleware** — `backend/middleware/validation.js` defines Zod schemas for request validation but is **not imported in any route**. All validation is done inline (manual `if (!req.body.name)` checks). Using the middleware would be a quick win for consistency.
 
@@ -793,17 +786,17 @@ Each of these handles data fetching + state management + UI rendering + side eff
 ### Our Dev Workflow
 
 **The numbers tell the story:**
-- **1,007 total commits** across the project lifetime
+- **684 total commits** across the project lifetime
 - **143 commits in the last 2 weeks** — an average of 10/day
-- **64 commits on April 3rd alone** — peak velocity during the final sprint
-- **88 merged pull requests** — iterative PR-based development with code review
-- **195 `feat` commits, 222 `fix` commits, 28 `refactor` commits** — balanced between building, fixing, and improving
+- **76 commits on April 3rd alone** — peak velocity during the final sprint
+- **118 merged pull requests** — iterative PR-based development with code review
+- **136 `feat` commits, 112 `fix` commits, 11 `refactor` commits** — balanced between building, fixing, and improving
 
-**Team of 4 active contributors:**
-- Chitkul Lakshya: 433 commits
-- Prem Sai Kota / prem22k: 444 commits (combined)
-- Eeshitha Gone: 83 commits (combined)
-- Plus dependabot, AI-assisted commits
+**Team of 3 active contributors:**
+- Chitkul Lakshya: 238 commits (137,482 additions)
+- Prem Sai Kota (prem22k): 204 commits (117,758 additions)
+- Eesha (eesha264): 109 commits (94,980 additions)
+- Plus dependabot (14 commits), AI-assisted commits (2 commits)
 
 **Today's commits are evidence of the evaluation driving real fixes** — we identified gaps this morning and shipped fixes within hours:
 ```
@@ -823,7 +816,7 @@ b5029d6 docs: add HackFusion evaluation score card          ← this doc
 |------|-------------|--------------|
 | **Vite 5 (SWC)** | Sub-50ms HMR, native ESM, full-stack proxy | Instant feedback on code changes |
 | **Path aliases** (`@/*`, `@components/*`, `@hooks/*`) | `import { Button } from "@/components/ui/button"` instead of relative paths | No more `../../../` navigation |
-| **53 Shadcn/Radix components** | Pre-built, accessible, themed UI primitives | New UI in minutes, not hours |
+| **48 Shadcn/Radix components** | Pre-built, accessible, themed UI primitives | New UI in minutes, not hours |
 | **17 custom hooks** | `useMe`, `useProjects`, `useNotes`, `useGitHubData`, etc. | Data fetching in one line |
 | **10 skeleton components** | Pre-built loading states for every view | No boilerplate for loading UX |
 | **Tailwind + 9 custom animations** | `fade-in-up`, `slide-in-left`, `scale-in`, `pulse-glow`, `float` — pre-configured keyframes | Animation via class name |
@@ -860,7 +853,7 @@ b5029d6 docs: add HackFusion evaluation score card          ← this doc
 
 4. **No database migration tool** — schema changes are manual. No `prisma migrate` or equivalent for MongoDB.
 
-5. **Only 54% conventional commits** — 547 of 1,007 commits use proper prefixes. The rest use informal messages like "fixed the collab", "foxed the sidebar" (typo in commit). This doesn't block speed but hurts readability.
+5. **Only 25% conventional commits** — 174 of 684 commits use proper prefixes. The rest use informal messages like "fixed the collab", "foxed the sidebar" (typo in commit). This doesn't block speed but hurts readability.
 
 ### Quick Wins to Add Right Now
 
