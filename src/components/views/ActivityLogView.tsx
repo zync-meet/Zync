@@ -151,6 +151,7 @@ export default function ActivityLogView({
     handleClearLogs,
     handleDeleteLog,
     tasks = [],
+    currentUserId,
 }: ActivityLogViewProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [showAllLogs, setShowAllLogs] = useState(false);
@@ -173,7 +174,21 @@ export default function ActivityLogView({
         document.head.appendChild(link);
     }, []);
 
-    const taskList = tasks ?? [];
+    const taskList = useMemo(() => {
+        return (tasks ?? []).filter((task: any) => {
+            const assignedTo = task?.assignedTo;
+            const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+            const hasRepoLink = Boolean(
+                task?.githubRepoOwner ||
+                task?.githubRepoName ||
+                task?.githubRepo ||
+                (Array.isArray(task?.repoIds) && task.repoIds.length > 0)
+            );
+            const hasCommitCode = Boolean(task?.commitCode);
+            const isCurrentUserTask = currentUserId && (assignedTo === currentUserId || assignedUserIds.includes(currentUserId));
+            return hasRepoLink && hasCommitCode && Boolean(isCurrentUserTask);
+        });
+    }, [tasks, currentUserId]);
 
     const taskStats = useMemo(() => {
         const total = taskList.length;

@@ -291,6 +291,39 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const [teamSessions, setTeamSessions] = useState<any[]>([]);
   const [ownedTeams, setOwnedTeams] = useState<any[]>([]);
 
+  const buildActivityLogTasks = (projects: any[]) => {
+    return projects.flatMap((project: any) =>
+      (project.steps || []).flatMap((step: any) =>
+        (step.tasks || []).map((task: any) => ({
+          ...task,
+          projectId: project._id || project.id,
+          projectName: project.name,
+          githubRepoName: project.githubRepoName,
+          githubRepoOwner: project.githubRepoOwner,
+          githubRepo: project.githubRepo,
+          repoIds: project.githubRepoIds,
+          projectOwnerId: project.ownerUid || project.ownerId,
+        }))
+      )
+    );
+  };
+
+  const filterCommitCapableTasks = (tasks: any[], userId: string) => {
+    return tasks.filter((task: any) => {
+      const assignedTo = task?.assignedTo;
+      const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+      const hasRepoLink = Boolean(
+        task?.githubRepoOwner ||
+        task?.githubRepoName ||
+        task?.githubRepo ||
+        (Array.isArray(task?.repoIds) && task.repoIds.length > 0)
+      );
+      const hasCommitCode = Boolean(task?.commitCode);
+
+      return hasRepoLink && hasCommitCode && (assignedTo === userId || assignedUserIds.includes(userId));
+    });
+  };
+
 
   useEffect(() => {
     if (currentUser && !isPreview) {
@@ -459,14 +492,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
         if (!cancelled && projectsRes.ok) {
           const projects = await projectsRes.json();
-          const allTasks = projects.flatMap((p: any) =>
-            p.steps.flatMap((s: any) => s.tasks || [])
-          );
-          const myTasks = allTasks.filter((task: any) => {
-            const assignedTo = task?.assignedTo;
-            const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
-            return assignedTo === currentUser.uid || assignedUserIds.includes(currentUser.uid);
-          });
+          const myTasks = filterCommitCapableTasks(buildActivityLogTasks(projects), currentUser.uid);
           setLeaderTasks(myTasks);
         }
       } catch (error) {
@@ -498,13 +524,8 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
             const projects = await response.json();
 
             if (Array.isArray(projects)) {
-              // Extract tasks assigned to the current user, specifically those received from OTHER users
-              const receivedTasks = projects
-                .flatMap((p: any) => p.steps?.flatMap((s: any) => s.tasks || []) || [])
-                .filter((t: any) => 
-                  t.assignedTo === currentUser.uid &&
-                  (t.assignedBy !== currentUser.uid && t.createdBy !== currentUser.uid)
-                );
+              const receivedTasks = filterCommitCapableTasks(buildActivityLogTasks(projects), currentUser.uid)
+                .filter((t: any) => t.assignedBy !== currentUser.uid && t.createdBy !== currentUser.uid);
               setLeaderTasks(receivedTasks);
             } else {
               console.warn("Expected an array of projects, received:", projects);
@@ -723,6 +744,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       ]
     },
     { icon: Calendar, label: "Calendar", active: activeSection === "Calendar" },
+    { icon: Star, label: "Design", active: activeSection === "Design" },
     { icon: Github, label: "My Projects", active: activeSection === "My Projects" },
     { icon: CheckSquare, label: "Tasks", active: activeSection === "Tasks" },
     { icon: FileText, label: "Notes", active: activeSection === "Notes" },
