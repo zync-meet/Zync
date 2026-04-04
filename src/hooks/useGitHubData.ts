@@ -20,6 +20,11 @@ export interface GitHubEvent {
     type: string;
     repo: string;
     created_at: string;
+    actor?: {
+        login?: string;
+        avatar_url?: string;
+        html_url?: string;
+    } | null;
     payload: {
         action?: string;
         ref?: string;
