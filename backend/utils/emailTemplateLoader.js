@@ -1,13 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const TEMPLATE_DIR = path.join(__dirname, '..', 'email template');
+const TEMPLATE_DIR = path.join(__dirname, '..', 'templates', 'email');
 
 /** In-memory cache so we do not re-read disk on every send. */
 const cache = new Map();
 
 /**
- * List all `.html` files in `backend/email template/`.
+ * List all `.html` files in `backend/templates/email/`.
  * @returns {string[]}
  */
 function getTemplateFileNames() {
@@ -67,7 +67,7 @@ function renderTemplate(html, vars = {}, options = {}) {
 }
 
 /**
- * Load a file from `backend/email template/` and apply `{{key}}` replacements.
+ * Load a file from `backend/templates/email/` and apply `{{key}}` replacements.
  * @param {string} filename
  * @param {Record<string, string | number | undefined | null>} vars
  * @param {{ rawKeys?: string[] }} [options]

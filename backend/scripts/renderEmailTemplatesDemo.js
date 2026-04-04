@@ -11,7 +11,7 @@ const {
   getTaskAssignmentEmailHtml,
 } = require('../utils/emailTemplates');
 
-const TEMPLATE_DIR = path.join(__dirname, '..', 'email template');
+const TEMPLATE_DIR = path.join(__dirname, '..', 'templates', 'email');
 const OUT_DIR = path.join(TEMPLATE_DIR, 'demo');
 
 function ensureDir(dir) {
