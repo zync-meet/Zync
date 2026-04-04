@@ -440,10 +440,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           if (response.ok) {
             const projects = await response.json();
 
-            const ownedProjects = projects.filter((p: any) => p.ownerId === currentUser.uid);
-
-
-            const allTasks = ownedProjects.flatMap((p: any) =>
+            const allTasks = projects.flatMap((p: any) =>
               p.steps.flatMap((s: any) => s.tasks || [])
             );
             setLeaderTasks(allTasks);

@@ -9,6 +9,7 @@ const Team = require('../models/Team');
 const Project = require('../models/Project');
 const Step = require('../models/Step');
 const ProjectTask = require('../models/ProjectTask');
+const Session = require('../models/Session');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const authMiddleware = require('../middleware/authMiddleware');
@@ -22,6 +23,28 @@ async function invalidateProjectCache(project) {
   const uids = [project.ownerUid, ...(project.team || [])];
   const keys = uids.map(uid => `projects:${uid}`);
   await cache.invalidate(...keys);
+}
+
+async function logTaskAssignedActivity({ assigneeUid, taskTitle, projectName, actorName, projectId, taskId }) {
+  if (!assigneeUid) return;
+  const now = new Date();
+  await Session.create({
+    userId: assigneeUid,
+    startTime: now,
+    endTime: now,
+    duration: 0,
+    activeDuration: 0,
+    date: now.toISOString().split('T')[0],
+    eventType: 'task-assigned',
+    title: `New task assigned: ${taskTitle}`,
+    source: projectName || 'Workspace',
+    actorName: actorName || 'Admin',
+    metadata: {
+      projectId: String(projectId || ''),
+      taskId: String(taskId || ''),
+      projectName: projectName || null,
+    },
+  });
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
@@ -692,7 +715,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       }
     }
 
-    await ProjectTask.create({
+    const createdTask = await ProjectTask.create({
       title,
       description: description || null,
       status: 'Pending',
@@ -702,6 +725,23 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       createdBy: req.user ? req.user.uid : (assignedBy || 'Admin'),
       stepId
     });
+
+    if (assignedTo && assignedTo !== project.ownerUid) {
+      await Project.updateOne({ _id: projectId }, { $addToSet: { team: assignedTo } });
+      await cache.invalidate(`projects:${assignedTo}`);
+    }
+
+    if (assignedTo) {
+      const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
+      await logTaskAssignedActivity({
+        assigneeUid: assignedTo,
+        taskTitle: title,
+        projectName: project.name,
+        actorName: actorUser?.displayName || actorUser?.email || assignedBy || 'Admin',
+        projectId,
+        taskId: createdTask?._id,
+      });
+    }
 
     const updatedProject = await getProjectWithSteps(projectId);
     invalidateProjectCache(project);
@@ -760,6 +800,21 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
             console.error("Failed to send assignment email:", emailError);
           }
         }
+
+        if (assignedTo !== project.ownerUid) {
+          await Project.updateOne({ _id: projectId }, { $addToSet: { team: assignedTo } });
+          await cache.invalidate(`projects:${assignedTo}`);
+        }
+
+        const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
+        await logTaskAssignedActivity({
+          assigneeUid: assignedTo,
+          taskTitle: task.title,
+          projectName: project.name,
+          actorName: actorUser?.displayName || actorUser?.email || assignedBy || 'Admin',
+          projectId,
+          taskId,
+        });
       }
     }
 

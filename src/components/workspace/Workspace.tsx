@@ -84,6 +84,9 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
   const [loadingAssignableUsers, setLoadingAssignableUsers] = useState(false);
   const [invitingCollaborator, setInvitingCollaborator] = useState(false);
   const [assigningTask, setAssigningTask] = useState(false);
+  const [architectureModalOpen, setArchitectureModalOpen] = useState(false);
+  const [loadingArchitecture, setLoadingArchitecture] = useState(false);
+  const [selectedProjectArchitecture, setSelectedProjectArchitecture] = useState<any>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -248,6 +251,36 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
       toast({ title: "Project deleted", description: "The project has been successfully removed." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete project.", variant: "destructive" });
+    }
+  };
+
+  const handleOpenArchitecture = async (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    setArchitectureModalOpen(true);
+    setLoadingArchitecture(true);
+    setSelectedProjectArchitecture(null);
+
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : null;
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch project architecture");
+      }
+
+      const data = await response.json();
+      setSelectedProjectArchitecture(data);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to load architecture.", variant: "destructive" });
+      setArchitectureModalOpen(false);
+      onSelectProject(project.id);
+    } finally {
+      setLoadingArchitecture(false);
     }
   };
 
@@ -540,7 +573,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
         ) : (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 border-l-primary" onClick={() => onSelectProject(project.id)}>
+              <Card key={project.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <Badge variant="outline" className="mb-2">Project</Badge>
@@ -601,6 +634,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
                   <Button
                     variant="ghost"
                     className="flex-1 justify-between hover:bg-transparent px-0 text-primary"
+                    onClick={(e) => handleOpenArchitecture(e, project)}
                   >
                     View Architecture
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -689,6 +723,58 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
               )}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={architectureModalOpen} onOpenChange={setArchitectureModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedProjectArchitecture?.name || "Project Architecture"}
+            </DialogTitle>
+            <DialogDescription>
+              Architecture details opened inside workspace.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingArchitecture ? (
+            <div className="space-y-3 py-2">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ) : (
+            <div className="space-y-4 text-sm">
+              <div>
+                <h4 className="font-semibold mb-1">High Level</h4>
+                <p className="text-muted-foreground">
+                  {selectedProjectArchitecture?.architecture?.highLevel || "No architecture analysis available yet."}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-1">Frontend</h4>
+                <p className="text-muted-foreground">
+                  {selectedProjectArchitecture?.architecture?.frontend?.structure || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-1">Backend</h4>
+                <p className="text-muted-foreground">
+                  {selectedProjectArchitecture?.architecture?.backend?.structure || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-1">Database</h4>
+                <p className="text-muted-foreground">
+                  {selectedProjectArchitecture?.architecture?.database?.design || "N/A"}
+                </p>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
