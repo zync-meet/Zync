@@ -451,7 +451,7 @@ Zync/
 │       └── icon.png            # Linux icon (512x512, PNG format)
 │
 ├── docs/                       # Developer documentation
-│   ├── ARCHITECTURE.md         # System architecture documentation
+│   ├── architecture/ARCHITECTURE.md # System architecture documentation
 │   ├── DEVELOPMENT.md          # Development setup guide
 │   └── DEPLOYMENT.md           # Deployment and release guide
 │
@@ -559,7 +559,7 @@ Zync/
 ├── CODE_OF_CONDUCT.md          # Community code of conduct
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── LICENSE                     # MIT License
-├── SECURITY.md                 # Security policy
+├── docs/security/SECURITY.md   # Security policy
 ├── electron-builder.yml        # Electron Builder configuration
 ├── index.html                  # Application entry HTML
 ├── package.json                # Project metadata and dependencies

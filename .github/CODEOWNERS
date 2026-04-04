@@ -56,7 +56,7 @@ CONTRIBUTING.md                                 @zync-app/core-team @zync-app/do
 CODE_OF_CONDUCT.md                              @zync-app/core-team @zync-app/community-team
 
 # Architecture and API documentation requires core team review
-ARCHITECTURE.md                                 @zync-app/core-team @zync-app/architecture-team
+docs/architecture/ARCHITECTURE.md               @zync-app/core-team @zync-app/architecture-team
 API.md                                          @zync-app/core-team @zync-app/backend-team
 
 # -----------------------------------------------------------------------------
@@ -189,7 +189,7 @@ API.md                                          @zync-app/core-team @zync-app/ba
 # These files have direct security implications. Changes require explicit
 # approval from the security team.
 
-SECURITY.md                                     @zync-app/security-team
+docs/security/SECURITY.md                       @zync-app/security-team
 /.env.example                                   @zync-app/security-team @zync-app/devops-team
 
 # Package files (dependency security)
