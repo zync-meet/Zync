@@ -1,48 +1,44 @@
-import { Star } from "lucide-react";
+import { Users, Zap, Globe } from "lucide-react";
 
 const TrustSection = () => {
-  const companies = [
-    "Google",
-    "Dropbox",
-    "Uber",
-    "Microsoft",
-    "Zendesk",
+  const highlights = [
+    {
+      icon: Users,
+      label: "Early Access",
+      value: "Join the founding community of developers building the future of team collaboration",
+    },
+    {
+      icon: Zap,
+      label: "Built for Speed",
+      value: "Local-first architecture with offline support and instant sync",
+    },
+    {
+      icon: Globe,
+      label: "Distributed-First",
+      value: "Designed for remote teams with real-time presence and timezone awareness",
+    },
   ];
 
   return (
     <section className="py-12 bg-background border-y border-border/50">
       <div className="container mx-auto px-4">
-        <p className="text-center text-muted-foreground text-sm mb-8">
-          Today <span className="font-semibold text-foreground">14,297</span> companies worldwide are using Zync to increase their productivity
+        <p className="text-center text-lg font-semibold text-foreground mb-8">
+          Built by developers, for developers
         </p>
 
-        {}
-        <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-16 mb-8">
-          {companies.map((company) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+          {highlights.map((item) => (
             <div
-              key={company}
-              className="text-xl lg:text-2xl font-bold text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              key={item.label}
+              className="flex flex-col items-center text-center gap-2 p-4"
             >
-              {company}
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-1">
+                <item.icon className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">{item.label}</h3>
+              <p className="text-xs text-muted-foreground">{item.value}</p>
             </div>
           ))}
-        </div>
-
-        {}
-        <div className="flex items-center justify-center gap-3">
-          <div className="flex items-center gap-1 px-3 py-1.5 bg-card rounded-full border border-border/50 shadow-sm">
-            <span className="text-sm font-semibold text-foreground">Rating</span>
-            <span className="text-sm font-bold text-foreground">4.6</span>
-            <div className="flex gap-0.5 ml-1">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-4 h-4 ${i < 4 ? "fill-task-yellow text-task-yellow" : i === 4 ? "fill-task-yellow/50 text-task-yellow/50" : "text-border"}`}
-                />
-              ))}
-            </div>
-          </div>
-          <span className="text-sm text-muted-foreground">based on 1,540 reviews</span>
         </div>
       </div>
     </section>
