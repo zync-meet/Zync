@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../lib/utils';
-import { auth } from '../lib/firebase';
+import { getAuthHeaders } from '../lib/auth-headers';
 const API_URL = `${API_BASE_URL}/api/projects`;
 
 export interface Project {
@@ -26,15 +26,6 @@ export interface TaskSearchResult {
     status: string;
     stepName: string;
 }
-
-const getAuthHeaders = async () => {
-    const user = auth.currentUser;
-    const token = user ? await user.getIdToken() : null;
-    return {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-    };
-};
 
 export const fetchProjects = async (): Promise<Project[]> => {
     const headers = await getAuthHeaders();

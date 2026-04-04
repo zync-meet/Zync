@@ -1,4 +1,4 @@
-import { auth } from '../lib/firebase';
+import { getAuthHeaders } from '@/lib/auth-headers';
 import { API_BASE_URL } from '@/lib/utils';
 
 export interface Folder {
@@ -25,18 +25,6 @@ export interface Note {
     permissions?: Record<string, 'viewer' | 'editor' | 'owner'>;
 }
 
-// ── Helper to get auth token ─────────────────────────────────────────
-const getToken = async (): Promise<string> => {
-    const user = auth.currentUser;
-    if (!user) {throw new Error('Not authenticated');}
-    return user.getIdToken();
-};
-
-const getHeaders = async () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${await getToken()}`
-});
-
 // ── Folders ──────────────────────────────────────────────────────────
 
 /**
@@ -48,7 +36,7 @@ export const subscribeToFolders = (userId: string, callback: (folders: Folder[])
 
     const fetchFolders = async () => {
         try {
-            const h = await getHeaders();
+            const h = await getAuthHeaders();
             const res = await fetch(`${API_BASE_URL}/api/notes/folders`, { headers: h });
             if (res.ok && !cancelled) {
                 const data = await res.json();
@@ -74,7 +62,7 @@ export const subscribeToNotes = (userId: string, sharedFolderIds: string[], call
 
     const fetchNotes = async () => {
         try {
-            const h = await getHeaders();
+            const h = await getAuthHeaders();
             const res = await fetch(`${API_BASE_URL}/api/notes`, { headers: h });
             if (res.ok && !cancelled) {
                 const data = await res.json();
@@ -97,7 +85,7 @@ export const subscribeToNotes = (userId: string, sharedFolderIds: string[], call
 
 
 export const createFolder = async (data: Partial<Omit<Folder, 'id' | '_id'>>) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes/folders`, {
         method: 'POST',
         headers: h,
@@ -113,7 +101,7 @@ export const createFolder = async (data: Partial<Omit<Folder, 'id' | '_id'>>) =>
 };
 
 export const createNote = async (data: Partial<Omit<Note, 'id' | '_id' | 'createdAt' | 'updatedAt'>>) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes`, {
         method: 'POST',
         headers: h,
@@ -128,7 +116,7 @@ export const createNote = async (data: Partial<Omit<Note, 'id' | '_id' | 'create
 };
 
 export const updateNote = async (id: string, data: Partial<Note>) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes/${id}`, {
         method: 'PUT',
         headers: h,
@@ -139,7 +127,7 @@ export const updateNote = async (id: string, data: Partial<Note>) => {
 };
 
 export const deleteNote = async (id: string) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes/${id}`, {
         method: 'DELETE',
         headers: h
@@ -149,7 +137,7 @@ export const deleteNote = async (id: string) => {
 };
 
 export const updateFolder = async (id: string, data: Partial<Folder>) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes/folders/${id}`, {
         method: 'PUT',
         headers: h,
@@ -160,7 +148,7 @@ export const updateFolder = async (id: string, data: Partial<Folder>) => {
 };
 
 export const deleteFolder = async (id: string) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes/folders/${id}`, {
         method: 'DELETE',
         headers: h
@@ -170,7 +158,7 @@ export const deleteFolder = async (id: string) => {
 };
 
 export const shareFolder = async (folderId: string, collaboratorIds: string[]) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes/folders/${folderId}/share`, {
         method: 'POST',
         headers: h,
@@ -181,7 +169,7 @@ export const shareFolder = async (folderId: string, collaboratorIds: string[]) =
 };
 
 export const unshareFolder = async (folderId: string, userId: string) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes/folders/${folderId}/unshare`, {
         method: 'POST',
         headers: h,
@@ -193,7 +181,7 @@ export const unshareFolder = async (folderId: string, userId: string) => {
 
 export const getNote = async (id: string): Promise<Note | null> => {
     try {
-        const h = await getHeaders();
+        const h = await getAuthHeaders();
         const res = await fetch(`${API_BASE_URL}/api/notes/${id}`, { headers: h });
         if (!res.ok) {return null;}
         const data = await res.json();
@@ -217,7 +205,7 @@ export const duplicateNote = async (originalNoteId: string, targetFolderId: stri
 };
 
 export const updateNotePermissions = async (noteId: string, permissions: Record<string, string>) => {
-    const h = await getHeaders();
+    const h = await getAuthHeaders();
     const res = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
         method: 'PUT',
         headers: h,

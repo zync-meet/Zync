@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../lib/utils';
-import { auth } from '../lib/firebase';
+import { getAuthHeaders } from '../lib/auth-headers';
 
 const API_URL = `${API_BASE_URL}/api/calendar`;
 
@@ -17,15 +17,6 @@ export interface Country {
     countryCode: string;
     name: string;
 }
-
-const getAuthHeaders = async () => {
-    const user = auth.currentUser;
-    const token = user ? await user.getIdToken() : null;
-    return {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    };
-};
 
 export const fetchHolidays = async (year: number, countryCode: string): Promise<Holiday[]> => {
     const headers = await getAuthHeaders();
