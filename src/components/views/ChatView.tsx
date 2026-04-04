@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   sendMessage as socketSendMessage,
   markSeen,
@@ -38,6 +39,7 @@ interface ChatViewProps {
 
 const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const currentUser = auth.currentUser;
   
   const chatId = currentUser && selectedUser 
@@ -320,12 +322,17 @@ const ChatView = ({ selectedUser, onBack, currentUserData }: ChatViewProps) => {
                           className="w-full h-8 gap-2 text-xs"
                           onClick={async () => {
                             try {
+                              const token = await auth.currentUser?.getIdToken();
                               const res = await fetch(`${API_BASE_URL}/api/projects/${msg.projectId}/team`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                                },
                                 body: JSON.stringify({ userId: currentUser?.uid })
                               });
                               if (res.ok) {
+                                queryClient.invalidateQueries({ queryKey: ['projects'] });
                                 toast({ title: "Joined Project", description: `You have been added to ${msg.projectName}` });
                               } else {
                                 toast({ title: "Error", description: "Failed to join project", variant: "destructive" });
