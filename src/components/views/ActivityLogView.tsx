@@ -86,9 +86,17 @@ function isCompletedTask(t: any): boolean {
 function isInProgressTask(t: any): boolean {
     if (isCompletedTask(t)) return false;
     const s = normStatus(t?.status);
-    // User opened the task and made some commits, or status is explicitly in progress
-    if (t?.commitUrl || t?.commitMessage) return true;
-    return s.includes('progress') || s === 'active';
+    const hasCommitEvidence = Boolean(
+        t?.commitUrl ||
+        t?.commitMessage ||
+        t?.commitTimestamp ||
+        t?.commitInfo?.message
+    );
+
+    // Only count tasks that have a real commit attached.
+    if (!hasCommitEvidence) return false;
+
+    return s.includes('progress') || s === 'active' || s === 'in review';
 }
 
 function isOverdueTask(t: any): boolean {
