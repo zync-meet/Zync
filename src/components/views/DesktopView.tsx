@@ -496,15 +496,19 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           if (response.ok) {
             const projects = await response.json();
 
-            const allTasks = projects.flatMap((p: any) =>
-              p.steps.flatMap((s: any) => s.tasks || [])
-            );
-            const myTasks = allTasks.filter((task: any) => {
-              const assignedTo = task?.assignedTo;
-              const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
-              return assignedTo === currentUser.uid || assignedUserIds.includes(currentUser.uid);
-            });
-            setLeaderTasks(myTasks);
+            if (Array.isArray(projects)) {
+              // Extract tasks assigned to the current user, specifically those received from OTHER users
+              const receivedTasks = projects
+                .flatMap((p: any) => p.steps?.flatMap((s: any) => s.tasks || []) || [])
+                .filter((t: any) => 
+                  t.assignedTo === currentUser.uid &&
+                  (t.assignedBy !== currentUser.uid && t.createdBy !== currentUser.uid)
+                );
+              setLeaderTasks(receivedTasks);
+            } else {
+              console.warn("Expected an array of projects, received:", projects);
+              setLeaderTasks([]);
+            }
           }
         } catch (error) {
           console.error("Failed to fetch tasks for activity graph", error);
@@ -799,18 +803,24 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
       case "Activity log":
         return (
-          <ActivityLogView
-            activityLogs={activityLogs}
-            elapsedTime={elapsedTime}
-            handleClearLogs={handleClearLogs}
-            handleDeleteLog={handleDeleteLog}
-            tasks={leaderTasks}
-            users={usersList}
-            teamSessions={teamSessions}
-            currentTeamId={typeof userData?.teamId === 'object' ? userData?.teamId?.id : userData?.teamId}
-            ownedTeams={ownedTeams}
-            currentUserId={currentUser?.uid}
-          />
+          <div className="h-[96%] flex overflow-hidden rounded-3xl m-2 sm:m-4 mt-1 bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-30" />
+            <div className="relative z-10 w-full h-full overflow-y-auto">
+              <ActivityLogView
+                activityLogs={activityLogs}
+                elapsedTime={elapsedTime}
+                handleClearLogs={handleClearLogs}
+                handleDeleteLog={handleDeleteLog}
+                tasks={leaderTasks}
+                users={usersList}
+                teamSessions={teamSessions}
+                currentTeamId={typeof userData?.teamId === 'object' ? userData?.teamId?.id : userData?.teamId}
+                ownedTeams={ownedTeams}
+                currentUserId={currentUser?.uid}
+              />
+            </div>
+          </div>
         );
 
       case "Meet":
