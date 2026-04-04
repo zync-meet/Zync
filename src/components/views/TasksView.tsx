@@ -81,8 +81,11 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                         if (t.assignedTo !== currentUser.uid) {return;}
 
                         if (!groups[p._id]) {
-                            groups[p._id] = {
-                                projectId: p._id,
+                            const projectId = p._id || p.id;
+                            if (!projectId) {return;}
+
+                            groups[projectId] = {
+                                projectId,
                                 projectName: p.name,
                                 isOwner: p.ownerId === currentUser.uid,
                                 githubRepoName: p.githubRepoName,
@@ -91,18 +94,23 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                             };
                         }
 
-                        groups[p._id].tasks.push({
-                            id: t._id || t.id || `${p._id}-${step.id || step.name}-${idx}`,
-                            _id: t._id,
+                        const projectId = p._id || p.id;
+                        const taskId = t._id || t.id;
+                        const stepId = step._id || step.id;
+                        if (!projectId || !taskId || !stepId) {return;}
+
+                        groups[projectId].tasks.push({
+                            id: taskId,
+                            _id: taskId,
                             title: t.title || t.name || t,
                             description: t.description,
                             status: t.status || "Pending",
                             priority: t.priority || 'Medium',
                             projectName: p.name,
-                            projectId: p._id,
+                            projectId,
                             projectOwnerId: p.ownerId,
                             stepName: step.title || step.name,
-                            stepId: step._id || step.id,
+                            stepId,
                             assignedTo: t.assignedTo,
                             assignedToName: t.assignedToName,
                             createdAt: t.createdAt,
@@ -136,8 +144,15 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
         if (!['Pending', 'Ready', 'Backlog'].includes(task.status)) {return;}
 
         try {
+            const projectId = task.projectId;
+            const stepId = task.stepId;
+            const taskId = task._id || task.id;
+            if (!projectId || !stepId || !taskId) {
+                throw new Error('Task identifiers are missing');
+            }
+
             const token = await auth.currentUser?.getIdToken();
-            const response = await fetch(`${API_BASE_URL}/api/projects/${task.projectId}/steps/${task.stepId}/tasks/${task._id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/steps/${stepId}/tasks/${taskId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

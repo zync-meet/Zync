@@ -51,9 +51,15 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnl
   const handleTaskOpen = (task: Task & { stepId: string }) => {
     const isReadyLike = ['Ready', 'Pending', 'Backlog'].includes(task.status);
     const isAssignee = task.assignedTo && currentUser?.uid && task.assignedTo === currentUser.uid;
+    const resolvedTaskId = task._id || task.id;
+    const resolvedStepId = task.stepId;
+
+    if (!resolvedTaskId || !resolvedStepId) {
+      return;
+    }
 
     if (!isOwner && isAssignee && isReadyLike) {
-      onUpdateTask(task.stepId, task._id, { status: 'Active' });
+      onUpdateTask(resolvedStepId, resolvedTaskId, { status: 'Active' });
     }
   };
 
@@ -89,11 +95,16 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnl
   const handleDrop = (e: React.DragEvent, targetStatus: string) => {
     e.preventDefault();
     if (!draggedTask) {return;}
+    const resolvedTaskId = draggedTask.task._id || draggedTask.task.id;
+    if (!resolvedTaskId) {
+      setDraggedTask(null);
+      return;
+    }
 
     if (draggedTask.task.status !== targetStatus) {
       let schemaStatus = targetStatus;
       if (targetStatus === 'Done') {schemaStatus = 'Completed';}
-      onUpdateTask(draggedTask.stepId, draggedTask.task._id, { status: schemaStatus });
+      onUpdateTask(draggedTask.stepId, resolvedTaskId, { status: schemaStatus });
     }
     setDraggedTask(null);
   };
@@ -255,7 +266,11 @@ const KanbanBoard = ({ steps, onUpdateTask, users, isOwner, currentUser, readOnl
                             className="w-full h-7 text-xs border border-green-500/30 text-green-400 hover:bg-green-500/10 hover:text-green-300"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onUpdateTask(task.stepId, task._id, { status: 'Active' });
+                              const resolvedTaskId = task._id || task.id;
+                              if (!resolvedTaskId) {
+                                return;
+                              }
+                              onUpdateTask(task.stepId, resolvedTaskId, { status: 'Active' });
                             }}
                           >
                             Start Task
