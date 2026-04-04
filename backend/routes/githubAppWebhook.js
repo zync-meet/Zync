@@ -7,8 +7,40 @@ const Project = require('../models/Project');
 const Step = require('../models/Step');
 const User = require('../models/User');
 const Repository = require('../models/Repository');
+const Session = require('../models/Session');
 const { normalizeDoc } = require('../utils/normalize');
 const { getProjectWithSteps } = require('../utils/projectHelper');
+
+const normalizeTaskStatus = (value) => String(value || '').trim().toLowerCase();
+
+async function logTaskProgressActivity({ recipients, taskTitle, projectName, actorName, projectId, taskId, fromStatus, toStatus }) {
+  const uniqueRecipients = [...new Set((recipients || []).filter(Boolean))];
+  if (uniqueRecipients.length === 0) return;
+
+  const now = new Date();
+  await Session.insertMany(
+    uniqueRecipients.map((uid) => ({
+      userId: uid,
+      startTime: now,
+      endTime: now,
+      duration: 0,
+      activeDuration: 0,
+      date: now.toISOString().split('T')[0],
+      eventType: 'task-progressed',
+      title: `Task moved to ${toStatus}: ${taskTitle}`,
+      source: projectName || 'Tasks',
+      actorName: actorName || 'GitHub',
+      metadata: {
+        projectId: String(projectId || ''),
+        taskId: String(taskId || ''),
+        projectName: projectName || null,
+        fromStatus: fromStatus || null,
+        toStatus: toStatus || null,
+        trigger: 'commit',
+      },
+    }))
+  );
+}
 
 // POST /api/github-app/webhook — GitHub App webhook handler
 router.post('/webhook', verifyGithub, async (req, res) => {
@@ -82,6 +114,7 @@ router.post('/webhook', verifyGithub, async (req, res) => {
       }
 
       // Update task with commit info
+      const fromStatus = task.status;
       const updateData = {
         commitMessage: message,
         commitUrl: commit.url,
@@ -89,7 +122,9 @@ router.post('/webhook', verifyGithub, async (req, res) => {
         commitTimestamp: commit.timestamp || new Date().toISOString(),
       };
 
-      if (analysis.action === 'Complete') {
+      if (normalizeTaskStatus(fromStatus) === 'active') {
+        updateData.status = 'In Progress';
+      } else if (analysis.action === 'Complete') {
         updateData.status = 'Done';
       } else if (analysis.action === 'In Progress') {
         updateData.status = 'In Progress';
@@ -100,6 +135,20 @@ router.post('/webhook', verifyGithub, async (req, res) => {
       // Emit socket event
       const step = await Step.findById(task.stepId).lean();
       if (step) {
+        const project = await Project.findById(step.projectId).lean();
+        if (updateData.status && updateData.status !== fromStatus) {
+          await logTaskProgressActivity({
+            recipients: [project?.ownerUid, ...(project?.team || []), task.assignedTo],
+            taskTitle: task.title,
+            projectName: project?.name,
+            actorName: sender?.login || commit.author?.name || 'GitHub',
+            projectId: step.projectId,
+            taskId: task._id,
+            fromStatus,
+            toStatus: updateData.status,
+          });
+        }
+
         const projectData = await getProjectWithSteps(step.projectId);
         const io = req.app.get('io');
         if (io) {
