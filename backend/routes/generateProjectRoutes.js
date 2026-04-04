@@ -78,9 +78,9 @@ Return ONLY a valid JSON object (no markdown, no explanation) with this exact st
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama3-70b-8192',
+      model: 'openai/gpt-oss-120b',
       temperature: 0.7,
-      max_tokens: 4096,
+      max_tokens: 8192,
       response_format: { type: 'json_object' },
     });
 

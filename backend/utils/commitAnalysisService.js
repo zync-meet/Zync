@@ -1,4 +1,9 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
+
+const groq = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
+const MODEL_NAME = 'llama-3.1-8b-instant';
 
 
 const filterCommitMessage = (message) => {
@@ -19,19 +24,10 @@ const filterCommitMessage = (message) => {
 
 
 const analyzeCommit = async (message) => {
-  const API_KEY = process.env.GEMINI_API_KEY_SECONDARY || process.env.GEMINI_API_KEY;
-  const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
-  if (!API_KEY) {
-    console.warn('GEMINI_API_KEY not found. Defaulting to regex logic.');
+  if (!groq) {
+    console.warn('GROQ_API_KEY not found. Defaulting to regex logic.');
     return filterCommitMessage(message);
   }
-
-  const genAI = new GoogleGenerativeAI(API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: { responseMimeType: "application/json" }
-  });
 
   try {
     const prompt = `
@@ -49,7 +45,7 @@ const analyzeCommit = async (message) => {
             Return JSON:
             {
                 "found": boolean,
-                "id": string | null, // The standardized ID found (e.g. TASK-123)
+                "id": string | null,
                 "action": "Complete" | "In Progress" | "Reference" | null,
                 "confidence": number
             }
@@ -57,16 +53,23 @@ const analyzeCommit = async (message) => {
             If no specific task ID pattern is found, set "found": false.
         `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: MODEL_NAME,
+      response_format: { type: 'json_object' },
+    });
 
+    const responseText = completion.choices?.[0]?.message?.content;
+    if (!responseText) {
+      return filterCommitMessage(message);
+    }
 
     let analysis;
     try {
       const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
       analysis = JSON.parse(cleanJson);
     } catch (e) {
-      console.error("Gemini JSON Parse Error", e);
+      console.error("Groq JSON Parse Error", e);
       return filterCommitMessage(message);
     }
 
@@ -77,8 +80,7 @@ const analyzeCommit = async (message) => {
     }
 
   } catch (error) {
-    console.error('Gemini Analysis Error:', error.message);
-
+    console.error('Groq Analysis Error:', error.message);
     return filterCommitMessage(message);
   }
 };

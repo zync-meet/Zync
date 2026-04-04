@@ -25,7 +25,7 @@ async function invalidateProjectCache(project) {
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-3-flash-preview";
 console.log(`[Config] Using Gemini Model: ${MODEL_NAME}`);
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const ARCHITECTURE_CACHE_TTL_MS = Number.parseInt(process.env.ARCHITECTURE_CACHE_TTL_MS || '21600000', 10);
