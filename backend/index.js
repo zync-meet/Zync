@@ -11,6 +11,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Render/Reverse proxy support: required for correct client IP detection with express-rate-limit.
+app.set('trust proxy', 1);
+
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
@@ -72,6 +75,8 @@ const linkRoutes = require('./routes/linkRoutes');
 const githubAppWebhook = require('./routes/githubAppWebhook');
 const noteRoutes = require('./routes/noteRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const calendarRoutes = require('./routes/calendarRoutes');
 
 
 app.use(
@@ -130,6 +135,7 @@ app.use('/api/design', designRoutes);
 app.use('/api/inspiration', inspirationRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/tasks', taskRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/github-app', githubAppWebhook);
@@ -137,6 +143,8 @@ app.use('/api/meet', require('./routes/meetRoutes'));
 app.use('/api/linkedin', require('./routes/linkedinRoutes'));
 app.use('/api/teams', require('./routes/teamRoutes'));
 app.use('/api/google', require('./routes/googleRoutes'));
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/cache/sample', require('./routes/redisCacheSampleRoutes'));
 
 
 // ── Database connection with automatic retry ──────────────────────────
@@ -173,6 +181,10 @@ async function connectWithRetry(attempt = 1) {
 
 connectWithRetry();
 
+// ── Redis connection (non-blocking) ────────────────────────────────────
+const { connectRedis } = require('./utils/redisClient');
+connectRedis();
+
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
@@ -182,8 +194,9 @@ const startServer = (port, retriesLeft = 10) => {
     server.off('error', onError);
 
     if (error.code === 'EADDRINUSE' && retriesLeft > 0) {
-      console.warn(`⚠️ Port ${port} is in use, trying ${port + 1}...`);
-      setTimeout(() => startServer(port + 1, retriesLeft - 1), 100);
+      const nextPort = Number(port) + 1;
+      console.warn(`⚠️ Port ${port} is in use, trying ${nextPort}...`);
+      setTimeout(() => startServer(nextPort, retriesLeft - 1), 100);
       return;
     }
 

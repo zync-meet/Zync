@@ -5,6 +5,7 @@ const { sendZyncEmail } = require('../services/mailer');
 const { getTaskAssignmentEmailHtml } = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../utils/regexUtils');
 const User = require('../models/User');
+const Team = require('../models/Team');
 const Project = require('../models/Project');
 const Step = require('../models/Step');
 const ProjectTask = require('../models/ProjectTask');
@@ -14,6 +15,14 @@ const authMiddleware = require('../middleware/authMiddleware');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 const { getProjectWithSteps, getProjectsWithSteps } = require('../utils/projectHelper');
+const cache = require('../utils/cache');
+
+async function invalidateProjectCache(project) {
+  if (!project) return;
+  const uids = [project.ownerUid, ...(project.team || [])];
+  const keys = uids.map(uid => `projects:${uid}`);
+  await cache.invalidate(...keys);
+}
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
 const MODEL_NAME = "gemini-2.5-flash";
@@ -90,6 +99,27 @@ const buildRepoFreshnessKey = async (accessToken, owner, repo) => {
     repoData.pushed_at || '',
     repoData.updated_at || ''
   ].join('|');
+};
+
+const buildInstallationOctokitFromOwner = async (ownerUid) => {
+  const ownerUser = await User.findOne({ uid: ownerUid }).lean();
+  const installationId = ownerUser?.githubIntegration?.installationId;
+  const appId = process.env.GITHUB_APP_ID;
+  let privateKey = process.env.GITHUB_PRIVATE_KEY;
+
+  if (!installationId || !appId || !privateKey) {
+    throw new Error('Missing GitHub App installation/configuration for owner');
+  }
+
+  privateKey = privateKey.replace(/\\n/g, '\n');
+  const { App } = await import('octokit');
+  const app = new App({ appId, privateKey });
+  return app.getInstallationOctokit(Number.parseInt(installationId, 10));
+};
+
+const getTeamUidsForUser = async (uid) => {
+  const teams = await Team.find({ members: uid }).select('members').lean();
+  return [...new Set(teams.flatMap((team) => team.members || []))];
 };
 
 
@@ -232,6 +262,7 @@ router.post('/', authMiddleware, async (req, res) => {
     await Step.insertMany(defaultSteps.map(s => ({ ...s, projectId: newProject._id })));
 
     const result = await getProjectWithSteps(newProject._id);
+    cache.invalidate(`projects:${ownerUid}`);
     res.status(201).json(result);
   } catch (error) {
     console.error('Error creating project:', error);
@@ -313,11 +344,13 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
       await Project.updateOne({ _id: id }, { $set: updates });
       console.log("Project architecture saved successfully.");
       const updatedProject = await getProjectWithSteps(id);
+      invalidateProjectCache(project);
       return res.json(updatedProject);
     }
 
     console.warn("Analysis returned empty or null.");
     const full = await getProjectWithSteps(id);
+    invalidateProjectCache(project);
     res.json(full);
   } catch (error) {
     console.error("Architecture analysis failed:", error);
@@ -441,6 +474,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
     }
 
     const fullProject = await getProjectWithSteps(newProject._id);
+    cache.invalidate(`projects:${ownerUid}`);
     res.status(201).json(fullProject);
 
   } catch (error) {
@@ -453,6 +487,10 @@ router.post('/generate', authMiddleware, async (req, res) => {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const ownerUid = req.user.uid;
+    const cacheKey = `projects:${ownerUid}`;
+
+    const cached = await cache.getJson(cacheKey);
+    if (cached) return res.json(cached);
 
     // Fetch owned/team projects and assigned tasks in parallel
     const [projects, assignedTasks] = await Promise.all([
@@ -485,6 +523,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const { items, pagination } = paginateArray(allProjects, req.query);
     setPaginationHeaders(res, pagination);
 
+    cache.setJson(cacheKey, allProjects, 60);
     res.json(items);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -509,6 +548,7 @@ router.post('/:id/team', authMiddleware, async (req, res) => {
     }
 
     const full = await getProjectWithSteps(req.params.id);
+    invalidateProjectCache({ ownerUid: project.ownerUid, team: [...project.team, userId] });
     res.json(full);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -563,6 +603,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     await Step.deleteMany({ projectId: project._id });
     await Project.findByIdAndDelete(req.params.id);
 
+    invalidateProjectCache(project);
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -593,6 +634,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
     await Project.updateOne({ _id: id }, { $set: filteredUpdates });
 
     const updatedProject = await getProjectWithSteps(id);
+    invalidateProjectCache(project);
     res.json(updatedProject);
   } catch (error) {
     console.error('Error updating project:', error);
@@ -655,6 +697,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
     });
 
     const updatedProject = await getProjectWithSteps(projectId);
+    invalidateProjectCache(project);
     res.status(201).json(updatedProject);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -722,6 +765,7 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
       project: updatedProject
     });
 
+    invalidateProjectCache(project);
     res.json(updatedProject);
   } catch (error) {
     console.error('Error updating task:', error);
@@ -759,6 +803,7 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
     });
 
     res.json({ message: 'Task deleted successfully', projectId, stepId, taskId });
+    invalidateProjectCache(project);
   } catch (error) {
     console.error('Error deleting task:', error);
     res.status(500).json({ message: 'Server error' });
@@ -902,10 +947,182 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
     const updatedProject = await getProjectWithSteps(projectId);
     const taskObj = normalizeDoc(newTask.toObject());
 
+    invalidateProjectCache(project);
     res.json({ message: 'Task created', task: taskObj, stepId: step._id?.toString() || step.id, project: updatedProject });
   } catch (error) {
     console.error('Error creating quick task:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/:projectId/collaborator-assignees', authMiddleware, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const requesterUid = req.user.uid;
+    const cacheKey = `collaborator-assignees:${projectId}:${requesterUid}`;
+
+    try {
+      const cached = await cache.getJson(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    } catch (cacheReadError) {
+      console.warn(`[Cache] collaborator-assignees read failed for ${cacheKey}:`, cacheReadError.message);
+    }
+
+    const project = await Project.findById(projectId).lean();
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    if (project.ownerUid !== requesterUid) {
+      return res.status(403).json({ message: 'Only the repository owner can manage collaborators' });
+    }
+
+    if (!project.githubRepoOwner || !project.githubRepoName) {
+      return res.status(400).json({ message: 'Project is not linked to a GitHub repository' });
+    }
+
+    const teamUids = await getTeamUidsForUser(requesterUid);
+    const teamUsers = await User.find({ uid: { $in: teamUids } })
+      .select('uid displayName email photoURL githubIntegration.username')
+      .lean();
+
+    const nonSelfTeamUsers = teamUsers.filter((u) => u.uid !== requesterUid);
+    const connectedTeamUsers = nonSelfTeamUsers.filter((u) => u?.githubIntegration?.username);
+
+    const octokit = await buildInstallationOctokitFromOwner(requesterUid);
+    const collaboratorsResponse = await octokit.request('GET /repos/{owner}/{repo}/collaborators', {
+      owner: project.githubRepoOwner,
+      repo: project.githubRepoName,
+      affiliation: 'all',
+      per_page: 100,
+    });
+
+    const collaboratorLogins = new Set(
+      (collaboratorsResponse.data || []).map((c) => String(c.login || '').toLowerCase())
+    );
+
+    const activeCollaborators = connectedTeamUsers
+      .filter((u) => collaboratorLogins.has(String(u.githubIntegration.username).toLowerCase()))
+      .map((u) => ({
+        uid: u.uid,
+        displayName: u.displayName,
+        email: u.email,
+        photoURL: u.photoURL,
+        githubUsername: u.githubIntegration.username,
+      }));
+
+    const availableTeamMembers = nonSelfTeamUsers
+      .filter((u) => {
+        const gh = String(u?.githubIntegration?.username || '').toLowerCase();
+        return !gh || !collaboratorLogins.has(gh);
+      })
+      .map((u) => ({
+        uid: u.uid,
+        displayName: u.displayName,
+        email: u.email,
+        photoURL: u.photoURL,
+        githubUsername: u.githubIntegration?.username || null,
+        canInvite: Boolean(u.githubIntegration?.username),
+        inviteDisabledReason: u.githubIntegration?.username
+          ? null
+          : 'User has not connected GitHub yet',
+      }));
+
+    const responsePayload = {
+      activeCollaborators,
+      availableTeamMembers,
+    };
+
+    try {
+      await cache.setJson(cacheKey, responsePayload, 60);
+    } catch (cacheWriteError) {
+      console.warn(`[Cache] collaborator-assignees write failed for ${cacheKey}:`, cacheWriteError.message);
+    }
+
+    return res.json(responsePayload);
+  } catch (error) {
+    console.error('Error fetching collaborator assignees:', error);
+    return res.status(500).json({ message: 'Failed to fetch collaborator assignees', error: error.message });
+  }
+});
+
+router.post('/:projectId/invite-collaborator', authMiddleware, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { userId } = req.body || {};
+    const requesterUid = req.user.uid;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+
+    if (userId === requesterUid) {
+      return res.status(400).json({ message: 'You cannot invite yourself' });
+    }
+
+    const project = await Project.findById(projectId).lean();
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    if (project.ownerUid !== requesterUid) {
+      return res.status(403).json({ message: 'Only the repository owner can invite collaborators' });
+    }
+
+    if (!project.githubRepoOwner || !project.githubRepoName) {
+      return res.status(400).json({ message: 'Project is not linked to a GitHub repository' });
+    }
+
+    const teamUids = await getTeamUidsForUser(requesterUid);
+    if (!teamUids.includes(userId)) {
+      return res.status(400).json({ message: 'Selected user is not in your team' });
+    }
+
+    const assignee = await User.findOne({ uid: userId }).select('uid displayName email photoURL githubIntegration.username').lean();
+    if (!assignee?.githubIntegration?.username) {
+      return res.status(400).json({ message: 'Selected user is not connected to GitHub' });
+    }
+
+    const octokit = await buildInstallationOctokitFromOwner(requesterUid);
+
+    let alreadyCollaborator = false;
+    try {
+      await octokit.request('PUT /repos/{owner}/{repo}/collaborators/{username}', {
+        owner: project.githubRepoOwner,
+        repo: project.githubRepoName,
+        username: assignee.githubIntegration.username,
+        permission: 'push',
+      });
+    } catch (inviteError) {
+      const status = inviteError?.status || inviteError?.response?.status;
+      const message = inviteError?.response?.data?.message || inviteError?.message || '';
+      if (status === 422 && /already.*collaborator/i.test(message)) {
+        alreadyCollaborator = true;
+      } else {
+        throw inviteError;
+      }
+    }
+
+    try {
+      await cache.invalidate(`collaborator-assignees:${projectId}:${requesterUid}`);
+    } catch (cacheInvalidateError) {
+      console.warn(`[Cache] collaborator-assignees invalidate failed for ${projectId}:${requesterUid}:`, cacheInvalidateError.message);
+    }
+
+    return res.status(200).json({
+      message: alreadyCollaborator
+        ? 'User is already a collaborator on this repository.'
+        : 'Repository invite sent successfully.',
+      alreadyCollaborator,
+      user: {
+        uid: assignee.uid,
+        displayName: assignee.displayName,
+        email: assignee.email,
+        photoURL: assignee.photoURL,
+        githubUsername: assignee.githubIntegration.username,
+      },
+    });
+  } catch (error) {
+    console.error('Error inviting repository collaborator:', error);
+    return res.status(500).json({ message: 'Failed to invite collaborator', error: error.message });
   }
 });
 

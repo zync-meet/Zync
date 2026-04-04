@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Github } from 'lucide-react';
+import { Github } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -88,8 +88,8 @@ export function RepositorySelector({ projectId, currentRepoIds = [] }: { project
         </Select>
       </div>
       <Button onClick={linkRepo} disabled={!selectedRepoId || connecting}>
-        {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Github className="mr-2 h-4 w-4" />}
-        Link
+        {!connecting && <Github className="mr-2 h-4 w-4" />}
+        {connecting ? "Linking..." : "Link"}
       </Button>
     </div>
   );

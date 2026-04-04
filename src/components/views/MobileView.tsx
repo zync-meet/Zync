@@ -81,7 +81,7 @@ const MobileView = () => {
   };
 
   const handleSelectProject = (id: string) => {
-    navigate(`/projects/${id}`);
+    navigate(`/projects/${id}`, { state: { from: '/dashboard/workspace' } });
   };
 
   const handleSignOut = async () => {

@@ -16,7 +16,7 @@ const NewProject = () => {
       </div>
 
       <div className="container mx-auto max-w-4xl py-10 px-6">
-        <CreateProject onProjectCreated={(data) => navigate(`/projects/${data._id}`)} />
+        <CreateProject onProjectCreated={(data) => navigate(`/projects/${data.id}`)} />
       </div>
     </div>
   );

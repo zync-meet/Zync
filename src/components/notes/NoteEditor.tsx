@@ -6,7 +6,7 @@ import "@blocknote/mantine/style.css";
 import { updateNote, Note } from '../../services/notesService';
 import { fetchProjects, createQuickTask, Project, TaskSearchResult } from '../../api/projects';
 import { cn } from "@/lib/utils";
-import { Loader2 } from 'lucide-react';
+import { EditorSkeleton } from "@/components/ui/skeletons";
 
 import { useNotePresence } from '@/hooks/useNotePresence';
 import FixedToolbar from './FixedToolbar';
@@ -248,7 +248,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
   }, [note.content, editor]);
 
   if (!editor) {
-    return <div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="animate-spin mr-2" /> Loading editor...</div>;
+    return <EditorSkeleton />;
   }
 
   return (

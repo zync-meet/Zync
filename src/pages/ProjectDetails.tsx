@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, CheckCircle2, Circle, Server, Layout, Database, Share2, Plus, GripVertical, GitCommit, ExternalLink, Kanban, Trash2, Github, Bot, MoreVertical, Settings, MessageSquare, Wrench, FolderKanban } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Server, Layout, Database, Share2, Plus, GripVertical, GitCommit, ExternalLink, Kanban, Trash2, Github, Bot, MoreVertical, Settings, MessageSquare, Wrench, FolderKanban } from "lucide-react";
+import { ProjectDetailsSkeleton } from "@/components/ui/skeletons";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { sendMessage as socketSendMessage } from "@/services/chatSocketService";
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/dialog";
 
 interface Project {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   architecture: {
@@ -101,6 +102,8 @@ const MOCK_USERS = [
 const ProjectDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = (location.state as { from?: string } | null)?.from || "/dashboard/workspace";
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(true);
@@ -129,7 +132,7 @@ const ProjectDetails = () => {
     if (!project) {return;}
     setIsAnalyzing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}/analyze-architecture`, {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/analyze-architecture`, {
         method: 'POST',
       });
 
@@ -168,7 +171,7 @@ const ProjectDetails = () => {
         senderPhotoURL: auth.currentUser.photoURL || undefined,
         text: `Start collaborating on project "${project.name}"`,
         type: 'project-invite',
-        projectId: project._id,
+        projectId: project.id,
         projectName: project.name,
         projectOwnerId: project.ownerId,
       });
@@ -336,7 +339,7 @@ const ProjectDetails = () => {
 
       if (!realStepId || !realTaskId) {return;}
 
-      await fetch(`${API_BASE_URL}/api/projects/${project._id}/steps/${realStepId}/tasks/${realTaskId}`, {
+      await fetch(`${API_BASE_URL}/api/projects/${project.id}/steps/${realStepId}/tasks/${realTaskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -376,7 +379,7 @@ const ProjectDetails = () => {
 
 
       const token = await auth.currentUser?.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}/steps/${realStepId}/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/steps/${realStepId}/tasks/${taskId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -427,7 +430,7 @@ const ProjectDetails = () => {
       const assignedUser = users.find(u => u.uid === selectedAssigneeId);
       const assignedToName = assignedUser ? (assignedUser.displayName || assignedUser.email) : undefined;
 
-      const response = await fetch(`${API_BASE_URL}/api/projects/${project._id}/steps/${selectedStepId}/tasks`, {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/steps/${selectedStepId}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -466,11 +469,7 @@ const ProjectDetails = () => {
 
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <ProjectDetailsSkeleton />;
   }
 
   if (!project) {
@@ -484,7 +483,7 @@ const ProjectDetails = () => {
           <p className="text-muted-foreground">
             The project you are looking for does not exist or has been deleted.
           </p>
-          <Button onClick={() => navigate('/dashboard')} className="gap-2">
+          <Button onClick={() => navigate(backPath)} className="gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to Dashboard
           </Button>
         </div>
@@ -500,7 +499,7 @@ const ProjectDetails = () => {
       {}
       <header className="border-b bg-card px-6 py-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(backPath)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -570,12 +569,7 @@ const ProjectDetails = () => {
                     disabled={isAnalyzing}
                     className="w-full sm:w-auto"
                   >
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Analyzing Repository...
-                      </>
-                    ) : (
+                    {isAnalyzing ? "Analyzing..." : (
                       <>
                         <Server className="mr-2 h-4 w-4" />
                         Generate Architecture with AI
@@ -981,8 +975,7 @@ const ProjectDetails = () => {
               Cancel
             </Button>
             <Button onClick={handleAssignSubmit} disabled={isSubmittingAssignment}>
-              {isSubmittingAssignment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirm Assignment
+              {isSubmittingAssignment ? "Assigning..." : "Confirm Assignment"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1061,8 +1054,7 @@ const ProjectDetails = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateTaskDialogOpen(false)} disabled={isCreatingTask}>Cancel</Button>
             <Button onClick={handleCreateTask} disabled={isCreatingTask || !newTaskTitle || !selectedStepId}>
-              {isCreatingTask && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Task
+              {isCreatingTask ? "Creating..." : "Create Task"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1109,8 +1101,7 @@ const ProjectDetails = () => {
               Cancel
             </Button>
             <Button onClick={handleShareProject} disabled={isSharing || !selectedShareUser}>
-              {isSharing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send Invite
+              {isSharing ? "Sending..." : "Send Invite"}
             </Button>
           </DialogFooter>
         </DialogContent>
