@@ -9,7 +9,7 @@ export const useProjects = () => {
         queryKey: ['projects', user?.uid],
         queryFn: fetchProjects,
         enabled: !!user,
-        refetchOnMount: false,
+        refetchOnMount: 'always',
     });
 };
 
