@@ -93,6 +93,7 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import { useMe } from "@/hooks/useMe";
+import { useTaskUpdates } from "@/hooks/use-task-updates";
 
 const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const { resolvedTheme } = useTheme();
@@ -606,6 +607,31 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       disconnectChat();
     };
   }, [currentUser, isPreview]);
+
+  // Real-time task updates — refresh activity logs when tasks change
+  useTaskUpdates({
+    userId: currentUser?.uid,
+    onTaskChange: (event) => {
+      // Refresh activity logs when any task event occurs
+      if (activeSection === "Activity log" && currentUser && !isPreview) {
+        const refreshLogs = async () => {
+          try {
+            const token = await currentUser.getIdToken();
+            const response = await fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              setActivityLogs(data);
+            }
+          } catch (error) {
+            console.error("Failed to refresh activity logs", error);
+          }
+        };
+        refreshLogs();
+      }
+    },
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {

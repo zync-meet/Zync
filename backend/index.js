@@ -57,6 +57,9 @@ app.set('io', io);
 require('./sockets/noteSocketHandler')(io);
 require('./sockets/presenceSocketHandler')(io);
 require('./sockets/chatSocketHandler')(io);
+const taskIO = require('./sockets/taskSocketHandler')(io);
+
+app.set('taskIO', taskIO);
 
 
 const PORT = process.env.PORT || 5000;

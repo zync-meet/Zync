@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { ProjectDetailsSkeleton } from "@/components/ui/skeletons";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { sendMessage as socketSendMessage } from "@/services/chatSocketService";
+import { useTaskUpdates } from "@/hooks/use-task-updates";
 import KanbanBoard from "@/components/workspace/KanbanBoard";
 import { ActivityGraph } from "@/components/views/ActivityGraph";
 import { io } from "socket.io-client";
@@ -310,6 +311,19 @@ const ProjectDetails = () => {
       socket.disconnect();
     };
   }, [id]);
+
+  // Real-time task updates via dedicated task socket
+  const fetchProjectRef = useRef(fetchProject);
+  fetchProjectRef.current = fetchProject;
+
+  useTaskUpdates({
+    userId: currentUser?.uid,
+    projectIds: id ? [id] : [],
+    onTaskChange: useCallback((_event: 'created' | 'updated' | 'deleted' | 'assigned') => {
+      // Refetch the full project to get latest task data
+      fetchProjectRef.current();
+    }, []),
+  });
 
   const handleTaskUpdate = async (stepId: string, taskId: string, updates: any) => {
     console.log("handleTaskUpdate called with:", { stepId, taskId, updates });
