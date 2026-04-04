@@ -113,7 +113,8 @@ export const useNotePresence = (
 
 
       const now = Date.now();
-      const filteredUsers = users.filter(u => {
+      const usersArray = (Array.isArray(users) ? users : Object.values(users || {})) as ActiveUser[];
+      const filteredUsers = usersArray.filter(u => {
         const isSelf = u.id === user.uid;
         const isStale = (now - u.lastActive) >= 60000;
 
@@ -141,7 +142,7 @@ export const useNotePresence = (
 
 
     socket.on('user_left', (userId: string) => {
-      setActiveUsers(prev => prev.filter(u => u.id !== userId));
+      setActiveUsers(prev => (Array.isArray(prev) ? prev : []).filter(u => u.id !== userId));
       setRemoteCursors(prev => {
         const updated = { ...prev };
 
@@ -160,7 +161,8 @@ export const useNotePresence = (
       console.log('📡 [NotePresence] Received cursor_update:', { userId, blockId });
 
       setActiveUsers(prev => {
-        const updatedUsers = prev.map(u =>
+        const prevArray = Array.isArray(prev) ? prev : [];
+        const updatedUsers = prevArray.map(u =>
           u.id === userId ? { ...u, blockId, lastActive: Date.now() } : u
         );
 
@@ -218,7 +220,7 @@ export const useNotePresence = (
   }, [remoteCursors]);
 
 
-  const collaborators: Collaborator[] = activeUsers.map(u => ({
+  const collaborators: Collaborator[] = (Array.isArray(activeUsers) ? activeUsers : []).map(u => ({
     ...u,
     odId: u.id,
     displayName: u.name,

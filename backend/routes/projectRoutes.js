@@ -533,22 +533,29 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.post('/:id/team', authMiddleware, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const requestedUid = typeof req.body?.userId === 'string' && req.body.userId.trim()
+      ? req.body.userId.trim()
+      : req.user.uid;
+    const actorUid = req.user.uid;
     const project = await Project.findById(req.params.id).lean();
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    if (project.ownerUid !== req.user.uid) {
+    // Owner can add anyone. Non-owner can only add themselves (accept invite).
+    const isOwner = project.ownerUid === actorUid;
+    const isSelfJoin = requestedUid === actorUid;
+    if (!isOwner && !isSelfJoin) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    if (!project.team.includes(userId) && project.ownerUid !== userId) {
-      const newTeam = [...project.team, userId];
+    const team = Array.isArray(project.team) ? project.team : [];
+    if (!team.includes(requestedUid) && project.ownerUid !== requestedUid) {
+      const newTeam = [...team, requestedUid];
       await Project.updateOne({ _id: req.params.id }, { $set: { team: newTeam } });
     }
 
     const full = await getProjectWithSteps(req.params.id);
-    invalidateProjectCache({ ownerUid: project.ownerUid, team: [...project.team, userId] });
+    invalidateProjectCache({ ownerUid: project.ownerUid, team: [...team, requestedUid] });
     res.json(full);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
