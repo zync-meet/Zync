@@ -607,6 +607,7 @@ router.post('/verify-phone/request', async (req, res) => {
       }
     );
 
+    cache.invalidate(`user:me:${uid}`);
     await sendVerificationEmail(user.email, code);
 
     res.status(200).json({ message: 'Verification code sent to email' });
