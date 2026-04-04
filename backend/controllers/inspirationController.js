@@ -1,77 +1,57 @@
 const fs = require('fs');
 const path = require('path');
-const { getSharedBrowser, scrapeDribbble } = require('../services/scraperService');
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
+const { getSharedBrowser, scrapeDribbble } = require('../services/scraperService');
 
 const DATA_FILE = path.join(__dirname, '../data/inspiration.json');
 
 let CACHED_DATA = null;
 
+function loadCache() {
+  if (!CACHED_DATA) {
+    try {
+      const rawData = fs.readFileSync(DATA_FILE, 'utf-8');
+      CACHED_DATA = JSON.parse(rawData);
+    } catch (err) {
+      CACHED_DATA = [];
+      if (err.code === 'ENOENT') {
+        console.warn('WARN: Static cache file not found.');
+      } else {
+        console.warn(`WARN: Failed to read cache file: ${err.message}`);
+      }
+    }
+  }
+  return CACHED_DATA;
+}
 
+function searchCache(query) {
+  let items = loadCache();
+
+  if (query && query !== 'web design') {
+    const normalizedQuery = query.replace(/[\s-]+/g, '');
+    items = items.filter(item => {
+      const title = item.title?.toLowerCase() || '';
+      const source = item.source?.toLowerCase() || '';
+      const tags = item.tags?.map(t => t.toLowerCase()) || [];
+
+      const titleMatch = title.includes(query) || title.replace(/[\s-]+/g, '').includes(normalizedQuery);
+      const sourceMatch = source.includes(query) || source.replace(/[\s-]+/g, '').includes(normalizedQuery);
+      const tagMatch = tags.some(tag =>
+        tag.includes(query) || tag.replace(/[\s-]+/g, '').includes(normalizedQuery)
+      );
+      return titleMatch || sourceMatch || tagMatch;
+    });
+  }
+
+  return items;
+}
+
+// Returns cached results instantly
 async function getInspiration(req, res) {
   const query = (req.query.q || '').toLowerCase().trim();
-  console.log(`\n========== INSPIRATION REQUEST (HYBRID): "${query}" ==========`);
 
   try {
-
-    let allItems = [];
-
-    if (CACHED_DATA) {
-      allItems = [...CACHED_DATA];
-    } else {
-      try {
-        const rawData = await fs.promises.readFile(DATA_FILE, 'utf-8');
-        CACHED_DATA = JSON.parse(rawData);
-        allItems = [...CACHED_DATA];
-      } catch (err) {
-        CACHED_DATA = [];
-        if (err.code === 'ENOENT') {
-          console.warn('WARN: Static cache file not found.');
-        } else {
-          console.warn(`WARN: Failed to read cache file: ${err.message}`);
-        }
-      }
-    }
-
-
-    if (query && query !== 'web design') {
-      allItems = allItems.filter(item => {
-        const titleMatch = item.title?.toLowerCase().includes(query);
-        const sourceMatch = item.source?.toLowerCase().includes(query);
-        const tagMatch = item.tags?.some(tag => tag.toLowerCase().includes(query));
-
-        return titleMatch || sourceMatch || tagMatch;
-      });
-    }
-
-    console.log(`Matched ${allItems.length} items from cache.`);
-
-
-    if (allItems.length < 5 && query) {
-      console.log(`⚠️ Low cache results for "${query}". Triggering live Dribbble fallback...`);
-      try {
-        const browser = await getSharedBrowser();
-        const dribbbleItems = await scrapeDribbble(browser, query);
-
-        if (dribbbleItems.length > 0) {
-          console.log(`✨ Live Dribbble scraped ${dribbbleItems.length} items.`);
-
-          const existingIds = new Set(allItems.map(i => i.link));
-          const newItems = dribbbleItems.filter(i => !existingIds.has(i.link));
-          allItems = [...allItems, ...newItems];
-        } else {
-          console.log('⚠️ Live Dribbble returned 0 items.');
-        }
-      } catch (err) {
-        console.error('Live Fallback Error:', err.message);
-      }
-    }
-
-
-    for (let i = allItems.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
-    }
+    const allItems = searchCache(query);
 
     const { items, pagination } = paginateArray(allItems, req.query);
     setPaginationHeaders(res, pagination);
@@ -82,10 +62,34 @@ async function getInspiration(req, res) {
       total: allItems.length,
       items
     });
-
   } catch (error) {
     console.error('Inspiration Controller Error:', error);
     res.status(500).json({ ok: false, error: error.message });
+  }
+}
+
+// Scrapes Dribbble and returns live results
+async function getLiveScrape(req, res) {
+  const query = (req.query.q || '').toLowerCase().trim();
+
+  if (!query) {
+    return res.json({ ok: true, count: 0, items: [] });
+  }
+
+  try {
+    console.log(`Live scraping Dribbble for "${query}"...`);
+    const browser = await getSharedBrowser();
+    const items = await scrapeDribbble(browser, query);
+    console.log(`Scraped ${items.length} items from Dribbble for "${query}"`);
+
+    res.json({
+      ok: true,
+      count: items.length,
+      items
+    });
+  } catch (error) {
+    console.error('Live Scrape Error:', error);
+    res.json({ ok: true, count: 0, items: [] });
   }
 }
 
@@ -94,4 +98,4 @@ async function getDribbbleInspiration(req, res) {
   return getInspiration(req, res);
 }
 
-module.exports = { getInspiration, getDribbbleInspiration };
+module.exports = { getInspiration, getDribbbleInspiration, getLiveScrape };

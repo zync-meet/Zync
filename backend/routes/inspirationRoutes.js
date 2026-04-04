@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { getInspiration, getDribbbleInspiration } = require('../controllers/inspirationController');
+const { getInspiration, getDribbbleInspiration, getLiveScrape } = require('../controllers/inspirationController');
 
 
+router.get('/scrape', getLiveScrape);
 router.get('/', getInspiration);
 router.get('/dribbble', getDribbbleInspiration);
 
