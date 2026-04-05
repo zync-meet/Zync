@@ -1,11 +1,8 @@
 export { PageSkeleton } from "./PageSkeleton";
-export { ProjectCardSkeleton } from "./ProjectCardSkeleton";
-export { TaskListSkeleton } from "./TaskListSkeleton";
 export { CalendarSkeleton } from "./CalendarSkeleton";
 export { DashboardSkeleton } from "./DashboardSkeleton";
 export { SettingsSkeleton } from "./SettingsSkeleton";
 export { NoteListSkeleton } from "./NoteListSkeleton";
 export { EditorSkeleton } from "./EditorSkeleton";
-export { RepositoryListSkeleton } from "./RepositoryListSkeleton";
 export { ProjectDetailsSkeleton } from "./ProjectDetailsSkeleton";
 export { DesktopSkeleton } from "./DesktopSkeleton";

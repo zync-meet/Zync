@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { fetchProjects, Project } from "@/api/projects";
 import { CheckSquare, Terminal, Layout, Github, ExternalLink, Inbox, ArrowUpCircle, MinusCircle, ArrowDownCircle } from "lucide-react";
-import { TaskListSkeleton } from "@/components/ui/skeletons";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import { GitCommandsDrawer } from "./GitCommandsDrawer";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useTaskUpdates } from "@/hooks/use-task-updates";
+import { Skeleton } from "boneyard-js/react";
 
 interface TasksViewProps {
     currentUser: any;
@@ -291,15 +291,8 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
         };
     }, [groupedTasks]);
 
-    if (loading) {
-        return (
-            <div className="p-6">
-                <TaskListSkeleton />
-            </div>
-        );
-    }
-
     return (
+        <Skeleton name="task-list-item" loading={loading}>
         <div className="flex-1 p-6 md:p-8 h-full flex flex-col overflow-hidden bg-background">
             {}
             <div className="mb-8 flex items-start justify-between shrink-0">
@@ -530,6 +523,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                 </DialogContent>
             </Dialog>
         </div>
+        </Skeleton>
     );
 };
 

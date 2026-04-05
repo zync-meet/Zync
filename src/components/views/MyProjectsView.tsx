@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Github, Link as LinkIcon, ExternalLink, Star, GitFork, Search } from "lucide-react";
-import { ProjectCardSkeleton } from "@/components/ui/skeletons";
 import { API_BASE_URL } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -21,6 +20,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/hooks/useMe";
 import { useGitHubRepos } from "@/hooks/useGitHubData";
+import { Skeleton } from "boneyard-js/react";
 
 const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
   const { toast } = useToast();
@@ -109,9 +109,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
 
   if (!userData) {
     return (
-      <div className="p-8">
-        <ProjectCardSkeleton />
-      </div>
+      <div className="p-8 text-sm text-muted-foreground">Loading GitHub projects…</div>
     );
   }
 
@@ -176,9 +174,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
         </Select>
       </div>
 
-      {loading ? (
-        <ProjectCardSkeleton />
-      ) : (
+      <Skeleton name="project-card-grid" loading={loading}>
         <Tabs defaultValue="all" className="w-full space-y-6">
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
@@ -269,7 +265,7 @@ const MyProjectsView = ({ currentUser }: { currentUser: any }) => {
             );
           })}
         </Tabs>
-      )}
+      </Skeleton>
 
       {isConnected && !loading && (repos.length > 0 || page > 1) && (
         <div className="flex justify-center items-center gap-4 py-8">
