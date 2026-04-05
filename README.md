@@ -1,216 +1,146 @@
-# ZYNC — Real-Time Collaboration Desktop Application
+# ZYNC — Real-Time Team Collaboration Platform
 
 <p align="center">
-  <img src="build/icons/icon.png" alt="ZYNC Logo" width="128" height="128" />
+  <img src="public/zync-dark.webp" alt="ZYNC Logo" width="128" height="128" />
 </p>
 
 <p align="center">
-  <strong>A modern, cross-platform desktop application for real-time team collaboration.</strong>
+  <strong>AI-powered project management and real-time collaboration for modern development teams.</strong>
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#development">Development</a> •
-  <a href="#building">Building</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#contributing">Contributing</a> •
-  <a href="#license">License</a>
+  <a href="https://zync.io" target="_blank">Live Demo</a> &bull;
+  <a href="#features">Features</a> &bull;
+  <a href="#tech-stack">Tech Stack</a> &bull;
+  <a href="#getting-started">Getting Started</a> &bull;
+  <a href="#architecture">Architecture</a> &bull;
+  <a href="#contributing">Contributing</a>
 </p>
-
----
-
-## Table of Contents
-
-<!--
-  This table of contents provides a comprehensive overview of all sections
-  in this README. Each section is designed to help developers, contributors,
-  and users understand the ZYNC desktop application from different perspectives.
--->
-
-- [Overview](#overview)
-- [Features](#features)
-  - [Core Features](#core-features)
-  - [Desktop-Specific Features](#desktop-specific-features)
-  - [Collaboration Features](#collaboration-features)
-  - [Developer Features](#developer-features)
-- [System Requirements](#system-requirements)
-  - [Minimum Requirements](#minimum-requirements)
-  - [Recommended Specifications](#recommended-specifications)
-  - [Supported Operating Systems](#supported-operating-systems)
-- [Installation](#installation)
-  - [Download Pre-built Binaries](#download-pre-built-binaries)
-  - [Windows Installation](#windows-installation)
-  - [macOS Installation](#macos-installation)
-  - [Linux Installation](#linux-installation)
-- [Development](#development)
-  - [Prerequisites](#prerequisites)
-  - [Setting Up the Development Environment](#setting-up-the-development-environment)
-  - [Running in Development Mode](#running-in-development-mode)
-  - [Project Structure](#project-structure)
-  - [Environment Variables](#environment-variables)
-- [Building](#building)
-  - [Building for Windows](#building-for-windows)
-  - [Building for macOS](#building-for-macos)
-  - [Building for Linux](#building-for-linux)
-  - [Build Configuration](#build-configuration)
-- [Architecture](#architecture)
-  - [High-Level Architecture](#high-level-architecture)
-  - [Main Process](#main-process)
-  - [Renderer Process](#renderer-process)
-  - [Preload Scripts](#preload-scripts)
-  - [IPC Communication](#ipc-communication)
-  - [Security Model](#security-model)
-- [User Profile Data Storage](#user-profile-data-storage)
-  - [Profile Information (MongoDB)](#profile-information-mongodb)
-  - [Profile Photo (Cloudinary)](#profile-photo-cloudinary)
-  - [New User Notifications](#new-user-notifications)
-- [Configuration](#configuration)
-  - [Application Settings](#application-settings)
-  - [Keyboard Shortcuts](#keyboard-shortcuts)
-  - [Theme Configuration](#theme-configuration)
-- [Testing](#testing)
-  - [Running Tests](#running-tests)
-  - [Test Coverage](#test-coverage)
-  - [Writing Tests](#writing-tests)
-- [Deployment](#deployment)
-  - [Auto-Updates](#auto-updates)
-  - [Code Signing](#code-signing)
-  - [Release Process](#release-process)
-- [Troubleshooting](#troubleshooting)
-  - [Common Issues](#common-issues)
-  - [Debug Mode](#debug-mode)
-  - [Logging](#logging)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
 
 ---
 
 ## Overview
 
-<!--
-  ZYNC is a comprehensive real-time collaboration platform designed for modern
-  development teams. The desktop application wraps the web platform in an
-  Electron shell, providing native OS integration, system tray functionality,
-  desktop notifications, and offline capabilities.
-  
-  The application uses a hybrid architecture where the web application is loaded
-  via URL in the main window, while native features like settings, system tray,
-  and auto-updates are handled by the Electron main process.
--->
+ZYNC is a full-stack **real-time collaboration platform** built for development teams who need project management, collaborative editing, instant messaging, and code integration in one unified workspace. The platform combines an AI-powered project architect, CRDT-based collaborative note editing, real-time chat with delivery receipts, and deep GitHub integration.
 
-ZYNC is a **real-time collaboration platform** built for development teams who need
-seamless communication, project management, and code collaboration tools in one
-unified interface. The desktop application extends the web platform with native
-operating system integrations that enhance productivity and user experience.
+### What makes ZYNC different?
 
-### Why a Desktop Application?
-
-While the ZYNC web application provides full functionality through any modern
-browser, the desktop application offers several advantages that justify its
-existence as a standalone native application:
-
-1. **System Tray Integration**: ZYNC runs in the background and provides instant
-   access through the system tray icon, allowing users to stay connected without
-   keeping a browser tab open.
-
-2. **Native Notifications**: Desktop notifications are delivered through the
-   operating system's native notification system, ensuring they are visible even
-   when the application is minimized or in the background.
-
-3. **Keyboard Shortcuts**: Global keyboard shortcuts allow users to quickly
-   access ZYNC features from anywhere on their desktop, regardless of which
-   application is currently in focus.
-
-4. **Auto-Updates**: The application automatically checks for and installs
-   updates, ensuring users always have the latest features and security patches
-   without manual intervention.
-
-5. **Offline Capabilities**: Certain features continue to work offline, with
-   automatic synchronization when connectivity is restored.
-
-6. **Deep Linking**: Custom protocol handlers (`zync://`) allow other applications
-   to deep-link directly into specific ZYNC features or conversations.
-
-7. **Window Management**: Multi-window support with persistent window state
-   (position, size, maximization state) across application restarts.
+| Feature | How It Works |
+|---------|--------------|
+| **AI Project Architect** | Describe your project and let AI generate the full architecture, tech stack recommendations, and step-by-step implementation plan using Google Gemini & Groq |
+| **Real-Time Note Collaboration** | Conflict-free editing powered by Yjs CRDT with live cursors, presence indicators, and block-based editor (BlockNote) |
+| **Kanban + Git Sync** | Drag-and-drop task board that links tasks to GitHub commits, branches, and pull requests |
+| **Real-Time Chat** | Socket.IO-powered messaging with typing indicators, read receipts, file sharing, and project invites |
+| **Design Inspiration** | Browse and search Dribbble/Behance designs with live scraping and Redis caching |
+| **Activity Intelligence** | Session tracking with contribution graphs, activity logs, and time analytics |
 
 ---
 
 ## Features
 
-### Core Features
-
-<!--
-  The core features section describes the primary functionality available
-  in the ZYNC desktop application. These features are the foundation of
-  the collaboration platform and are accessible through the main application
-  window.
--->
+### Project Management
 
 | Feature | Description |
 |---------|-------------|
-| **Dashboard** | Centralized overview of all team activities, recent projects, and quick actions |
-| **Workspace** | Kanban-style project boards with drag-and-drop task management |
-| **Calendar** | Team calendar with meeting scheduling and deadline tracking |
-| **Notes** | Real-time collaborative note editor with rich text formatting |
-| **Tasks** | Comprehensive task management with assignments, due dates, and priorities |
-| **Chat** | Real-time messaging with @mentions, file attachments, and message reactions |
-| **Meet** | Video conferencing integration for team meetings and pair programming |
+| **Dashboard** | Centralized overview of team activity, recent projects, and quick actions |
+| **Workspace** | Kanban-style project boards with drag-and-drop task management (via DnD Kit) |
+| **AI Architecture** | Generate full project architecture with step breakdowns using AI |
+| **Task Management** | Create, assign, and track tasks with priorities, due dates, and status transitions |
+| **Project Search** | Search across all projects with intelligent filtering |
+
+### Real-Time Collaboration
+
+| Feature | Description |
+|---------|-------------|
+| **Collaborative Notes** | Real-time block-editor with Yjs CRDT — multiple users edit simultaneously with live cursors |
+| **Live Presence** | See who's online, their cursor position, and active document in real-time |
+| **Instant Chat** | Direct messaging with typing indicators, read receipts, and delivery confirmation |
+| **File Sharing** | Share files in chat with upload support and preview |
+| **Project Invites** | Send and receive project invitations through the chat system |
+
+### Development Integration
+
+| Feature | Description |
+|---------|-------------|
+| **GitHub OAuth** | Connect your GitHub account for repository access |
+| **Repository Linking** | Link GitHub repos to projects and auto-track commits |
+| **Task-Git Sync** | Associate tasks with commits, branches, and pull requests |
+| **GitHub App** | Webhook integration for real-time repository events |
+| **Git Commands** | Built-in Git command reference and quick actions |
+
+### Team & Communication
+
+| Feature | Description |
+|---------|-------------|
+| **Teams** | Create teams with invite codes, member management, and role-based access |
+| **Calendar** | Team calendar with multi-country holiday support and deadline tracking |
+| **Meetings** | Schedule meetings with auto-generated Google Meet links |
 | **Activity Log** | Detailed activity tracking with time logging and contribution graphs |
+| **People** | Browse team members, manage connections, and view profiles |
 
-### Desktop-Specific Features
-
-<!--
-  These features are exclusive to the desktop application and are not
-  available in the web version. They leverage Electron's access to native
-  OS APIs to provide enhanced functionality.
--->
+### Additional Features
 
 | Feature | Description |
 |---------|-------------|
-| **System Tray** | Background operation with quick-access context menu |
-| **Auto-Updates** | Automatic application updates with progress notifications |
-| **Native Notifications** | OS-level notifications for messages, mentions, and reminders |
-| **Global Shortcuts** | System-wide keyboard shortcuts for quick access |
-| **Deep Linking** | `zync://` protocol support for external integrations |
-| **Window Persistence** | Remembers window position, size, and state across sessions |
-| **Splash Screen** | Branded loading screen during application startup |
-| **Crash Reporting** | Automatic crash report collection and submission |
-| **Settings Page** | Native settings interface with download links for all platforms |
-
-### Collaboration Features
-
-<!--
-  Collaboration features enable team members to work together effectively
-  in real-time. These features are powered by WebSocket connections and
-  Firebase Realtime Database for instant synchronization.
--->
-
-- **Real-Time Presence**: See who is online, away, or offline in real-time
-- **Collaborative Editing**: Multiple users can edit the same document simultaneously
-- **Screen Sharing**: Share your screen during video calls for pair programming
-- **File Sharing**: Drag-and-drop file sharing with preview support
-- **@Mentions**: Tag team members in conversations and notes for notifications
-- **Activity Graphs**: Visual representation of team activity and contributions
-- **Team Management**: Create and manage teams with role-based access control
-
-### Developer Features
-
-<!--
-  Developer features are designed to integrate ZYNC into the software
-  development workflow, providing tools for code review, version control,
-  and deployment tracking.
--->
-
-- **GitHub Integration**: Connect GitHub accounts for repository management
-- **Git Commands**: Built-in Git command reference and quick actions
-- **Repository Selector**: Browse and manage connected repositories
-- **Task-Git Sync**: Link tasks to Git branches, commits, and pull requests
-- **Contribution Graph**: GitHub-style contribution visualization
+| **Design Inspiration** | Search Dribbble and Behance with live scraping and cached results |
+| **LinkedIn Login** | OAuth-based LinkedIn authentication |
+| **Dark/Light Theme** | System-aware theme with class-based dark mode |
+| **Offline Support** | TanStack Query persistence (7-day cache) with Dexie IndexedDB storage |
+| **Landing Page** | Polished marketing page with hero, features, testimonials, and CTAs |
 
 ---
+
+## Tech Stack
+
+### Frontend
+
+| Technology | Purpose |
+|------------|---------|
+| **React 18** | UI component library |
+| **TypeScript** | Type-safe JavaScript |
+| **Vite** | Build tool and dev server |
+| **Tailwind CSS 4** | Utility-first CSS framework |
+| **Shadcn/UI + Radix UI** | 54 accessible UI components |
+| **Mantine** | Additional UI components and hooks |
+| **TanStack Query** | Server state management with persistence |
+| **BlockNote** | Block-based rich text editor |
+| **Yjs** | CRDT for real-time collaborative editing |
+| **Socket.IO Client** | Real-time bidirectional communication |
+| **Framer Motion** | Animations and transitions |
+| **DnD Kit** | Drag-and-drop for Kanban boards |
+| **Recharts + Chart.js** | Data visualization |
+| **Firebase Auth** | Authentication with App Check (reCAPTCHA v3) |
+| **Lucide React** | Icon library |
+
+### Backend
+
+| Technology | Purpose |
+|------------|---------|
+| **Express 5** | Web framework |
+| **Socket.IO** | WebSocket server with 4 namespaces (chat, notes, presence, tasks) |
+| **Prisma** | ORM for MongoDB (schema: 11 models) |
+| **Mongoose** | MongoDB ODM (legacy models) |
+| **MongoDB** | Primary database (Oracle Autonomous Database) |
+| **Redis** | Caching layer for design inspiration |
+| **Cloudinary** | Image storage (profile photos, file uploads) |
+| **Firebase Admin** | Server-side Firebase operations |
+| **Google Gemini + Groq** | AI-powered project architecture generation |
+| **Octokit** | GitHub API integration |
+| **Google Meet API** | Meeting link generation |
+| **Puppeteer** | Web scraping (Dribbble, Behance, LinkedIn) |
+| **Nodemailer** | Transactional emails via Gmail API |
+| **Helmet + CORS + Rate Limiting** | Security middleware |
+| **Zod** | Request validation |
+
+### Infrastructure
+
+| Component | Details |
+|-----------|---------|
+| **Frontend Hosting** | Vercel (SPA with immutable asset caching) |
+| **Backend Hosting** | Oracle Cloud VM (Ubuntu 24.04, PM2 process manager) |
+| **Database** | Oracle Autonomous Database (MongoDB-compatible) |
+| **CI/CD** | GitHub Actions (lint, type-check, test, build) |
+| **Deployment** | `deploy.sh` script — rsync to Oracle VM + PM2 restart |
 
 ## System Requirements
 
@@ -672,168 +602,325 @@ The build process is configured through `electron-builder.yml`. Key settings:
 
 ### High-Level Architecture
 
-<!--
-  The ZYNC desktop application follows a multi-process architecture as
-  defined by Electron. The main process manages the application lifecycle,
-  creates windows, and handles native OS interactions. The renderer process
-  runs the React-based web application. Communication between processes
-  happens through IPC (Inter-Process Communication) channels.
--->
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                          ZYNC Platform                                │
+│                                                                       │
+│  ┌────────────────────────────────┐   ┌────────────────────────────┐│
+│  │        Frontend (Vercel)        │   │    Backend (Oracle Cloud)   ││
+│  │                                │   │                            ││
+│  │  React 18 + TypeScript         │   │  Express 5 + Socket.IO     ││
+│  │  Vite + Tailwind CSS           │   │                            ││
+│  │  Shadcn/UI + Mantine           │   │  Routes                    ││
+│  │                                │   │  ├─ /api/projects          ││
+│  │  State Management              │   │  ├─ /api/users             ││
+│  │  ├─ TanStack Query (server)    │   │  ├─ /api/notes             ││
+│  │  ├─ Dexie (offline cache)      │   │  ├─ /api/chat              ││
+│  │  └─ Yjs (CRDT documents)      │   │  ├─ /api/tasks             ││
+│  │                                │   │  ├─ /api/github            ││
+│  │  Real-Time                     │◄──►│  ├─ /api/meet              ││
+│  │  ├─ Socket.IO (4 namespaces)   │   │  ├─ /api/calendar          ││
+│  │  ├─ Presence tracking          │   │  ├─ /api/teams             ││
+│  │  ├─ Live cursors               │   │  └─ /api/upload            ││
+│  │  └─ Typing indicators          │   │                            ││
+│  │                                │   │  Socket Namespaces         ││
+│  │  Auth: Firebase Auth           │   │  ├─ /notes (Yjs CRDT)     ││
+│  │                                │   │  ├─ /chat (messaging)      ││
+│  └────────────────────────────────┘   │  ├─ /presence (status)    ││
+│                                       │  └─ /tasks (live updates) ││
+│                                       │                            ││
+│                                       │  Prisma ORM ──┐           ││
+│                                       │  Mongoose  ───┤─ MongoDB  ││
+│                                       │               │  (Oracle   ││
+│                                       │  Redis ◄──────┘   ADB)    ││
+│                                       └────────────────────────────┘│
+│                                                                     │
+│  ┌──────────────────┐  ┌──────────────┐  ┌────────────────────┐    │
+│  │  Firebase Auth    │  │  Cloudinary   │  │  GitHub API        │    │
+│  │  (Authentication) │  │  (File Store) │  │  (Repos + Webhooks)│    │
+│  └──────────────────┘  └──────────────┘  └────────────────────┘    │
+│                                                                     │
+│  ┌──────────────────┐  ┌──────────────┐  ┌────────────────────┐    │
+│  │  Google Gemini    │  │  Groq AI      │  │  Google Meet API   │    │
+│  │  (AI Architect)   │  │  (AI Assist)  │  │  (Meeting Links)   │    │
+│  └──────────────────┘  └──────────────┘  └────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Socket.IO Namespaces
+
+| Namespace | Purpose | Key Events |
+|-----------|---------|------------|
+| `/notes` | Collaborative editing | `join_note`, `note-update`, `cursor_move`, `awareness-update` |
+| `/chat` | Real-time messaging | `send-message`, `typing`, `mark-seen`, `message-delivered` |
+| `/presence` | User status | `update-status`, `user-status-changed` |
+| `/tasks` | Task updates | `task-created`, `task-updated`, `task-deleted`, `activity-update` |
+
+### Database Schema (Prisma — 11 Models)
+
+| Model | Purpose | Key Fields |
+|-------|---------|------------|
+| **User** | User profiles | uid, displayName, email, photoURL, githubIntegration, googleIntegration |
+| **Project** | Projects | name, description, team, architecture (AI JSON), githubRepo |
+| **Step** | Project phases | title, order, status (Pending/In Progress/Completed/Done) |
+| **ProjectTask** | Tasks | displayId (TASK-42), status, assignedTo, commitUrl |
+| **Note** | Collaborative docs | title, content (blocks), yjsState (binary CRDT), sharedWith |
+| **Folder** | Note organization | name, type (personal/team/project), hierarchy |
+| **Message** | Chat messages | text, senderId, seen/delivered timestamps, type (text/image/file/invite) |
+| **Meeting** | Scheduled meets | title, meetLink, status (scheduled/live/ended), participants |
+| **Session** | Activity tracking | userId, duration, activeDuration, deviceInfo |
+| **Repository** | GitHub repos | githubRepoId, repoName (from GitHub App installs) |
+| **Team** | Team management | name, inviteCode, members, type (Product/Engineering/etc.) |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Node.js** | 18.x or later | JavaScript runtime |
+| **npm** | 9.x or later | Package manager |
+| **Git** | 2.x or later | Version control |
+| **MongoDB** | 6.0+ | Database (or Oracle ADB MongoDB-compatible) |
+| **Redis** | 7.0+ | Caching (optional, for design inspiration) |
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/ChitkulLakshya/Zync.git
+cd Zync
+
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
+cd backend && npm install && cd ..
+
+# Set up environment variables (see Environment Variables below)
+cp backend/.env.example backend/.env
+# Edit backend/.env with your configuration
+# Create .env in project root for frontend variables
+```
+
+### Running in Development Mode
+
+```bash
+# Terminal 1: Start the backend server
+cd backend && npm run dev
+
+# Terminal 2: Start the frontend dev server
+npm run dev
+```
+
+The frontend runs on `http://localhost:8081` and proxies API requests to the backend at `http://localhost:5000`.
+
+### Environment Variables
+
+#### Frontend (`.env` in project root)
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_API_URL` | Backend API base URL | Yes |
+| `VITE_FIREBASE_API_KEY` | Firebase API key | Yes |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase auth domain | Yes |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase project ID | Yes |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket | Yes |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID | Yes |
+| `VITE_FIREBASE_APP_ID` | Firebase app ID | Yes |
+| `VITE_FIREBASE_MEASUREMENT_ID` | Firebase measurement ID | No |
+| `VITE_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key (App Check) | No |
+
+#### Backend (`backend/.env`)
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `PORT` | Server port (default: 5000) | No |
+| `MONGO_URI` | MongoDB connection string | Yes |
+| `GCP_SERVICE_ACCOUNT_KEY` | Firebase Admin service account JSON | Yes |
+| `FRONTEND_URL` | Frontend URL for CORS | Yes |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | Yes |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | Yes |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | Yes |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | Yes |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Yes |
+| `GOOGLE_REFRESH_TOKEN` | Google OAuth refresh token | Yes |
+| `GITHUB_CLIENT_ID` | GitHub OAuth app client ID | Yes |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth app client secret | Yes |
+| `REDIS_HOST` | Redis host | No |
+| `REDIS_PORT` | Redis port | No |
+| `GROQ_API_KEY` | Groq AI API key | No |
+
+---
+
+## Project Structure
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     ZYNC Desktop Application                      │
-│                                                                   │
-│  ┌──────────────────────┐          ┌──────────────────────────┐  │
-│  │    Main Process       │          │   Renderer Process        │  │
-│  │   (electron/main.ts)  │   IPC    │  (Vite + React App)       │  │
-│  │                       │◄────────►│                           │  │
-│  │  • Window Management  │          │  • Dashboard              │  │
-│  │  • System Tray        │          │  • Workspace              │  │
-│  │  • Auto-Updates       │          │  • Chat                   │  │
-│  │  • Native Menus       │          │  • Notes                  │  │
-│  │  • Deep Linking       │          │  • Calendar               │  │
-│  │  • Notifications      │          │  • Tasks                  │  │
-│  │  • File System        │          │  • Settings               │  │
-│  │                       │          │  • Meet                   │  │
-│  └──────────────────────┘          └──────────────────────────┘  │
-│           │                                    │                   │
-│           │ Preload Script                     │ Web APIs          │
-│           │ (electron/preload.ts)              │                   │
-│           │                                    │                   │
-│           ▼                                    ▼                   │
-│  ┌──────────────────────┐          ┌──────────────────────────┐  │
-│  │   Node.js APIs        │          │   Backend Server          │  │
-│  │  (File System, OS)    │          │  (Express + MongoDB)      │  │
-│  └──────────────────────┘          └──────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+Zync/
+├── .github/                        # GitHub configuration
+│   ├── workflows/                  # CI/CD workflows
+│   │   ├── build.yml               # Lint, type-check, test, build
+│   │   ├── release.yml             # Tag-based releases
+│   │   ├── stale.yml               # Stale issue/PR management
+│   │   ├── labeler.yml             # Auto-label PRs by changed files
+│   │   └── label-sync.yml          # Sync labels from config
+│   ├── dependabot.yml              # Weekly dependency updates
+│   ├── labeler.yml                 # Label rules for auto-labeling
+│   └── CODEOWNERS                  # Code ownership rules
+│
+├── backend/                        # Express + Socket.IO backend
+│   ├── controllers/                # Route handlers
+│   ├── middleware/                  # Auth, validation, error handling
+│   ├── models/                     # Mongoose models (legacy)
+│   ├── prisma/                     # Prisma schema and client
+│   │   └── schema.prisma           # Database schema (11 models)
+│   ├── routes/                     # Express route definitions
+│   │   ├── projectRoutes.js        # Projects + AI architecture
+│   │   ├── userRoutes.js           # User sync and profile
+│   │   ├── noteRoutes.js           # Notes CRUD and sharing
+│   │   ├── chatRoutes.js           # Messaging
+│   │   ├── taskRoutes.js           # Task management
+│   │   ├── githubRoutes.js         # GitHub OAuth and stats
+│   │   ├── meetRoutes.js           # Google Meet integration
+│   │   ├── calendarRoutes.js       # Calendar and holidays
+│   │   ├── teamRoutes.js           # Team management
+│   │   ├── uploadRoutes.js         # File uploads (Cloudinary)
+│   │   ├── designRoutes.js         # Design inspiration
+│   │   └── ...                     # Session, webhook, LinkedIn routes
+│   ├── services/                   # Business logic services
+│   │   ├── cloudinaryService.js    # Image upload/delete
+│   │   ├── googleMeet.js           # Meet link generation + Gmail
+│   │   ├── scraperService.js       # Puppeteer web scraping
+│   │   ├── geoService.js           # IP geolocation
+│   │   ├── haveIBeenPwnedService.js # Password breach check
+│   │   ├── mailer.js               # Email templates
+│   │   └── sheetLogger.js          # Google Sheets tracking
+│   ├── sockets/                    # Socket.IO event handlers
+│   │   ├── chatSocketHandler.js    # Real-time messaging
+│   │   ├── noteSocketHandler.js    # Yjs CRDT relay + presence
+│   │   ├── presenceSocketHandler.js # Online/offline status
+│   │   └── taskSocketHandler.js    # Task activity updates
+│   ├── tests/                      # Backend test suite
+│   ├── utils/                      # Shared utilities
+│   ├── index.js                    # Server entry point
+│   ├── Dockerfile                  # Container configuration
+│   └── package.json                # Backend dependencies
+│
+├── src/                            # React frontend
+│   ├── api/                        # API client modules
+│   │   ├── projects.ts             # Projects + tasks + search
+│   │   ├── notes.ts                # Notes, folders, sharing
+│   │   ├── calendar.ts             # Calendar + holidays
+│   │   └── geo.ts                  # Geolocation
+│   │
+│   ├── components/                 # React components
+│   │   ├── auth/                   # Authentication components
+│   │   ├── dashboard/              # Dashboard views (24 components)
+│   │   │   ├── DashboardView.tsx   # Main dashboard
+│   │   │   ├── TasksView.tsx       # Task management
+│   │   │   ├── CalendarView.tsx    # Calendar with holidays
+│   │   │   ├── ChatView.tsx        # Real-time chat
+│   │   │   ├── MeetView.tsx        # Meeting management
+│   │   │   ├── PeopleView.tsx      # Team members
+│   │   │   ├── ActivityLogView.tsx # Activity tracking
+│   │   │   ├── DesignView.tsx      # Design inspiration
+│   │   │   └── ...                 # Settings, projects, teams
+│   │   ├── kibo-ui/                # Custom advanced components
+│   │   ├── landing/                # Landing page (9 sections)
+│   │   ├── layout/                 # Layout components (navbar, sidebar)
+│   │   ├── notes/                  # Note editor components
+│   │   │   ├── NoteEditor.tsx      # BlockNote + Yjs collaboration
+│   │   │   ├── NotesSidebar.tsx    # Folder/note navigation
+│   │   │   └── ...                 # Toolbar, sharing, cursors
+│   │   ├── ui/                     # 54 Shadcn/UI components
+│   │   ├── views/                  # View-level page components
+│   │   └── workspace/              # Kanban board + project workspace
+│   │       ├── Workspace.tsx       # Project workspace
+│   │       ├── KanbanBoard.tsx     # Drag-and-drop task board
+│   │       └── ...                 # Task assignment, repo selector
+│   │
+│   ├── hooks/                      # Custom React hooks
+│   │   ├── use-activity-tracker.ts # Session/activity tracking
+│   │   ├── use-chat-notifications.ts # Chat notification handling
+│   │   ├── use-user-sync.ts       # Firebase <-> MongoDB sync
+│   │   ├── useGitHubData.ts       # GitHub stats and repos
+│   │   ├── useNotePresence.ts     # Note collaboration presence
+│   │   ├── useNotes.ts            # Notes CRUD
+│   │   ├── useProjects.ts         # Projects CRUD
+│   │   ├── useSyncData.ts         # Dexie offline sync
+│   │   ├── useInspiration.ts      # Design inspiration search
+│   │   └── ...                    # Presence, tasks, team, mobile
+│   │
+│   ├── lib/                        # Core libraries and utilities
+│   │   ├── firebase.ts            # Firebase initialization
+│   │   ├── SocketIOProvider.ts    # Custom Yjs provider over Socket.IO
+│   │   ├── query-client.ts        # TanStack Query configuration
+│   │   ├── query-persister.ts     # 7-day query persistence
+│   │   ├── db.ts                  # Dexie IndexedDB setup
+│   │   ├── github-auth.ts         # GitHub OAuth flow
+│   │   └── utils.ts               # Shared utilities
+│   │
+│   ├── pages/                      # Route-level page components
+│   │   ├── Index.tsx               # Landing page
+│   │   ├── Login.tsx               # Login
+│   │   ├── Signup.tsx              # Registration
+│   │   ├── Dashboard.tsx           # Main app shell
+│   │   ├── ProjectDetails.tsx      # Project workspace
+│   │   ├── NewProject.tsx          # Project creation
+│   │   ├── WelcomeToZync.tsx       # Onboarding
+│   │   └── ...                     # Privacy, Terms, 404
+│   │
+│   ├── services/                   # Frontend service modules
+│   │   ├── chatSocketService.ts    # Chat Socket.IO client
+│   │   ├── taskSocketService.ts    # Task Socket.IO client
+│   │   ├── notesService.ts         # Notes business logic
+│   │   └── storageService.ts       # File storage service
+│   │
+│   ├── App.tsx                     # Root component with routing
+│   ├── main.tsx                    # Application entry point
+│   └── index.css                   # Global styles + Tailwind
+│
+├── tests/                          # Test files
+│   ├── e2e/                        # End-to-end tests (Playwright)
+│   ├── integration/                # Integration tests
+│   └── unit/                       # Unit tests
+│
+├── docs/                           # Documentation
+│   ├── ARCHITECTURE.md             # Architecture deep-dive
+│   ├── BACKEND_OVERVIEW.md         # Backend documentation
+│   ├── SECURITY.md                 # Security practices
+│   └── ...                         # Various technical docs
+│
+├── public/                         # Static assets
+│   ├── zync-dark.webp              # Logo (dark)
+│   ├── zync-white.webp             # Logo (white)
+│   ├── logo-dark.png               # Full logo (dark)
+│   └── logo-light.png              # Full logo (light)
+│
+├── components.json                 # Shadcn/UI configuration
+├── tailwind.config.ts              # Tailwind CSS configuration
+├── vite.config.ts                  # Vite build + dev server config
+├── vercel.json                     # Vercel deployment config
+├── eslint.config.js                # ESLint flat config
+├── tsconfig.json                   # Root TypeScript config
+├── tsconfig.app.json               # Frontend TypeScript config
+├── tsconfig.node.json              # Node TypeScript config
+├── jest.config.cjs                 # Jest test configuration
+├── babel.config.cjs                # Babel configuration
+├── deploy.sh                       # Backend deployment to Oracle VM
+├── index.html                      # HTML entry point
+└── package.json                    # Frontend dependencies + scripts
 ```
-
-### Main Process
-
-<!--
-  The main process is the entry point of the Electron application. It runs
-  in a Node.js environment and has full access to the operating system.
-  The main process is responsible for creating and managing browser windows,
-  handling application lifecycle events, and providing native OS integration.
--->
-
-The main process (`electron/main.ts`) is responsible for:
-
-1. **Application Lifecycle**: Handling `ready`, `window-all-closed`, and
-   `activate` events to manage the application lifecycle correctly across
-   all platforms.
-
-2. **Window Management**: Creating and managing the main application window
-   and secondary windows (settings, about). Window state (position, size,
-   maximized state) is persisted across sessions.
-
-3. **System Tray**: Creating a system tray icon with a context menu that
-   allows users to show/hide the window, check for updates, and quit.
-
-4. **Menu System**: Building the application menu bar with keyboard shortcuts
-   for common actions.
-
-5. **Auto-Updates**: Checking for updates on startup and periodically,
-   downloading updates in the background, and notifying users when updates
-   are ready to install.
-
-6. **IPC Handlers**: Handling messages from the renderer process for actions
-   that require Node.js or native OS access.
-
-### Renderer Process
-
-<!--
-  The renderer process runs the web application inside a Chromium-based
-  browser window. In ZYNC, the renderer process loads the web application
-  from a URL (development server or production URL) and renders the React
-  application.
--->
-
-The renderer process loads the ZYNC web application, which is built with:
-
-- **React** — UI component library
-- **Vite** — Build tool and development server
-- **React Router** — Client-side routing
-- **TanStack Query** — Data fetching and caching
-- **Firebase** — Authentication and real-time database
-- **Tailwind CSS** — Utility-first CSS framework
-- **Shadcn/UI** — Component library built on Radix UI primitives
-
-### Preload Scripts
-
-<!--
-  Preload scripts run before the renderer process is loaded and serve as
-  a secure bridge between the main process and the renderer process. They
-  use Electron's contextBridge API to selectively expose Node.js and
-  Electron APIs to the renderer process.
--->
-
-The preload script (`electron/preload.ts`) provides a secure bridge between
-the main and renderer processes by exposing specific APIs through
-`contextBridge`:
-
-- `electron.downloadPlatform(platform)` — Request platform-specific downloads
-- `electron.openSettings()` — Open the native settings window
-- `electron.on(channel, callback)` — Listen for main process messages
-- `versions.node()` — Get Node.js version
-- `versions.chrome()` — Get Chrome version
-- `versions.electron()` — Get Electron version
-
-### IPC Communication
-
-<!--
-  IPC (Inter-Process Communication) is the mechanism by which the main
-  process and renderer process exchange messages. ZYNC uses a whitelist-based
-  approach where only pre-approved channels are allowed, preventing arbitrary
-  IPC calls from the renderer process.
--->
-
-Communication between processes uses Electron's IPC module with strict
-channel whitelisting:
-
-| Channel | Direction | Purpose |
-|---------|-----------|---------|
-| `download-platform` | Renderer → Main | Request platform download |
-| `open-settings` | Renderer → Main | Open settings window |
-| `check-for-updates` | Renderer → Main | Trigger update check |
-| `get-app-version` | Renderer → Main | Get application version |
-| `fromMain` | Main → Renderer | Send messages to renderer |
-
-### Security Model
-
-<!--
-  Security is a top priority for the ZYNC desktop application. The following
-  security measures are implemented to protect users and their data:
--->
-
-1. **Context Isolation**: Enabled by default, preventing the renderer process
-   from directly accessing Node.js APIs.
-
-2. **Node Integration**: Disabled in the renderer process, requiring all
-   Node.js access to go through the preload script.
-
-3. **Content Security Policy**: Strict CSP headers prevent XSS attacks and
-   unauthorized script execution.
-
-4. **Channel Whitelisting**: Only pre-approved IPC channels are allowed,
-   preventing arbitrary communication between processes.
-
-5. **Input Validation**: All IPC messages are validated before processing
-   to prevent injection attacks.
-
-6. **HTTPS Only**: The application only loads content over HTTPS in
-   production mode.
 
 ---
 
 ## User Profile Data Storage
 
-When a user creates an account or updates their profile, the data is stored across the following services:
-
 ### Profile Information (MongoDB)
 
-All user profile fields are stored in the **MongoDB** database (`ZYNC_USER` → `users` collection). This includes:
+All user profile data is stored in the **MongoDB** database (`ZYNC_USER` → `users` collection):
 
 | Field | Description | Updated When |
 |-------|-------------|--------------|
@@ -844,178 +931,174 @@ All user profile fields are stored in the **MongoDB** database (`ZYNC_USER` → 
 | `phoneNumber` | Phone number | Profile edit |
 | `status`, `lastSeen` | Online presence | Every login / disconnect |
 | `githubIntegration` | Linked GitHub account details | GitHub OAuth sync |
+| `googleIntegration` | Linked Google account details | Google OAuth sync |
+| `connections` | Connected users list | Connection requests |
 
-**Backend route**: `POST /api/users/sync` (`backend/routes/userRoutes.js`) — called automatically on every login via the `useUserSync` hook (`src/hooks/use-user-sync.ts`). If the user already exists, only `status`, `lastSeen`, and missing fields are updated. If the user is new, a full record is created.
-
-**Profile updates**: `PUT /api/users/:uid` (`backend/routes/userRoutes.js`) — called when a user edits their profile from the Settings page.
+**Backend routes**:
+- `POST /api/users/sync` — Auto-called on every login via `useUserSync` hook
+- `PUT /api/users/:uid` — Profile updates from Settings page
 
 ### Profile Photo (Cloudinary)
 
-Profile photos are uploaded to **Cloudinary** under the `zync-profiles` folder.
+Profile photos are uploaded to **Cloudinary** under the `zync-profiles` folder:
 
-- **Backend route**: `POST /api/upload/profile-photo` (`backend/routes/uploadRoutes.js`)
-- The image is cropped to **400×400** with face detection (`gravity: face`)
-- Stored as `profile_{uid}` in Cloudinary (overwrites on re-upload)
-- The resulting Cloudinary URL is saved back to the `photoURL` field in MongoDB
+- **Route**: `POST /api/upload/profile-photo`
+- Image cropped to **400x400** with face detection (`gravity: face`)
+- Stored as `profile_{uid}` (overwrites on re-upload)
+- Cloudinary URL saved to `photoURL` field in MongoDB
 
 ### New User Notifications
 
 When a **new** user creates an account (first-time sync only):
 
-1. **Admin Email** — A notification email is sent to `consolemaster.app@gmail.com` with the new user's name, email, and UID
-2. **Google Sheets** — A new row is appended to the tracking spreadsheet with the user's name, email, and registration date (`backend/services/sheetLogger.js`)
+1. **Admin Email** sent via Gmail API with user's name, email, and UID
+2. **Google Sheets** row appended with registration details
 
-> **Note:** These notifications are triggered only once per user — on their very first login when their record is created in the database. Subsequent logins do not trigger any email or sheet logging.
+---
+
+## API Routes
+
+| Route Group | Endpoints | Description |
+|-------------|-----------|-------------|
+| `/api/projects` | CRUD + search + AI architecture | Project management |
+| `/api/generate-project` | AI project generation | AI-powered architecture |
+| `/api/users` | Sync, profile, connections | User management |
+| `/api/notes` | CRUD, folders, sharing | Collaborative notes |
+| `/api/chat` | Messages, history | Real-time messaging |
+| `/api/tasks` | CRUD, assignment, status | Task management |
+| `/api/github` | OAuth, stats, repos | GitHub integration |
+| `/api/github-app` | Webhooks, installations | GitHub App |
+| `/api/meet` | Create, schedule, status | Google Meet integration |
+| `/api/calendar` | Events, holidays | Calendar management |
+| `/api/teams` | Create, join, members | Team management |
+| `/api/upload` | Profile photo, files | File uploads |
+| `/api/design` | Search, cache | Design inspiration |
+| `/api/inspiration` | Dribbble, Behance feeds | Design feeds |
+| `/api/sessions` | Start, end, stats | Activity tracking |
+| `/api/link` | Shorten, analytics | Link management |
+| `/api/linkedin` | OAuth callback | LinkedIn login |
+| `/api/google` | OAuth, services | Google integration |
+| `/api/webhooks` | GitHub webhooks | Event handling |
+| `/api/cache/sample` | Redis cache samples | Cache management |
 
 ---
 
 ## Configuration
 
-### Application Settings
+### NPM Scripts
 
-<!--
-  Application settings are stored locally using electron-store and
-  are persisted across application restarts. The settings interface
-  provides a user-friendly way to configure the application.
--->
-
-The ZYNC desktop application can be configured through the Settings page,
-accessible from the application menu or by pressing `Ctrl+,` (Windows/Linux)
-or `Cmd+,` (macOS).
-
-Available settings include:
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Start on Login** | Launch ZYNC when the system starts | Disabled |
-| **Minimize to Tray** | Minimize to system tray instead of taskbar | Enabled |
-| **Auto-Update** | Automatically download and install updates | Enabled |
-| **Notifications** | Enable desktop notifications | Enabled |
-| **Theme** | Application theme (Light, Dark, System) | System |
-| **Language** | Application language | English |
+| Script | Command | Purpose |
+|--------|---------|---------|
+| `dev` | `vite` | Start frontend dev server (port 8081) |
+| `build` | `vite build` | Production build |
+| `lint` | `eslint .` | Run ESLint |
+| `typecheck` | `tsc --noEmit` | TypeScript type checking |
+| `test` | `jest --passWithNoTests` | Run unit tests |
+| `test:e2e` | `playwright test` | Run E2E tests |
+| `format` | `prettier --write .` | Format code |
+| `storybook` | `storybook dev -p 6006` | Component documentation |
+| `clean` | `rimraf dist dist_electron node_modules coverage` | Clean build artifacts |
 
 ### Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
+| `Ctrl/Cmd + K` | Open command palette |
 | `Ctrl/Cmd + N` | Create new note |
-| `Ctrl/Cmd + ,` | Open settings |
-| `Ctrl/Cmd + Q` | Quit application |
-| `Ctrl/Cmd + R` | Reload application |
-| `Ctrl/Cmd + Shift + I` | Open Developer Tools |
-| `Ctrl/Cmd + +` | Zoom in |
-| `Ctrl/Cmd + -` | Zoom out |
-| `Ctrl/Cmd + 0` | Reset zoom |
-| `F11` | Toggle fullscreen |
+| `Ctrl/Cmd + /` | Toggle comment in editor |
+
+---
+
+## Deployment
+
+### Frontend (Vercel)
+
+The frontend is deployed to **Vercel** with SPA routing:
+
+- `vercel.json` configures client-side routing rewrites
+- Immutable caching for `/assets/*` (1 year)
+- No-cache for `index.html` (always fresh)
+- Auto-deploys from `main` branch
+
+### Backend (Oracle Cloud VM)
+
+The backend is deployed to an **Oracle Cloud VM** (Ubuntu 24.04):
+
+```bash
+# Deploy using the included script
+export VM_IP=your.oracle.vm.ip
+bash deploy.sh
+```
+
+The deployment script:
+1. Rsyncs the `backend/` folder to the VM
+2. Installs production dependencies
+3. Generates Prisma client
+4. Restarts the PM2 process (`zync-backend`)
+
+### Database (Oracle Autonomous Database)
+
+MongoDB-compatible database hosted on Oracle Cloud:
+
+- Database: `ZYNC_USER`
+- TLS enabled with certificate verification
+- Connection auto-retry (5 attempts, 5s delay)
 
 ---
 
 ## Testing
 
-### Running Tests
-
-<!--
-  Tests are organized into categories based on the module being tested.
-  Main process tests verify the Electron-specific functionality, while
-  utility tests verify the helper modules used across the application.
--->
-
 ```bash
-# Run all tests
+# Run frontend unit tests
 npm test
 
-# Run tests with coverage report
-npm run test:coverage
+# Run E2E tests
+npm run test:e2e
 
-# Run only main process tests
-npm test -- --testPathPattern=tests/main
+# Run type checking
+npm run typecheck
 
-# Run only utility tests
-npm test -- --testPathPattern=tests/utils
-
-# Run tests in watch mode during development
-npm run test:watch
+# Run linting
+npm run lint
 ```
+
+### Test Structure
+
+| Directory | Framework | Focus |
+|-----------|-----------|-------|
+| `tests/unit/` | Jest | Frontend unit tests |
+| `tests/integration/` | Jest | API integration tests |
+| `tests/e2e/` | Playwright | End-to-end user flows |
+| `backend/tests/` | Jest + Bun | Backend security tests |
+
+### CI Pipeline
+
+GitHub Actions runs on every push/PR to `main` and `develop`:
+
+1. **Lint & Type Check** — ESLint + TypeScript compiler
+2. **Unit Tests** — Jest test suite
+3. **Build** — Vite production build verification
 
 ---
 
-## Troubleshooting
+## Security
 
-### Common Issues
-
-<!--
-  This section documents frequently encountered issues and their solutions.
-  If you encounter an issue not listed here, please open a GitHub issue
-  with detailed reproduction steps.
--->
-
-#### Application won't start
-
-```bash
-# Clear the application cache and try again
-# Windows
-rmdir /s /q "%APPDATA%\ZYNC"
-
-# macOS
-rm -rf ~/Library/Application\ Support/ZYNC
-
-# Linux
-rm -rf ~/.config/ZYNC
-```
-
-#### Build fails on Windows
-
-Ensure Visual Studio Build Tools are installed:
-```powershell
-npm install --global windows-build-tools
-```
-
-#### Blank screen after launch
-
-This usually indicates the web application URL is unreachable:
-1. Check your internet connection
-2. Verify the `VITE_API_URL` environment variable is set correctly
-3. Try running `npm run dev` separately to verify the dev server works
-
-### Debug Mode
-
-<!--
-  Debug mode enables additional logging and developer tools that are
-  useful for diagnosing issues. This should not be used in production
-  as it may expose sensitive information.
--->
-
-```bash
-# Enable debug mode with verbose logging
-ELECTRON_ENABLE_LOGGING=1 DEBUG=* npm run electron:dev
-
-# Open DevTools automatically on startup
-npm run electron:dev -- --inspect
-```
-
-### Logging
-
-<!--
-  Application logs are stored in platform-specific locations and can be
-  useful for diagnosing issues that are difficult to reproduce.
--->
-
-Log files are stored in the following locations:
-
-| Platform | Log Location |
-|----------|-------------|
-| **Windows** | `%APPDATA%\ZYNC\logs\` |
-| **macOS** | `~/Library/Logs/ZYNC/` |
-| **Linux** | `~/.config/ZYNC/logs/` |
+- **Helmet** — Security headers (CSP, XSS protection)
+- **CORS** — Whitelisted origins only
+- **Rate Limiting** — 100 requests per 15 minutes per IP
+- **Firebase App Check** — reCAPTCHA v3 bot protection
+- **Input Validation** — Zod schemas on API endpoints
+- **Authentication** — Firebase Auth on frontend, token verification on backend
+- **Password Breach Check** — Have I Been Pwned API integration
+- **Security Tests** — IDOR, auth bypass, and access control tests
 
 ---
 
 ## Contributing
 
-We welcome contributions from the community! Please read our
-[Contributing Guidelines](CONTRIBUTING.md) before submitting a pull request.
+We welcome contributions! Please read our [Contributing Guidelines](docs/CONTRIBUTING.md) before submitting a pull request.
 
-### Quick Start for Contributors
+### Quick Start
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/my-feature`
@@ -1028,29 +1111,10 @@ We welcome contributions from the community! Please read our
 
 ## License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE)
-file for details.
-
----
-
-## Acknowledgments
-
-<!--
-  This section acknowledges the open-source projects and contributors
-  that make ZYNC possible. We are grateful for the incredible work done
-  by these communities.
--->
-
-- [Electron](https://www.electronjs.org/) — Framework for cross-platform desktop apps
-- [React](https://react.dev/) — UI component library
-- [Vite](https://vitejs.dev/) — Next-generation frontend build tool
-- [Firebase](https://firebase.google.com/) — Backend-as-a-Service platform
-- [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework
-- [Shadcn/UI](https://ui.shadcn.com/) — Beautifully designed components
-- [electron-builder](https://www.electron.build/) — Complete solution for packaging Electron apps
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <p align="center">
-  Made with ❤️ by the ZYNC Team
+  Built by the ZYNC Team
 </p>
