@@ -5,9 +5,7 @@ import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FolderGit2, Plus, ArrowRight, Calendar, User, Trash2, Pin, FileText, Search, Github, CheckSquare } from "lucide-react";
-import { RepositoryListSkeleton } from "@/components/ui/skeletons";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FolderGit2, Plus, ArrowRight, Calendar, User, Trash2, Pin, FileText, Search, Github, CheckSquare, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useProjects, useProjectMutations } from "@/hooks/useProjects";
 import { usePinnedNotes } from "@/hooks/useNotes";
 import TaskAssignmentDrawer from "@/components/workspace/TaskAssignmentDrawer";
+import { Skeleton } from "boneyard-js/react";
 
 interface Project {
   _id?: string;
@@ -489,11 +488,8 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
     };
   };
 
-  if (loading) {
-    return <RepositoryListSkeleton />;
-  }
-
   return (
+    <Skeleton name="workspace-project-card" loading={loading}>
     <div className="flex-1 p-8 h-full">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
@@ -681,13 +677,9 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
             <div className="h-[200px] overflow-y-auto border rounded-md p-2 space-y-1">
               {loadingRepos ? (
-                <div className="space-y-2 p-2">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 p-2">
-                      <Skeleton className="h-4 w-4 rounded-full shrink-0" />
-                      <Skeleton className="h-4 flex-1" />
-                    </div>
-                  ))}
+                <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading repositories…
                 </div>
               ) : repos.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
@@ -753,13 +745,9 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
 
               <div className="flex-1 overflow-y-auto p-2 space-y-1">
                   {loadingRepos ? (
-                      <div className="space-y-2 p-2">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="flex items-center gap-3 p-2">
-                            <Skeleton className="h-4 w-4 rounded-full shrink-0" />
-                            <Skeleton className="h-4 flex-1" />
-                          </div>
-                        ))}
+                      <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading repositories…
                       </div>
                   ) : repos.length === 0 ? (
                       <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground p-4">
@@ -859,6 +847,7 @@ const Workspace = ({ onSelectProject, onOpenNote, currentUser, usersList = [] }:
         isInvitingCollaborator={invitingCollaborator}
       />
     </div>
+    </Skeleton>
   );
 };
 
