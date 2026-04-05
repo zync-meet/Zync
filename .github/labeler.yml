@@ -369,7 +369,7 @@ type:security:
           - '**/auth/**/*'
           - 'electron/config/csp.ts'
           - 'backend/middleware/authMiddleware.js'
-          - 'SECURITY.md'
+          - 'docs/security/SECURITY.md'
 
 # Performance-related changes
 type:performance:

@@ -82,7 +82,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                         if (t.assignedTo !== currentUser.uid) {return;}
 
                         if (!groups[p._id]) {
-                            const projectId = p._id || p.id;
+                            const projectId = p._id;
                             if (!projectId) {return;}
 
                             groups[projectId] = {
@@ -95,7 +95,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                             };
                         }
 
-                        const projectId = p._id || p.id;
+                        const projectId = p._id;
                         const taskId = t._id || t.id;
                         const stepId = step._id || step.id;
                         if (!projectId || !taskId || !stepId) {return;}
@@ -144,7 +144,10 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
     const loadTasksRef = useRef(loadTasks);
     loadTasksRef.current = loadTasks;
 
-    const projectIds = useMemo(() => projects.map(p => p._id).filter(Boolean), [projects]);
+    const projectIds = useMemo(
+        () => projects.map(p => p._id).filter((id): id is string => Boolean(id)),
+        [projects]
+    );
 
     useTaskUpdates({
         userId: currentUser?.uid,

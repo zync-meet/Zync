@@ -142,6 +142,460 @@ ZYNC is a full-stack **real-time collaboration platform** built for development 
 | **CI/CD** | GitHub Actions (lint, type-check, test, build) |
 | **Deployment** | `deploy.sh` script — rsync to Oracle VM + PM2 restart |
 
+## System Requirements
+
+### Minimum Requirements
+
+<!--
+  These are the minimum system requirements needed to run the ZYNC desktop
+  application. The application may run on systems below these specifications
+  but performance may be degraded.
+-->
+
+| Component | Requirement |
+|-----------|-------------|
+| **CPU** | 1.6 GHz dual-core processor |
+| **RAM** | 2 GB |
+| **Storage** | 500 MB available disk space |
+| **Display** | 1280 x 720 resolution |
+| **Network** | Broadband internet connection (for real-time features) |
+
+### Recommended Specifications
+
+<!--
+  These specifications provide the best experience when using the ZYNC
+  desktop application, especially when using resource-intensive features
+  like video conferencing and collaborative editing.
+-->
+
+| Component | Specification |
+|-----------|---------------|
+| **CPU** | 2.0 GHz quad-core processor or better |
+| **RAM** | 4 GB or more |
+| **Storage** | 1 GB available disk space |
+| **Display** | 1920 x 1080 resolution or higher |
+| **Network** | High-speed internet connection (10 Mbps+) |
+| **Camera** | Webcam (for video conferencing features) |
+| **Microphone** | Built-in or external microphone (for audio features) |
+
+### Supported Operating Systems
+
+<!--
+  The following operating systems are officially supported and tested.
+  The application may work on other versions but is not guaranteed to
+  function correctly. Each platform has specific build targets and
+  installer formats.
+-->
+
+| Platform | Versions | Architecture | Installer |
+|----------|----------|-------------|-----------|
+| **Windows** | Windows 10, Windows 11 | x64, arm64 | NSIS (.exe) |
+| **macOS** | macOS 10.15 (Catalina) and later | x64, arm64 (Apple Silicon) | DMG (.dmg) |
+| **Linux** | Ubuntu 18.04+, Fedora 32+, Debian 10+ | x64 | AppImage (.AppImage) |
+
+---
+
+## Installation
+
+### Download Pre-built Binaries
+
+<!--
+  Pre-built binaries are the easiest way to install ZYNC. They are
+  available for all supported platforms from the GitHub Releases page.
+  Each release includes checksums for verifying download integrity.
+-->
+
+Visit the [Releases](https://github.com/ChitkulLakshya/Zync/releases) page to
+download the latest version for your platform.
+
+### Windows Installation
+
+<!--
+  The Windows installer uses NSIS (Nullsoft Scriptable Install System) to
+  provide a familiar installation experience. Users can choose the
+  installation directory and whether to create desktop/start menu shortcuts.
+-->
+
+1. Download `ZYNC-Setup-x.x.x.exe` from the Releases page
+2. Run the installer
+3. Choose the installation directory (default: `C:\Program Files\ZYNC`)
+4. Select whether to create desktop and Start Menu shortcuts
+5. Click "Install" to complete the installation
+6. Launch ZYNC from the desktop shortcut or Start Menu
+
+**Silent Installation (for system administrators):**
+```powershell
+# Install silently with default options
+ZYNC-Setup-x.x.x.exe /S
+
+# Install to a custom directory
+ZYNC-Setup-x.x.x.exe /S /D=C:\CustomPath\ZYNC
+```
+
+### macOS Installation
+
+<!--
+  The macOS installer uses a DMG (Disk Image) format, which is the standard
+  installation method on macOS. Users simply drag the application to the
+  Applications folder.
+-->
+
+1. Download `ZYNC-x.x.x.dmg` from the Releases page
+2. Open the DMG file
+3. Drag `ZYNC.app` to the `Applications` folder
+4. Launch ZYNC from the Applications folder or Spotlight search
+5. If prompted about the application being from an unidentified developer:
+   - Go to System Preferences → Security & Privacy
+   - Click "Open Anyway"
+
+**Installation via Homebrew (coming soon):**
+```bash
+# Install via Homebrew Cask
+brew install --cask zync
+```
+
+### Linux Installation
+
+<!--
+  The Linux build uses AppImage format, which is a portable application
+  format that works on most Linux distributions without requiring
+  installation. Simply make the file executable and run it.
+-->
+
+1. Download `ZYNC-x.x.x.AppImage` from the Releases page
+2. Make the file executable:
+   ```bash
+   chmod +x ZYNC-x.x.x.AppImage
+   ```
+3. Run the application:
+   ```bash
+   ./ZYNC-x.x.x.AppImage
+   ```
+
+**Desktop Integration:**
+```bash
+# Install AppImageLauncher for desktop integration
+# Then double-click the AppImage to integrate it into your desktop
+sudo apt install appimagelauncher
+```
+
+---
+
+## Development
+
+### Prerequisites
+
+<!--
+  Before setting up the development environment, ensure you have the
+  following tools installed on your system. These are required for
+  building and running the ZYNC desktop application from source.
+-->
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Node.js** | 18.x or later | JavaScript runtime for building and running |
+| **npm** | 9.x or later | Package manager for installing dependencies |
+| **Git** | 2.x or later | Version control for source code management |
+| **Python** | 3.x | Required by some native Node.js modules |
+| **Visual Studio Build Tools** | 2019+ (Windows only) | Required for compiling native modules on Windows |
+| **Xcode Command Line Tools** | (macOS only) | Required for compiling native modules on macOS |
+
+### Setting Up the Development Environment
+
+<!--
+  Follow these steps to set up a local development environment for the
+  ZYNC desktop application. This will allow you to make changes to the
+  source code and test them locally before submitting a pull request.
+-->
+
+```bash
+# Step 1: Clone the repository from GitHub
+# This creates a local copy of the source code on your machine
+git clone https://github.com/ChitkulLakshya/Zync.git
+
+# Step 2: Navigate into the project directory
+# All subsequent commands should be run from this directory
+cd Zync
+
+# Step 3: Install all project dependencies
+# This installs both production and development dependencies
+# defined in package.json. The installation may take several
+# minutes depending on your internet connection speed.
+npm install
+
+# Step 4: Create a local environment file
+# Copy the example environment file and fill in your own values
+# for the Firebase configuration and API URLs
+cp .env.example .env
+
+# Step 5: Verify the installation
+# Run the TypeScript compiler to check for any type errors
+npx tsc --noEmit
+```
+
+### Running in Development Mode
+
+<!--
+  Development mode starts the Vite development server for the frontend
+  and the Electron application simultaneously. Changes to the frontend
+  code will be hot-reloaded automatically, while changes to the Electron
+  main process code will require a restart.
+-->
+
+```bash
+# Start the application in development mode
+# This runs both the Vite dev server and Electron concurrently
+npm run electron:dev
+
+# Alternatively, run just the web application without Electron
+# Useful for frontend development and testing
+npm run dev
+
+# Run with verbose logging enabled
+# This provides detailed output for debugging purposes
+ELECTRON_ENABLE_LOGGING=1 npm run electron:dev
+```
+
+### Project Structure
+
+<!--
+  The following directory structure shows the organization of the ZYNC
+  project. Each directory serves a specific purpose in the application
+  architecture. Understanding this structure is essential for contributing
+  to the project.
+-->
+
+```
+Zync/
+├── .github/                    # GitHub-specific configuration files
+│   ├── workflows/              # GitHub Actions CI/CD workflows
+│   │   ├── electron-build.yml  # Automated build pipeline for all platforms
+│   │   ├── release.yml         # Automated release pipeline
+│   │   └── codeql.yml          # Security analysis workflow
+│   └── dependabot.yml          # Automated dependency update configuration
+│
+├── build/                      # Build resources for electron-builder
+│   └── icons/                  # Application icons for all platforms
+│       ├── icon.ico            # Windows icon (256x256, multi-size ICO)
+│       ├── icon.icns           # macOS icon (512x512, Apple Icon format)
+│       └── icon.png            # Linux icon (512x512, PNG format)
+│
+├── docs/                       # Developer documentation
+│   ├── architecture/ARCHITECTURE.md # System architecture documentation
+│   ├── DEVELOPMENT.md          # Development setup guide
+│   └── DEPLOYMENT.md           # Deployment and release guide
+│
+├── electron/                   # Electron main process source code
+│   ├── assets/                 # Static assets for the Electron app
+│   │   ├── icons.ts            # Base64-encoded SVG icons
+│   │   ├── platform-logos.ts   # Base64-encoded platform logos
+│   │   ├── sounds.ts           # Base64-encoded notification sounds
+│   │   └── splash.ts           # Splash screen resources
+│   │
+│   ├── config/                 # Configuration modules
+│   │   ├── constants.ts        # Application-wide constants
+│   │   ├── csp.ts              # Content Security Policy configuration
+│   │   ├── defaults.ts         # Default configuration values
+│   │   ├── permissions.ts      # Permission handler configuration
+│   │   └── security.ts         # Security policy configuration
+│   │
+│   ├── interfaces/             # TypeScript interface definitions
+│   │   ├── config.ts           # Configuration interfaces
+│   │   ├── ipc.ts              # IPC message interfaces
+│   │   ├── services.ts         # Service interfaces
+│   │   ├── settings.ts         # Settings interfaces
+│   │   ├── updater.ts          # Auto-updater interfaces
+│   │   └── window.ts           # Window management interfaces
+│   │
+│   ├── main/                   # Main process modules
+│   │   ├── crash-reporter.ts   # Crash reporting service
+│   │   ├── deep-link.ts        # Deep linking handler
+│   │   ├── ipc-handlers.ts     # IPC event handlers
+│   │   ├── menu.ts             # Application menu builder
+│   │   ├── tray.ts             # System tray manager
+│   │   └── window-state.ts     # Window state persistence
+│   │
+│   ├── preload/                # Preload script modules
+│   │   └── types.d.ts          # Type definitions for exposed APIs
+│   │
+│   ├── renderer/               # Renderer process helpers
+│   │
+│   ├── services/               # Background services
+│   │   └── auto-updater.ts     # Auto-update service
+│   │
+│   ├── settings/               # Settings window
+│   │   ├── about.html          # About page
+│   │   ├── about.js            # About page logic
+│   │   ├── animations.css      # Settings page animations
+│   │   ├── index.html          # Settings page layout
+│   │   ├── platform-utils.js   # Platform detection utilities
+│   │   ├── renderer.js         # Settings page renderer
+│   │   ├── shortcuts.html      # Keyboard shortcuts reference
+│   │   ├── shortcuts.js        # Shortcuts page logic
+│   │   ├── store.ts            # Settings persistence
+│   │   └── style.css           # Settings page styles
+│   │
+│   ├── splash/                 # Splash screen
+│   │   ├── index.html          # Splash screen layout
+│   │   └── style.css           # Splash screen styles
+│   │
+│   ├── types/                  # Global type definitions
+│   │   ├── electron-env.d.ts   # Electron environment types
+│   │   └── global.d.ts         # Global type augmentations
+│   │
+│   ├── utils/                  # Utility modules
+│   │   ├── clipboard.ts        # Clipboard utilities
+│   │   ├── fs-helpers.ts       # File system helpers
+│   │   ├── logger.ts           # Logging utility
+│   │   ├── network.ts          # Network connectivity checker
+│   │   ├── notifications.ts    # Notification manager
+│   │   ├── paths.ts            # Platform-specific path resolver
+│   │   └── screenshot.ts       # Screenshot utility
+│   │
+│   ├── main.ts                 # Main process entry point
+│   └── preload.ts              # Preload script entry point
+│
+├── src/                        # Frontend (renderer process) source code
+│   ├── api/                    # API client modules
+│   ├── components/             # React components
+│   │   ├── dashboard/          # Dashboard-specific components
+│   │   ├── kibo-ui/            # Custom UI components
+│   │   ├── landing/            # Landing page components
+│   │   ├── layout/             # Layout components (navbar, etc.)
+│   │   ├── notes/              # Note editor components
+│   │   ├── ui/                 # Shadcn/UI component library
+│   │   ├── views/              # View components (pages within dashboard)
+│   │   └── workspace/          # Workspace components
+│   ├── hooks/                  # Custom React hooks
+│   ├── lib/                    # Library utilities
+│   ├── pages/                  # Top-level page components
+│   ├── services/               # Frontend service modules
+│   ├── App.tsx                 # Root application component
+│   ├── index.css               # Global styles
+│   ├── main.tsx                # Application entry point
+│   └── vite-env.d.ts           # Vite type definitions
+│
+├── tests/                      # Test files
+│   ├── main/                   # Main process tests
+│   └── utils/                  # Utility tests
+│
+├── backend/                    # Backend server source code
+│
+├── .editorconfig               # Editor configuration for consistent formatting
+├── .eslintrc.cjs               # ESLint configuration
+├── .gitignore                  # Git ignore rules
+├── .prettierrc.json            # Prettier formatting configuration
+├── CHANGELOG.md                # Version changelog
+├── CODE_OF_CONDUCT.md          # Community code of conduct
+├── CONTRIBUTING.md             # Contribution guidelines
+├── LICENSE                     # MIT License
+├── docs/security/SECURITY.md   # Security policy
+├── electron-builder.yml        # Electron Builder configuration
+├── index.html                  # Application entry HTML
+├── package.json                # Project metadata and dependencies
+├── package-lock.json           # Locked dependency versions
+├── tsconfig.json               # Root TypeScript configuration
+├── tsconfig.app.json           # Frontend TypeScript configuration
+├── tsconfig.electron.json      # Electron TypeScript configuration
+├── tsconfig.node.json          # Node.js TypeScript configuration
+└── vite.config.ts              # Vite build configuration
+```
+
+### Environment Variables
+
+<!--
+  The following environment variables are used by the ZYNC application.
+  These should be defined in a .env file in the project root directory.
+  Never commit the .env file to version control; use .env.example as
+  a template instead.
+-->
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `VITE_API_URL` | Backend API base URL | Yes | `http://localhost:5000` |
+| `VITE_FIREBASE_API_KEY` | Firebase API key | Yes | — |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase auth domain | Yes | — |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase project ID | Yes | — |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket | Yes | — |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID | Yes | — |
+| `VITE_FIREBASE_APP_ID` | Firebase app ID | Yes | — |
+| `VITE_FIREBASE_MEASUREMENT_ID` | Firebase measurement ID | No | — |
+| `ELECTRON_ENABLE_LOGGING` | Enable verbose Electron logging | No | `false` |
+
+---
+
+## Building
+
+### Building for Windows
+
+<!--
+  Building for Windows requires the NSIS (Nullsoft Scriptable Install System)
+  to create the installer. This is automatically handled by electron-builder.
+  Code signing requires a valid certificate from a Certificate Authority.
+-->
+
+```bash
+# Build the Windows installer (.exe)
+# This creates an NSIS installer in the dist_electron directory
+npm run electron:build -- --win
+
+# Build without code signing (for development/testing)
+CSC_IDENTITY_AUTO_DISCOVERY=false npm run electron:build -- --win
+```
+
+### Building for macOS
+
+<!--
+  Building for macOS requires Xcode Command Line Tools and creates a
+  DMG disk image. For distribution through the Mac App Store, additional
+  code signing and notarization steps are required.
+-->
+
+```bash
+# Build the macOS DMG installer
+# Note: Must be run on a macOS machine
+npm run electron:build -- --mac
+
+# Build for both Intel and Apple Silicon
+npm run electron:build -- --mac --x64 --arm64
+```
+
+### Building for Linux
+
+<!--
+  Building for Linux creates an AppImage, which is a portable application
+  format that works across most Linux distributions without requiring
+  installation or root access.
+-->
+
+```bash
+# Build the Linux AppImage
+npm run electron:build -- --linux
+
+# Build for specific architectures
+npm run electron:build -- --linux --x64
+```
+
+### Build Configuration
+
+<!--
+  The build configuration is defined in electron-builder.yml. This file
+  controls all aspects of the build process, including output directories,
+  file inclusion/exclusion patterns, and platform-specific settings.
+  
+  See the electron-builder documentation for all available options:
+  https://www.electron.build/configuration/configuration
+-->
+
+The build process is configured through `electron-builder.yml`. Key settings:
+
+- **Output Directory**: `dist_electron/` — All build artifacts are placed here
+- **Build Resources**: `build/` — Icons and other build-time resources
+- **File Patterns**: Only `electron/**/*` and `package.json` are included
+- **Windows**: NSIS installer with optional installation directory selection
+- **macOS**: DMG with drag-to-Applications layout
+- **Linux**: AppImage for maximum compatibility
+
 ---
 
 ## Architecture

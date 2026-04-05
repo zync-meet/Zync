@@ -86,12 +86,12 @@ CRITICAL:
 
 ---
 
-## PROMPT 2: Update ARCHITECTURE.md
+## PROMPT 2: Update architecture/ARCHITECTURE.md
 
 ```
-Update the ARCHITECTURE.md file based on our NEW target architecture and current codebase structure.
+Update the architecture/ARCHITECTURE.md file based on our NEW target architecture and current codebase structure.
 
-CURRENT ARCHITECTURE.md SECTIONS TO PRESERVE:
+CURRENT architecture/ARCHITECTURE.md SECTIONS TO PRESERVE:       
 1. High-Level Architecture diagram
 2. Frontend Architecture (React hooks pattern)
 3. Real-Time Collaboration Logic
@@ -1301,7 +1301,7 @@ Collaborative Edit: 45ms avg
 
 **Week 2:**
 4. Run PROMPT 5 → Create migration guide
-5. Run PROMPT 2 → Update ARCHITECTURE.md
+5. Run PROMPT 2 → Update architecture/ARCHITECTURE.md
 
 **Week 3-4:**
 6. Execute migration (follow PROMPT 5 output)

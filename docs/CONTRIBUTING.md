@@ -661,7 +661,7 @@ When requesting a feature, include:
 
 Please report security vulnerabilities via email to
 [security@zync.io](mailto:security@zync.io). You will receive a response
-within 48 hours. See our [Security Policy](SECURITY.md) for more details.
+within 48 hours. See our [Security Policy](security/SECURITY.md) for more details.
 
 ---
 

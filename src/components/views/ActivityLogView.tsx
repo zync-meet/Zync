@@ -430,7 +430,6 @@ export default function ActivityLogView({
                     },
                 },
                 animation: {
-                        backgroundColor: [T.blue, '#f59e0b', T.green, T.red],
                     easing: 'easeInOutQuart' as const,
                 },
             },
