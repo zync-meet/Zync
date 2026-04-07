@@ -3,7 +3,6 @@ import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -175,7 +174,7 @@ const DashboardView = ({ currentUser }: { currentUser: any }) => {
     const availableYears = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
 
     if (loading) {
-        return <DashboardSkeleton />;
+        return <div className="p-6 text-sm text-muted-foreground">Loading dashboard…</div>;
     }
 
     if (error && !stats) {

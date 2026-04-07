@@ -10,7 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CheckCircle2, Circle, Server, Layout, Database, Share2, Plus, GripVertical, GitCommit, ExternalLink, Kanban, Trash2, Github, Bot, MoreVertical, Settings, MessageSquare, Wrench, FolderKanban } from "lucide-react";
-import { ProjectDetailsSkeleton } from "@/components/ui/skeletons";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { sendMessage as socketSendMessage } from "@/services/chatSocketService";
@@ -489,7 +488,7 @@ const ProjectDetails = () => {
 
 
   if (loading) {
-    return <ProjectDetailsSkeleton />;
+    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading project details…</div>;
   }
 
   if (!project) {

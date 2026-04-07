@@ -41,7 +41,6 @@ import {
   Trash,
   Edit
 } from 'lucide-react';
-import { NoteListSkeleton } from "@/components/ui/skeletons";
 import {
   Dialog,
   DialogContent,
@@ -563,7 +562,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   }, [selectedNote, folders]);
 
   if (isLoading) {
-    return <NoteListSkeleton />;
+    return <div className="h-full w-full flex items-center justify-center text-sm text-muted-foreground">Loading notes…</div>;
   }
 
   return (

@@ -9,9 +9,9 @@ const Team = require('../models/Team');
 const Project = require('../models/Project');
 const Step = require('../models/Step');
 const ProjectTask = require('../models/ProjectTask');
-const Session = require('../models/Session');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
+const mongoose = require('mongoose');
 const authMiddleware = require('../middleware/authMiddleware');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
@@ -25,85 +25,12 @@ async function invalidateProjectCache(project) {
   await cache.invalidate(...keys);
 }
 
-async function logTaskAssignedActivity({ assigneeUid, taskTitle, projectName, actorName, projectId, taskId }) {
-  if (!assigneeUid) return;
-  const now = new Date();
-  await Session.create({
-    userId: assigneeUid,
-    startTime: now,
-    endTime: now,
-    duration: 0,
-    activeDuration: 0,
-    date: now.toISOString().split('T')[0],
-    eventType: 'task-assigned',
-    title: `New task assigned: ${taskTitle}`,
-    source: projectName || 'Workspace',
-    actorName: actorName || 'Admin',
-    metadata: {
-      projectId: String(projectId || ''),
-      taskId: String(taskId || ''),
-      projectName: projectName || null,
-    },
-  });
-}
-
-const normalizeTaskStatus = (value) => String(value || '').trim().toLowerCase();
-
-const isReadyLikeStatus = (value) => {
-  const normalized = normalizeTaskStatus(value);
-  return normalized === 'pending' || normalized === 'ready' || normalized === 'backlog';
-};
-
-const isActiveLikeStatus = (value) => {
-  const normalized = normalizeTaskStatus(value);
-  return normalized === 'active' || normalized === 'in progress';
-};
-
-async function logTaskProgressActivity({ recipients, taskTitle, projectName, actorName, projectId, taskId, fromStatus, toStatus }) {
-  const uniqueRecipients = [...new Set((recipients || []).filter(Boolean))];
-  if (uniqueRecipients.length === 0) return;
-
-  const now = new Date();
-  await Session.insertMany(
-    uniqueRecipients.map((uid) => ({
-      userId: uid,
-      startTime: now,
-      endTime: now,
-      duration: 0,
-      activeDuration: 0,
-      date: now.toISOString().split('T')[0],
-      eventType: 'task-progressed',
-      title: `Task moved to ${toStatus}: ${taskTitle}`,
-      source: projectName || 'Tasks',
-      actorName: actorName || 'Workspace',
-      metadata: {
-        projectId: String(projectId || ''),
-        taskId: String(taskId || ''),
-        projectName: projectName || null,
-        fromStatus: fromStatus || null,
-        toStatus: toStatus || null,
-      },
-    }))
-  );
-}
-
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_SECONDARY);
-const MODEL_NAME = "gemini-3-flash-preview";
+const MODEL_NAME = "gemini-2.5-flash";
 console.log(`[Config] Using Gemini Model: ${MODEL_NAME}`);
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const ARCHITECTURE_CACHE_TTL_MS = Number.parseInt(process.env.ARCHITECTURE_CACHE_TTL_MS || '21600000', 10);
-const ARCHITECTURE_CACHE_MAX_SIZE = 200;
 const architectureAnalysisCache = new Map();
-
-// Periodic cleanup of expired entries (every hour)
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of architectureAnalysisCache) {
-    if (entry.expiresAt <= now) {
-      architectureAnalysisCache.delete(key);
-    }
-  }
-}, 3600000);
 
 
 const decryptToken = (ciphertext) => {
@@ -152,10 +79,6 @@ const getArchitectureFromMemoryCache = (projectId, repoCacheKey) => {
 const setArchitectureInMemoryCache = (projectId, repoCacheKey, architecture) => {
   if (!projectId || !repoCacheKey || !architecture) return;
   const cacheId = makeArchitectureCacheId(projectId, repoCacheKey);
-  if (architectureAnalysisCache.size >= ARCHITECTURE_CACHE_MAX_SIZE) {
-    const firstKey = architectureAnalysisCache.keys().next().value;
-    architectureAnalysisCache.delete(firstKey);
-  }
   architectureAnalysisCache.set(cacheId, {
     architecture,
     expiresAt: Date.now() + ARCHITECTURE_CACHE_TTL_MS,
@@ -357,7 +280,7 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
+    if (project.ownerUid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -611,29 +534,22 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.post('/:id/team', authMiddleware, async (req, res) => {
   try {
-    const requestedUid = typeof req.body?.userId === 'string' && req.body.userId.trim()
-      ? req.body.userId.trim()
-      : req.user.uid;
-    const actorUid = req.user.uid;
+    const { userId } = req.body;
     const project = await Project.findById(req.params.id).lean();
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    // Owner can add anyone. Non-owner can only add themselves (accept invite).
-    const isOwner = project.ownerUid === actorUid;
-    const isSelfJoin = requestedUid === actorUid;
-    if (!isOwner && !isSelfJoin) {
+    if (project.ownerUid !== req.user.uid) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const team = Array.isArray(project.team) ? project.team : [];
-    if (!team.includes(requestedUid) && project.ownerUid !== requestedUid) {
-      const newTeam = [...team, requestedUid];
+    if (!project.team.includes(userId) && project.ownerUid !== userId) {
+      const newTeam = [...project.team, userId];
       await Project.updateOne({ _id: req.params.id }, { $set: { team: newTeam } });
     }
 
     const full = await getProjectWithSteps(req.params.id);
-    invalidateProjectCache({ ownerUid: project.ownerUid, team: [...team, requestedUid] });
+    invalidateProjectCache({ ownerUid: project.ownerUid, team: [...project.team, userId] });
     res.json(full);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -770,7 +686,7 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       }
     }
 
-    const createdTask = await ProjectTask.create({
+    await ProjectTask.create({
       title,
       description: description || null,
       status: 'Pending',
@@ -781,38 +697,8 @@ router.post('/:projectId/steps/:stepId/tasks', authMiddleware, async (req, res) 
       stepId
     });
 
-    if (assignedTo && assignedTo !== project.ownerUid) {
-      await Project.updateOne({ _id: projectId }, { $addToSet: { team: assignedTo } });
-      await cache.invalidate(`projects:${assignedTo}`);
-    }
-
-    if (assignedTo) {
-      const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
-      await logTaskAssignedActivity({
-        assigneeUid: assignedTo,
-        taskTitle: title,
-        projectName: project.name,
-        actorName: actorUser?.displayName || actorUser?.email || assignedBy || 'Admin',
-        projectId,
-        taskId: createdTask?._id,
-      });
-    }
-
     const updatedProject = await getProjectWithSteps(projectId);
     invalidateProjectCache(project);
-
-    // Emit real-time task event
-    const taskIO = req.app.get('taskIO');
-    if (taskIO) {
-      const taskObj = updatedProject.steps?.flatMap(s => s.tasks || []).find(t => String(t._id) === String(createdTask._id));
-      taskIO.emitToProject(projectId, 'task-created', {
-        projectId,
-        stepId,
-        task: taskObj || normalizeDoc(createdTask.toObject()),
-        actor: req.user?.uid,
-      });
-    }
-
     res.status(201).json(updatedProject);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -829,19 +715,15 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
     const project = await Project.findById(projectId).lean();
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
+    if (project.ownerUid !== req.user.uid && !project.team.includes(req.user.uid)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
     const step = await Step.findOne({ _id: stepId, projectId: project._id }).lean();
     if (!step) return res.status(404).json({ message: 'Step not found' });
 
     const task = await ProjectTask.findOne({ _id: taskId, stepId }).lean();
     if (!task) return res.status(404).json({ message: 'Task not found' });
-
-    const isOwnerOrTeamMember = project.ownerUid === req.user.uid || project.team.includes(req.user.uid);
-    const isAssignedUser = task.assignedTo === req.user.uid;
-    if (!isOwnerOrTeamMember && !isAssignedUser) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    const oldStatus = task.status;
 
     const taskUpdate = {};
     if (status) taskUpdate.status = status;
@@ -872,39 +754,10 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
             console.error("Failed to send assignment email:", emailError);
           }
         }
-
-        if (assignedTo !== project.ownerUid) {
-          await Project.updateOne({ _id: projectId }, { $addToSet: { team: assignedTo } });
-          await cache.invalidate(`projects:${assignedTo}`);
-        }
-
-        const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
-        await logTaskAssignedActivity({
-          assigneeUid: assignedTo,
-          taskTitle: task.title,
-          projectName: project.name,
-          actorName: actorUser?.displayName || actorUser?.email || assignedBy || 'Admin',
-          projectId,
-          taskId,
-        });
       }
     }
 
     await ProjectTask.updateOne({ _id: taskId }, { $set: taskUpdate });
-
-    if (status && isReadyLikeStatus(oldStatus) && isActiveLikeStatus(status)) {
-      const actorUser = await User.findOne({ uid: req.user.uid }).select('displayName email').lean();
-      await logTaskProgressActivity({
-        recipients: [task.assignedTo, project.ownerUid],
-        taskTitle: task.title,
-        projectName: project.name,
-        actorName: actorUser?.displayName || actorUser?.email || req.user.uid,
-        projectId,
-        taskId,
-        fromStatus: oldStatus,
-        toStatus: status,
-      });
-    }
 
     const updatedProject = await getProjectWithSteps(projectId);
 
@@ -912,20 +765,6 @@ router.put('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (req
       projectId: updatedProject.id,
       project: updatedProject
     });
-
-    // Emit real-time task event
-    const taskIO = req.app.get('taskIO');
-    if (taskIO) {
-      const updatedTask = updatedProject.steps?.flatMap(s => s.tasks || []).find(t => String(t._id) === String(taskId));
-      taskIO.emitToProject(projectId, 'task-updated', {
-        projectId,
-        stepId,
-        taskId,
-        task: updatedTask || null,
-        changes: taskUpdate,
-        actor: req.user?.uid,
-      });
-    }
 
     invalidateProjectCache(project);
     res.json(updatedProject);
@@ -963,17 +802,6 @@ router.delete('/:projectId/steps/:stepId/tasks/:taskId', authMiddleware, async (
       projectId: updatedProject.id,
       project: updatedProject
     });
-
-    // Emit real-time task event
-    const taskIO = req.app.get('taskIO');
-    if (taskIO) {
-      taskIO.emitToProject(projectId, 'task-deleted', {
-        projectId,
-        stepId,
-        taskId,
-        actor: userId,
-      });
-    }
 
     res.json({ message: 'Task deleted successfully', projectId, stepId, taskId });
     invalidateProjectCache(project);
@@ -1120,25 +948,6 @@ router.post('/:projectId/quick-task', authMiddleware, async (req, res) => {
     const updatedProject = await getProjectWithSteps(projectId);
     const taskObj = normalizeDoc(newTask.toObject());
 
-    // Emit real-time task event
-    const taskIO = req.app.get('taskIO');
-    if (taskIO) {
-      taskIO.emitToProject(projectId, 'task-created', {
-        projectId,
-        stepId: step._id?.toString() || step.id,
-        task: taskObj,
-        actor: req.user?.uid,
-      });
-      // Also emit to the assignee directly in case they aren't viewing this project
-      if (assignedTo) {
-        taskIO.emitToUser(assignedTo, 'task-assigned', {
-          projectId,
-          task: taskObj,
-          projectName: project.name,
-        });
-      }
-    }
-
     invalidateProjectCache(project);
     res.json({ message: 'Task created', task: taskObj, stepId: step._id?.toString() || step.id, project: updatedProject });
   } catch (error) {
@@ -1151,6 +960,11 @@ router.get('/:projectId/collaborator-assignees', authMiddleware, async (req, res
   try {
     const { projectId } = req.params;
     const requesterUid = req.user.uid;
+
+    if (!mongoose.isValidObjectId(projectId)) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
     const cacheKey = `collaborator-assignees:${projectId}:${requesterUid}`;
 
     try {
@@ -1243,6 +1057,10 @@ router.post('/:projectId/invite-collaborator', authMiddleware, async (req, res) 
     const { projectId } = req.params;
     const { userId } = req.body || {};
     const requesterUid = req.user.uid;
+
+    if (!mongoose.isValidObjectId(projectId)) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
 
     if (!userId) {
       return res.status(400).json({ message: 'userId is required' });

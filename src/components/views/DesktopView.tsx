@@ -28,7 +28,6 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from "lucide-react";
-import { DesktopSkeleton } from "@/components/ui/skeletons";
 import { getUserName, getUserInitials, pickUserForDisplay } from "@/lib/utils";
 import { NotesView } from "@/components/notes/NotesView";
 import TasksView from "./TasksView";
@@ -903,7 +902,14 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   };
 
   if (userLoading && !isPreview) {
-    return <DesktopSkeleton />;
+    return (
+      <div className="h-screen w-full bg-black text-zinc-300 flex items-center justify-center">
+        <div className="flex items-center gap-2 text-sm">
+          <RefreshCw className="w-4 h-4 animate-spin" />
+          Loading workspace…
+        </div>
+      </div>
+    );
   }
 
   return (

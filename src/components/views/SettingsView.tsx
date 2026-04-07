@@ -14,7 +14,6 @@ import { useUserSync } from "@/hooks/use-user-sync";
 import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Headphones, MessageSquare, Newspaper, UserMinus, Trash2, Copy, LogOut, Crown, Users } from "lucide-react";
-import { SettingsSkeleton } from "@/components/ui/skeletons";
 import { cn, API_BASE_URL, getFullUrl } from "@/lib/utils";
 import {
   Command,
@@ -1078,7 +1077,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
   };
 
   if (teamLoading) {
-    return <SettingsSkeleton />;
+    return <div className="p-6 text-sm text-muted-foreground">Loading team settings…</div>;
   }
 
   if (!teamsData || teamsData.length === 0) {

@@ -114,26 +114,35 @@ router.post('/sync', verifyToken, async (req, res) => {
     );
 
     const user = result.value || result;
-    const isNew = user.createdAt && (Date.now() - new Date(user.createdAt).getTime() < 5000);
 
-    if (isNew) {
-      // Fire-and-forget: don't block response on external notifications
-      sendZyncEmail(
-        'consolemaster.app@gmail.com',
-        '🚀 New User Joined ZYNC!',
-        getNewUserRegistrationTemplate({
-          name: finalDisplayName || 'N/A',
-          email: email,
-          uid: uid
-        }),
-        `New User Alert! Name: ${finalDisplayName || 'N/A'}, Email: ${email}`
-      ).catch(err => console.error("Failed to send admin notification:", err));
+    // Idempotent welcome notifications
+    if (!user.welcomeNotificationSent) {
+      const claim = await User.updateOne(
+        { uid, welcomeNotificationSent: { $ne: true } },
+        { $set: { welcomeNotificationSent: true } }
+      );
 
-      appendRow(
-        finalDisplayName || 'N/A',
-        email,
-        new Date().toISOString()
-      ).catch(err => console.error('Failed to log user to Google Sheets:', err));
+      if (claim.modifiedCount > 0) {
+        console.log(`[SYNC] Sending welcome notifications for user: ${uid} (${email})`);
+        
+        // Fire-and-forget: don't block response on external notifications
+        sendZyncEmail(
+          'consolemaster.app@gmail.com',
+          '🚀 New User Joined ZYNC!',
+          getNewUserRegistrationTemplate({
+            name: finalDisplayName || 'N/A',
+            email: email,
+            uid: uid
+          }),
+          `New User Alert! Name: ${finalDisplayName || 'N/A'}, Email: ${email}`
+        ).catch(err => console.error("Failed to send admin notification:", err));
+
+        appendRow(
+          finalDisplayName || 'N/A',
+          email,
+          new Date().toISOString()
+        ).catch(err => console.error('Failed to log user to Google Sheets:', err));
+      }
     }
 
     // Fire-and-forget: enrich location from IP if country is missing

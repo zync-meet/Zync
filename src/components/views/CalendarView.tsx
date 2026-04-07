@@ -5,7 +5,7 @@ import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './CalendarView.css';
 import { Card } from "@/components/ui/card";
-import { CalendarSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "boneyard-js/react";
 import {
     Select,
     SelectContent,
@@ -146,9 +146,7 @@ const CalendarView = () => {
                 )}
             </div>
             <Card className="flex-1 p-4 shadow-sm border-none bg-background/50 backdrop-blur-sm">
-                {loading ? (
-                    <CalendarSkeleton />
-                ) : (
+                <Skeleton name="calendar-events-grid" loading={loading}>
                     <Calendar
                         localizer={localizer}
                         events={events}
@@ -162,7 +160,7 @@ const CalendarView = () => {
                         eventPropGetter={eventStyleGetter}
                         className="rounded-md border bg-card text-card-foreground shadow-sm"
                     />
-                )}
+                </Skeleton>
             </Card>
         </div>
     );

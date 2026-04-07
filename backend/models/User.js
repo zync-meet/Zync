@@ -45,6 +45,9 @@ const userSchema = new mongoose.Schema(
 
     // Team memberships (Team ObjectId strings)
     teamMemberships: { type: [String], default: [] },
+
+    // Tracking for idempotent notifications
+    welcomeNotificationSent: { type: Boolean, default: false },
   },
   {
     timestamps: true,

@@ -6,7 +6,6 @@ import "@blocknote/mantine/style.css";
 import { updateNote, Note } from '../../services/notesService';
 import { fetchProjects, createQuickTask, Project, TaskSearchResult } from '../../api/projects';
 import { cn } from "@/lib/utils";
-import { EditorSkeleton } from "@/components/ui/skeletons";
 
 import { useNotePresence } from '@/hooks/useNotePresence';
 import FixedToolbar from './FixedToolbar';
@@ -248,7 +247,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
   }, [note.content, editor]);
 
   if (!editor) {
-    return <EditorSkeleton />;
+    return <div className="h-full w-full flex items-center justify-center text-sm text-muted-foreground">Loading editor…</div>;
   }
 
   return (

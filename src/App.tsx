@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { lazy, Suspense } from "react";
-import { PageSkeleton } from "@/components/ui/skeletons";
 
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
@@ -54,7 +53,7 @@ const AppContent = () => {
           transition={{ duration: 0.2, ease: "easeOut" }}
           className="h-full w-full"
         >
-          <Suspense fallback={<PageSkeleton />}>
+          <Suspense fallback={<div className="h-full w-full flex items-center justify-center text-sm text-muted-foreground">Loading…</div>}>
             <Routes location={location}>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
