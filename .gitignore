@@ -176,3 +176,4 @@ vite_build_clean.log
 vite_build_debug.log
 
 .vscode
+backend/
