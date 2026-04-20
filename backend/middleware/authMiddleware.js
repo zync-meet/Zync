@@ -1,32 +1,17 @@
-const admin = require('firebase-admin');
-
+const { admin, getFirestoreAdmin } = require('../services/firebaseAdmin');
 
 if (!admin.apps.length) {
-  try {
+  // Prefer service-account init from shared helper.
+  getFirestoreAdmin();
 
-    if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
-
-      let serviceAccount = process.env.GCP_SERVICE_ACCOUNT_KEY;
-      if (typeof serviceAccount === 'string') {
-        try {
-          serviceAccount = JSON.parse(serviceAccount);
-        } catch (e) {
-          console.error("Failed to parse GCP_SERVICE_ACCOUNT_KEY JSON", e);
-        }
-      }
-
-      console.log("Initializing Firebase Admin with project_id:", serviceAccount.project_id);
-
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-    } else {
-
-      console.log("Initializing Firebase Admin with default credentials");
+  // Fallback for environments that only provide ADC.
+  if (!admin.apps.length) {
+    try {
       admin.initializeApp();
+      console.log('Initializing Firebase Admin with default credentials');
+    } catch (error) {
+      console.warn('Firebase Admin failed to initialize:', error.message);
     }
-  } catch (error) {
-    console.warn("Firebase Admin failed to initialize:", error.message);
   }
 }
 
