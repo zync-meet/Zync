@@ -28,8 +28,10 @@ Redeploy after saving.
 HUSKY=0 npm install && npm run build
 ```
 
-- **`npm run build`** produces **`dist/`** so Express can serve the SPA in one process.
+- **`npm run build`** produces **`dist/`** so Express can serve the SPA in one process. If you only run **`npm install`**, there is no **`dist/`** (that is OK: the API still runs and serves **`GET /`** as “API is running…”).
 - **`HUSKY=0`** skips Husky during install (less work, no deprecated `husky install` noise on CI).
+
+Set **`MONGO_URI`** in the Render dashboard when you use MongoDB/Oracle. If it is missing, the server **skips** connecting instead of retrying for a long time.
 
 ---
 

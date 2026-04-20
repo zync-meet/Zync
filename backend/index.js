@@ -169,7 +169,8 @@ const distPath = path.join(__dirname, '..', 'dist');
 const distIndexHtml = path.join(distPath, 'index.html');
 if (fs.existsSync(distIndexHtml)) {
   app.use(express.static(distPath));
-  app.get('*', (req, res, next) => {
+  // Express 5 / path-to-regexp v8: bare "*" is invalid; use named splat (see Express 5 migration guide).
+  app.get('/{*splat}', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/internal')) {
       return next();
     }
@@ -201,8 +202,13 @@ const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 5000;
 
 async function connectWithRetry(attempt = 1) {
+  const mongoUri = process.env.MONGO_URI && String(process.env.MONGO_URI).trim();
+  if (!mongoUri) {
+    console.warn('⚠️  MONGO_URI not set — skipping database connection (API will run without MongoDB).');
+    return;
+  }
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, MONGO_OPTIONS);
+    const conn = await mongoose.connect(mongoUri, MONGO_OPTIONS);
     console.log(`✅ Oracle ADB Connected: ${conn.connection.host}`);
     console.log(`   Database Name: ${conn.connection.name}`);
   } catch (err) {
@@ -216,7 +222,9 @@ async function connectWithRetry(attempt = 1) {
   }
 }
 
-connectWithRetry();
+connectWithRetry().catch((err) => {
+  console.error('[MongoDB] Unexpected connection bootstrap error:', err);
+});
 
 // ── Redis connection (non-blocking) ────────────────────────────────────
 const { connectRedis } = require('./utils/redisClient');
@@ -233,15 +241,18 @@ const startServer = (port, retriesLeft = 10) => {
       return;
     }
 
-    console.error('Failed to start backend server:', error);
+    console.error('Failed to start HTTP server:', error && error.code, error && error.message, error);
     process.exit(1);
   };
 
   server.once('error', onError);
 
-  server.listen(port, '0.0.0.0', () => {
+  const listenPort = Number(port) || 5000;
+  console.log(`Binding HTTP server on 0.0.0.0:${listenPort} (PORT=${process.env.PORT || '(unset)'})`);
+
+  server.listen(listenPort, '0.0.0.0', () => {
     server.off('error', onError);
-    console.log(`🚀 Server successfully started on port ${port}`);
+    console.log(`🚀 Server successfully started on port ${listenPort}`);
   });
 };
 
