@@ -1,5 +1,5 @@
-// import { describe, it, expect, mock } from "bun:test";
-import request from "supertest";
+// 
+const request = require("supertest");
 import express from "express";
 
 const createSelectLeanChain = (result) => ({
@@ -24,6 +24,8 @@ jest.mock("../models/Team", () => ({
 
 const mockUserModel = jest.requireMock("../models/User");
 const mockTeamModel = jest.requireMock("../models/Team");
+const { sendZyncEmail } = jest.requireMock("../services/mailer");
+const { appendRow } = jest.requireMock("../services/sheetLogger");
 
 
 jest.mock("firebase-admin", () => {
@@ -80,11 +82,18 @@ const defaultUserData = {
   teamMemberships: []
 };
 
+const originalNewUserAlertRecipients = process.env.NEW_USER_ALERT_RECIPIENTS;
+const originalSupportRecipients = process.env.SUPPORT_RECIPIENTS;
+
 const resetModelMocks = (userData = defaultUserData) => {
   mockUserModel.findOne.mockImplementation(() => createSelectLeanChain(userData));
   mockUserModel.findOneAndUpdate.mockResolvedValue({
-    ...(userData || {}),
-    lastSeen: new Date().toISOString()
+    lastErrorObject: { updatedExisting: true },
+    value: {
+      ...(userData || {}),
+      lastSeen: new Date().toISOString(),
+      welcomeNotificationSent: true
+    }
   });
   mockUserModel.create.mockImplementation(() => ({
     toObject: () => ({
@@ -98,7 +107,14 @@ const resetModelMocks = (userData = defaultUserData) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  process.env.NEW_USER_ALERT_RECIPIENTS = "alerts@zync.test";
+  process.env.SUPPORT_RECIPIENTS = "";
   resetModelMocks();
+});
+
+afterAll(() => {
+  process.env.NEW_USER_ALERT_RECIPIENTS = originalNewUserAlertRecipients;
+  process.env.SUPPORT_RECIPIENTS = originalSupportRecipients;
 });
 
 describe("User Sync Security", () => {
@@ -117,7 +133,93 @@ describe("User Sync Security", () => {
       .send({ uid: "secure_uid", email: "test@example.com" });
 
     expect(res.status).toBe(200);
-    expect(mockUserModel.findOne).toHaveBeenCalledWith({ uid: "secure_uid" });
     expect(mockUserModel.findOneAndUpdate).toHaveBeenCalled();
+    expect(sendZyncEmail).not.toHaveBeenCalled();
+    expect(appendRow).not.toHaveBeenCalled();
+  });
+
+  it("should reject request when body uid mismatches token uid", async () => {
+    const res = await request(app)
+      .post("/api/users/sync")
+      .set("Authorization", "Bearer valid_token")
+      .send({ uid: "another_uid", email: "test@example.com" });
+
+    expect(res.status).toBe(403);
+    expect(mockUserModel.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("should send new user alert only for inserted users", async () => {
+    mockUserModel.findOneAndUpdate.mockResolvedValueOnce({
+      lastErrorObject: { updatedExisting: false, upserted: "new_user_oid" },
+      value: {
+        uid: "secure_uid",
+        email: "test@example.com",
+        displayName: "Secure User",
+        lastSeen: new Date().toISOString(),
+        welcomeNotificationSent: true
+      }
+    });
+
+    const res = await request(app)
+      .post("/api/users/sync")
+      .set("Authorization", "Bearer valid_token")
+      .send({ uid: "secure_uid", email: "test@example.com", displayName: "Secure User" });
+
+    expect(res.status).toBe(200);
+    expect(sendZyncEmail).toHaveBeenCalledTimes(1);
+    expect(appendRow).toHaveBeenCalledTimes(1);
+    expect(sendZyncEmail).toHaveBeenCalledWith(
+      "alerts@zync.test",
+      expect.any(String),
+      expect.any(String),
+      expect.any(String)
+    );
+  });
+
+  it("should send notifications when metadata only has updatedExisting false", async () => {
+    mockUserModel.findOneAndUpdate.mockResolvedValueOnce({
+      lastErrorObject: { updatedExisting: false },
+      value: {
+        uid: "secure_uid",
+        email: "test@example.com",
+        displayName: "Secure User",
+        lastSeen: new Date().toISOString(),
+        welcomeNotificationSent: true
+      }
+    });
+
+    const res = await request(app)
+      .post("/api/users/sync")
+      .set("Authorization", "Bearer valid_token")
+      .send({ uid: "secure_uid", email: "test@example.com", displayName: "Secure User" });
+
+    expect(res.status).toBe(200);
+    expect(sendZyncEmail).toHaveBeenCalledTimes(1);
+    expect(appendRow).toHaveBeenCalledTimes(1);
+  });
+
+  it("should skip admin email when recipients are not configured", async () => {
+    process.env.NEW_USER_ALERT_RECIPIENTS = "";
+    process.env.SUPPORT_RECIPIENTS = "";
+
+    mockUserModel.findOneAndUpdate.mockResolvedValueOnce({
+      lastErrorObject: { updatedExisting: false, upserted: "new_user_oid" },
+      value: {
+        uid: "secure_uid",
+        email: "test@example.com",
+        displayName: "Secure User",
+        lastSeen: new Date().toISOString(),
+        welcomeNotificationSent: true
+      }
+    });
+
+    const res = await request(app)
+      .post("/api/users/sync")
+      .set("Authorization", "Bearer valid_token")
+      .send({ uid: "secure_uid", email: "test@example.com", displayName: "Secure User" });
+
+    expect(res.status).toBe(200);
+    expect(sendZyncEmail).not.toHaveBeenCalled();
+    expect(appendRow).toHaveBeenCalledTimes(1);
   });
 });

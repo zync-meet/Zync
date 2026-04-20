@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => ({
     entries: ['index.html'],
   },
   build: {
+    cssMinify: "esbuild",
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
