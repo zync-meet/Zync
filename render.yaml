@@ -1,0 +1,19 @@
+# Render Blueprint — use "Apply" in the Render dashboard or link this repo so
+# build/start commands stay aligned with low-memory production deploys.
+#
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: zync
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: HUSKY=0 npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HUSKY
+        value: "0"

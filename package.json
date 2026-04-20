@@ -6,7 +6,7 @@
   "author": "ZYNC Team",
   "description": "ZYNC Desktop Application",
   "scripts": {
-    "dev": "concurrently -k -n frontend,backend \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev": "node scripts/ensure-not-render-dev.cjs && concurrently -k -n frontend,backend \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "vite --force",
     "dev:backend": "npm run dev --prefix backend",
     "dev:backend:watch": "npm run dev:watch --prefix backend",
@@ -20,7 +20,7 @@
     "test": "npm run test:jest",
     "test:jest": "jest --passWithNoTests",
     "test:e2e": "playwright test",
-    "prepare": "husky install",
+    "prepare": "node scripts/prepare-husky.cjs",
     "commit": "cz",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "clean": "rimraf dist dist_electron node_modules coverage",
