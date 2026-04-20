@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import MessagesPage from "../chat/MessagesPage";
+import MessagesPage from "./MessagesPage";
 
 /** Format current time in a given IANA timezone (e.g. "America/New_York") */
 function formatLocalTime(timezone: string | null | undefined): string | null {

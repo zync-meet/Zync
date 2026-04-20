@@ -34,9 +34,6 @@ export default defineConfig(({ mode }) => ({
         "object-src 'none';",
     }
   },
-  optimizeDeps: {
-    entries: ['index.html'],
-  },
   build: {
     cssMinify: "esbuild",
     rollupOptions: {

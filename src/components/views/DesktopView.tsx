@@ -30,8 +30,8 @@ import {
 } from "lucide-react";
 import { getUserName, getUserInitials, pickUserForDisplay } from "@/lib/utils";
 import { NotesView } from "@/components/notes/NotesView";
-import TasksView from "../tasks/TasksView";
-import ActivityLogView from "../activity/ActivityLogView";
+import TasksView from "./TasksView";
+import ActivityLogView from "./ActivityLogView";
 import Workspace from "@/components/workspace/Workspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,20 +67,20 @@ import {
 
 import { Switch } from "@/components/ui/switch";
 import { connectChat, disconnectChat } from "@/services/chatSocketService";
-import ChatView from "../chat/ChatView";
-import SettingsView from "../settings/SettingsView";
-import DesignView from "../design/DesignView";
-import MyProjectsView from "../projects/MyProjectsView";
-import CalendarView from "../calendar/CalendarView";
-import DashboardView from "../dashboard/DashboardView";
-import DashboardHome from "../dashboard/DashboardHome";
-import PeopleView from "../people/PeopleView";
-import ChatLayout from "../chat/ChatLayout";
-import MessagesPage from "../chat/MessagesPage";
+import ChatView from "./ChatView";
+import SettingsView from "./SettingsView";
+import DesignView from "./DesignView";
+import MyProjectsView from "./MyProjectsView";
+import CalendarView from "./CalendarView";
+import DashboardView from "./DashboardView";
+import DashboardHome from "./DashboardHome";
+import PeopleView from "./PeopleView";
+import ChatLayout from "./ChatLayout";
+import MessagesPage from "./MessagesPage";
 import CreateProject from "@/components/dashboard/CreateProject";
 import ProjectDetails from "@/pages/ProjectDetails";
-import TeamGateway from "../people/TeamGateway";
-import MeetView from "../meet/MeetView";
+import TeamGateway from "./TeamGateway";
+import MeetView from "./MeetView";
 import { usePresence } from "@/hooks/usePresence";
 import {
   PanelResizeHandle,
