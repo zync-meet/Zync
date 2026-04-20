@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { API_BASE_URL } from '@/lib/utils';
+import { SOCKET_BASE_URL } from '@/lib/utils';
 
 export interface UserStatus {
     status: 'online' | 'offline' | 'away';
@@ -13,11 +13,14 @@ export const usePresence = (userId: string | undefined) => {
     useEffect(() => {
         if (!userId) {return;}
 
-        const socketUrl = import.meta.env.DEV ? "http://localhost:5000" : API_BASE_URL;
+        const socketUrl = SOCKET_BASE_URL;
 
         const socket = io(`${socketUrl}/presence`, {
             query: { userId },
-            transports: ['websocket']
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 3,
+            reconnectionDelay: 1000,
         });
 
         socket.on('connect', () => {

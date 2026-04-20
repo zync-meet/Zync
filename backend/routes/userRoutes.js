@@ -129,13 +129,19 @@ router.post('/sync', verifyToken, async (req, res) => {
   }
 
   try {
+    const existingUser = await User.findOne({ uid }).lean();
+    const safeEmail = email || existingUser?.email;
+    if (!safeEmail) {
+      return res.status(400).json({ message: 'Email is required to sync user profile' });
+    }
+
     let finalDisplayName = displayName;
-    if (!finalDisplayName && email) {
-      finalDisplayName = email.split('@')[0];
+    if (!finalDisplayName && safeEmail) {
+      finalDisplayName = safeEmail.split('@')[0];
     }
 
     const updateData = {
-      email,
+      email: safeEmail,
       status: 'online',
       lastSeen: new Date()
     };
@@ -146,7 +152,7 @@ router.post('/sync', verifyToken, async (req, res) => {
     if (lastName) updateData.lastName = lastName;
     if (timezone) updateData.timezone = timezone;
 
-    const result = await User.findOneAndUpdate(
+    const user = await User.findOneAndUpdate(
       { uid },
       {
         $set: updateData,
@@ -165,23 +171,20 @@ router.post('/sync', verifyToken, async (req, res) => {
       },
       {
         upsert: true,
-        returnDocument: 'after',
+        new: true,
         lean: true,
-        includeResultMetadata: true,
-        rawResult: true,
         setDefaultsOnInsert: true
       }
     );
 
-    const user = result?.value || result;
-    const isNewUserInsert = wasUserInsertedFromUpsertResult(result);
+    const isNewUserInsert = !existingUser;
 
     if (isNewUserInsert) {
       console.log(`[SYNC] Sending welcome notifications for newly inserted user: ${uid} (${email})`);
       // Fire-and-forget: don't block response on external notifications
       dispatchNewUserNotifications({
         displayName: finalDisplayName,
-        email,
+        email: safeEmail,
         uid
       });
     }

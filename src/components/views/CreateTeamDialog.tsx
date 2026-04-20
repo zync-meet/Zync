@@ -67,12 +67,12 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
             toast.success("Team created successfully!");
             
             // Sync to Firestore for persistent analytics
-            if (data.team && auth.currentUser) {
+            if (data && auth.currentUser) {
                 createTeamSync(
-                    data.team.id || data.team._id, 
-                    data.team.name, 
+                    data.id || data._id, 
+                    data.name, 
                     auth.currentUser.uid, 
-                    data.team.inviteCode,
+                    data.inviteCode,
                     selectedLogoId
                 );
             }
@@ -174,10 +174,16 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
                                             onClick={() => setSelectedLogoId(logo.id)}
                                             title={logo.label}
                                         >
-                                            <Icon className={cn(
-                                                "h-5 w-5 transition-colors",
-                                                selectedLogoId === logo.id ? "text-white" : "text-text3"
-                                            )} />
+                                            <span
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                                                style={{
+                                                    color: logo.fgColor,
+                                                    backgroundColor: logo.bgColor,
+                                                    borderColor: logo.borderColor
+                                                }}
+                                            >
+                                                <Icon className="h-4 w-4" />
+                                            </span>
                                         </Button>
                                     );
                                 })}

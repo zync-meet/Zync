@@ -5,6 +5,21 @@ const User = require('../models/User');
 const Team = require('../models/Team');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
+const {
+    upsertTeamSnapshot,
+    addMemberToTeam,
+    removeMemberFromTeam,
+    transferTeamOwnership,
+    deleteTeamSnapshot,
+} = require('../services/teamFirebaseSync');
+
+const runSync = async (label, fn) => {
+    try {
+        await fn();
+    } catch (error) {
+        console.error(`[TeamSync] ${label} failed:`, error?.message || error);
+    }
+};
 
 
 const generateInviteCode = async () => {
@@ -73,6 +88,7 @@ router.post('/create', verifyToken, async (req, res) => {
         // Add team to user's memberships
         const memberships = [...(user.teamMemberships || []), teamObj.id];
         await User.updateOne({ uid }, { $set: { teamMemberships: memberships } });
+        await runSync('create-team', () => upsertTeamSnapshot(teamObj));
 
         if (initialInvites && Array.isArray(initialInvites) && initialInvites.length > 0) {
             const { sendZYNCEmail } = require('../services/mailer');
@@ -131,6 +147,8 @@ router.post('/join', verifyToken, async (req, res) => {
         const teamId = team._id.toString();
         const memberships = [...(user.teamMemberships || []), teamId];
         await User.updateOne({ uid }, { $set: { teamMemberships: memberships } });
+        await runSync('join-team-add-member', () => addMemberToTeam(teamId, uid));
+        await runSync('join-team-upsert', () => upsertTeamSnapshot(updatedTeam));
 
         res.status(200).json(normalizeDoc(updatedTeam));
 
@@ -164,6 +182,7 @@ router.delete('/:teamId', verifyToken, async (req, res) => {
         }
 
         await Team.findByIdAndDelete(teamId);
+        await runSync('delete-team', () => deleteTeamSnapshot(teamId, team.members, team.ownerId));
 
         res.status(200).json({ message: 'Team deleted successfully' });
     } catch (error) {
@@ -201,6 +220,7 @@ router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
                 { $set: { teamMemberships: (member.teamMemberships || []).filter(id => id !== teamId) } }
             );
         }
+        await runSync('remove-member', () => removeMemberFromTeam(teamId, memberUid));
 
         res.status(200).json({ message: 'Member removed successfully' });
     } catch (error) {
@@ -275,6 +295,7 @@ router.post('/:teamId/leave', verifyToken, async (req, res) => {
                 { $set: { teamMemberships: (user.teamMemberships || []).filter(id => id !== teamId) } }
             );
         }
+        await runSync('leave-team', () => removeMemberFromTeam(teamId, uid));
 
         res.status(200).json({ message: 'Left team successfully' });
     } catch (error) {
@@ -339,6 +360,7 @@ router.patch('/:teamId/transfer-ownership', verifyToken, async (req, res) => {
         }
 
         await Team.findByIdAndUpdate(teamId, { $set: { ownerId: newOwnerId } });
+        await runSync('transfer-ownership', () => transferTeamOwnership(teamId, uid, newOwnerId));
 
         res.status(200).json({ message: 'Ownership transferred successfully' });
     } catch (error) {
@@ -373,6 +395,7 @@ router.patch('/:teamId/name', verifyToken, async (req, res) => {
             { $set: { name: nextName } },
             { returnDocument: 'after', lean: true }
         );
+        await runSync('rename-team', () => upsertTeamSnapshot(updated));
 
         res.status(200).json(normalizeDoc(updated));
     } catch (error) {

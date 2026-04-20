@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CheckCircle2, Circle, Server, Layout, Database, Share2, Plus, GripVertical, GitCommit, ExternalLink, Kanban, Trash2, Github, Bot, MoreVertical, Settings, MessageSquare, Wrench, FolderKanban } from "lucide-react";
-import { API_BASE_URL, getFullUrl } from "@/lib/utils";
+import { API_BASE_URL, SOCKET_BASE_URL, getFullUrl } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { sendMessage as socketSendMessage } from "@/services/chatSocketService";
 import { useTaskUpdates } from "@/hooks/use-task-updates";
@@ -267,7 +267,12 @@ const ProjectDetails = () => {
 
   useEffect(() => {
 
-    const socket = io(API_BASE_URL);
+    const socket = io(SOCKET_BASE_URL || API_BASE_URL, {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
 
     socket.on('connect', () => {
       console.log('Connected to WebSocket');

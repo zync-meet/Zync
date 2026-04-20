@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import MessagesPage from "./MessagesPage";
+import { getLogoById, getDeterministicLogoId } from "@/lib/team-logos";
 
 /** Format current time in a given IANA timezone (e.g. "America/New_York") */
 function formatLocalTime(timezone: string | null | undefined): string | null {
@@ -272,7 +273,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
     const isFloating = isCollapsed && isHovered;
 
     return (
-        <div className="flex-1 w-full h-full overflow-hidden flex flex-col select-none relative">
+        <div className="flex-1 w-full h-full overflow-hidden flex flex-col select-none relative bg-transparent">
             <div className="flex h-full gap-0">
                 {}
                 <div
@@ -323,27 +324,46 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
 
                                 <div className="space-y-1">
                                     {myTeams.map((team) => (
-                                        <div
-                                            key={team.id}
-                                            onClick={() => {
-                                                setTeamInfo(team);
-                                                setShowMessages(false);
-                                            }}
-                                            className={cn(
-                                                "flex items-center rounded-md transition-all cursor-pointer select-none border border-transparent",
-                                                effectiveCollapsed ? "justify-center px-0 py-2" : "px-2 py-1.5 text-sm",
-                                                teamInfo?.id === team.id
-                                                    ? "bg-secondary/80 text-foreground border-border/50 shadow-sm"
-                                                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-                                            )}
-                                        >
-                                            {!effectiveCollapsed && <span className="font-medium truncate flex-1">{team.name}</span>}
-                                            {effectiveCollapsed && <span className="text-xs font-bold">{team.name.substring(0, 2).toUpperCase()}</span>}
+                                        (() => {
+                                            const logoId = team.logoId || getDeterministicLogoId(team.id);
+                                            const { icon: TeamLogoIcon, fgColor, bgColor, borderColor } = getLogoById(logoId);
+                                            return (
+                                                <div
+                                                    key={team.id}
+                                                    onClick={() => {
+                                                        setTeamInfo(team);
+                                                        setShowMessages(false);
+                                                    }}
+                                                    className={cn(
+                                                        "flex items-center rounded-md transition-all cursor-pointer select-none border border-transparent",
+                                                        effectiveCollapsed ? "justify-center px-0 py-2" : "px-2 py-1.5 text-sm",
+                                                        teamInfo?.id === team.id
+                                                            ? "bg-secondary/80 text-foreground border-border/50 shadow-sm"
+                                                            : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                                                    )}
+                                                >
+                                                    <span
+                                                        className={cn(
+                                                            "inline-flex items-center justify-center rounded-full border shrink-0",
+                                                            effectiveCollapsed ? "h-6 w-6" : "h-5 w-5 mr-2"
+                                                        )}
+                                                        style={{ color: fgColor, backgroundColor: bgColor, borderColor }}
+                                                    >
+                                                        <TeamLogoIcon className="h-3 w-3" />
+                                                    </span>
+                                                    {!effectiveCollapsed && (
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="font-medium truncate">{team.name}</p>
+                                                        </div>
+                                                    )}
+                                                    {effectiveCollapsed && <span className="text-xs font-bold">{team.name.substring(0, 2).toUpperCase()}</span>}
 
-                                            {!effectiveCollapsed && teamInfo?.id === team.id && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-primary ml-2" />
-                                            )}
-                                        </div>
+                                                    {!effectiveCollapsed && teamInfo?.id === team.id && (
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary ml-2" />
+                                                    )}
+                                                </div>
+                                            );
+                                        })()
                                     ))}
 
                                     {myTeams.length === 0 && (
@@ -458,19 +478,14 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                 {}
                 <div className="flex-1 relative flex flex-col overflow-hidden">
                     {}
-                    <div className="flex justify-between items-center p-6 md:pl-8 pb-4 shrink-0 bg-background border-b border-border/40 z-10">
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">People</h1>
-                            <p className="text-sm text-muted-foreground">Manage your team</p>
-                        </div>
-                        <Button variant="outline" className="gap-2" onClick={() => setShowMessages(true)}>
+                    <div className="flex justify-end p-6 md:pl-8 pb-0 shrink-0 z-10">
+                        <Button className="gap-2 text-white" style={{ backgroundColor: "#0275F6" }} onClick={() => setShowMessages(true)}>
                             <MessageSquare className="w-4 h-4" />
                             All Messages
                         </Button>
                     </div>
 
-                    {}
-                    <div className="flex-1 w-full overflow-y-auto p-6 md:pl-8 space-y-8">
+                    <div className="flex-1 w-full overflow-y-auto p-6 md:pl-8 pt-4 space-y-8">
 
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
@@ -507,7 +522,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                         {}
                                         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                                             <DialogTrigger asChild>
-                                                <Button size="icon" className="rounded-full h-8 w-8 bg-blue-600 hover:bg-blue-700 text-white shadow-md">
+                                                <Button size="icon" className="rounded-full h-8 w-8 text-white shadow-md" style={{ backgroundColor: "#0275F6" }}>
                                                     <Plus className="h-4 w-4" />
                                                 </Button>
                                             </DialogTrigger>
@@ -574,17 +589,37 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                 </div>
                             </div>
 
-                            <div className="border rounded-xl bg-gradient-to-br from-card to-secondary/10 p-6 shadow-sm border-border/50 relative overflow-hidden group">
+                            <div className="border rounded-xl bg-white/5 backdrop-blur-md p-6 shadow-sm border-white/10 relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-colors duration-500" />
 
                                 <div className="relative z-10">
-                                    <h1 className="text-3xl font-bold tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">{teamInfo?.name || "Your Team"}</h1>
+                                    {teamInfo && (() => {
+                                        const logoId = teamInfo.logoId || getDeterministicLogoId(teamInfo.id);
+                                        const { icon: TeamLogoIcon, label: teamLogoLabel, fgColor, bgColor, borderColor } = getLogoById(logoId);
+                                        return (
+                                            <div className="mb-3 flex items-center gap-3">
+                                                <div
+                                                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border"
+                                                    style={{ color: fgColor, backgroundColor: bgColor, borderColor }}
+                                                >
+                                                    <TeamLogoIcon className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">{teamInfo.name || "Your Team"}</h1>
+                                                    <p className="text-xs text-muted-foreground">{teamLogoLabel}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                    {!teamInfo && (
+                                        <h1 className="text-3xl font-bold tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">Your Team</h1>
+                                    )}
                                     {teamInfo && (
                                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                                 <span>Invite Code:</span>
                                                 <div
-                                                    className="flex items-center gap-2 bg-background/50 px-3 py-1.5 rounded-md border border-border/50 cursor-pointer hover:border-primary/50 transition-colors group/code"
+                                                    className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-md border border-white/10 cursor-pointer hover:border-primary/50 transition-colors group/code"
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(teamInfo.inviteCode);
                                                         toast({ description: "Invite code copied to clipboard" });
@@ -670,7 +705,7 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
                                         return (
                                             <Card
                                                 key={user.uid || user.id}
-                                                className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-row items-center p-4 gap-4 h-auto border-border/50 bg-gradient-to-br from-card to-card/50 overflow-hidden relative animate-fade-in-up opacity-0"
+                                                className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-row items-center p-4 gap-4 h-auto border-white/10 bg-white/5 backdrop-blur-md overflow-hidden relative animate-fade-in-up opacity-0"
                                                 style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
                                             >
                                                 {}
@@ -739,13 +774,13 @@ const PeopleView = ({ users: propUsers, userStatuses, onChat, isPreview }: Peopl
             </div>
 
 
-            {}
             <div className="absolute bottom-6 right-6 z-50">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
                             size="icon"
-                            className="h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 transition-transform hover:scale-105"
+                            className="h-14 w-14 rounded-full shadow-xl transition-transform hover:scale-105 text-white"
+                            style={{ backgroundColor: "#0275F6" }}
                         >
                             <Plus className="h-6 w-6 text-white" />
                         </Button>

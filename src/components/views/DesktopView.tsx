@@ -290,6 +290,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const [teamSessions, setTeamSessions] = useState<any[]>([]);
   const [ownedTeams, setOwnedTeams] = useState<any[]>([]);
   const [myTeams, setMyTeams] = useState<any[]>([]);
+  const activityFetchLastRunRef = useRef(0);
 
   const buildActivityLogTasks = (projects: any[]) => {
     return projects.flatMap((project: any) =>
@@ -409,6 +410,11 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     let cancelled = false;
 
     const fetchData = async () => {
+      const now = Date.now();
+      // Prevent burst re-fetches when dependent state updates rapidly.
+      if (now - activityFetchLastRunRef.current < 20_000) return;
+      activityFetchLastRunRef.current = now;
+
       try {
         const token = await currentUser.getIdToken();
         
@@ -439,12 +445,22 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
         if (ownedTeamsRes.ok) {
           const teamsData = await ownedTeamsRes.json();
-          setOwnedTeams(teamsData);
+          setOwnedTeams(Array.isArray(teamsData) ? teamsData : []);
         }
 
         if (myTeamsRes.ok) {
           const myTeamsData = await myTeamsRes.json();
-          setMyTeams(myTeamsData);
+          const normalizedMyTeams = Array.isArray(myTeamsData) ? myTeamsData : [];
+          setMyTeams(normalizedMyTeams);
+
+          // Fallback for rate-limited /owned endpoint: derive owner teams from /mine.
+          if (!ownedTeamsRes.ok) {
+            const ownerTeamsFromMine = normalizedMyTeams.filter((team: any) => {
+              const owner = team?.ownerId || team?.ownerUid || team?.leaderId || team?.createdBy || team?.createdByUid;
+              return owner === currentUser.uid;
+            });
+            setOwnedTeams(ownerTeamsFromMine);
+          }
         }
 
         // Fetch team-member specific sessions if needed
@@ -581,7 +597,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
 
   useEffect(() => {
-    if ((activeSection === "People" || activeSection === "Notes" || activeSection === "Chat" || activeSection === "Meet" || activeSection === "Tasks") && !isPreview) {
+    if ((activeSection === "People" || activeSection === "Notes" || activeSection === "Chat" || activeSection === "Meet" || activeSection === "Tasks" || activeSection === "Activity log") && !isPreview) {
       const fetchUsers = async () => {
         try {
           if (!currentUser) { return; }
@@ -593,7 +609,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           });
           if (response.ok) {
             const data = await response.json();
-            setUsersList(data);
+            setUsersList(Array.isArray(data) ? data : []);
           } else {
             const errData = await response.json().catch(() => ({}));
             console.error(`Error fetching users: ${response.status} ${response.statusText}`, errData);
@@ -724,9 +740,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
       case "Activity log":
         return (
-          <div className="h-[96%] flex overflow-hidden rounded-3xl m-2 sm:m-4 mt-1 bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-30" />
+          <div className="h-[96%] flex overflow-hidden rounded-3xl m-2 sm:m-4 mt-1 bg-transparent border-none shadow-none relative">
             <div className="relative z-10 w-full h-full overflow-y-auto">
               <ActivityLogView
                 activityLogs={activityLogs}
@@ -736,9 +750,16 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
                 tasks={leaderTasks}
                 users={usersList}
                 teamSessions={teamSessions}
-                currentTeamId={typeof userData?.teamId === 'object' ? userData?.teamId?.id : userData?.teamId}
-                ownedTeams={myTeams}
+                currentTeamId={typeof userData?.teamId === 'object' ? (userData?.teamId?.id || userData?.teamId?._id) : userData?.teamId}
+                currentTeamName={typeof userData?.teamId === 'object' ? userData?.teamId?.name : undefined}
+                currentTeamOwnerId={typeof userData?.teamId === 'object' ? (userData?.teamId?.ownerId || userData?.teamId?.ownerUid || userData?.teamId?.leaderId) : undefined}
+                currentTeamLogoId={typeof userData?.teamId === 'object' ? userData?.teamId?.logoId : undefined}
+                ownedTeams={ownedTeams}
+                myTeams={myTeams}
                 currentUserId={currentUser?.uid}
+                currentUserDisplayName={getUserName(pickUserForDisplay(userData, currentUser))}
+                currentUserPhotoURL={currentUser?.photoURL || userData?.photoURL || null}
+                currentUserEmail={currentUser?.email || userData?.email || undefined}
               />
             </div>
           </div>
@@ -820,7 +841,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
           onCollapse={() => setIsCollapsed(true)}
           onExpand={() => setIsCollapsed(false)}
           className={cn(
-            "bg-[#0F0F10] flex flex-col transition-all duration-300 ease-in-out h-full border-none",
+            "relative bg-black flex flex-col transition-all duration-300 ease-in-out h-full border-none after:content-[''] after:absolute after:top-0 after:-right-1 after:h-full after:w-2 after:bg-black after:pointer-events-none after:z-[90]",
             isCollapsed && "min-w-[70px]",
             // Animation logic: Hidden during landing, slides in when landing finishes
             isLanding ? "opacity-0 invisible" : ""
@@ -909,22 +930,26 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
               </DropdownMenu>
             </div>
           </div>
+          {/* Hard mask to remove sidebar/content seam */}
+          <div className="absolute top-0 right-0 h-full w-[2px] bg-black pointer-events-none z-[80]" />
         </Panel>
 
-        <PanelResizeHandle className="w-0 bg-transparent" />
+      <PanelResizeHandle className="w-px bg-transparent opacity-0" />
 
         {/* Main Content Panel - The "Card" Look */}
         <Panel defaultSize={84}>
-          <div className="h-full w-full p-2 pl-0 bg-[#0F0F10]">
-            <div className="h-full w-full bg-black rounded-[32px] overflow-hidden relative border border-white/5 shadow-2xl flex flex-col">
+          <div className="h-full w-full p-0 bg-black -ml-2">
+            <div className="h-full w-full bg-black rounded-r-[32px] rounded-l-none overflow-hidden relative border-none shadow-none flex flex-col">
+              {/* Matching left-edge mask to eliminate antialias seam */}
+              <div className="absolute left-0 top-0 h-full w-3 bg-black pointer-events-none z-[95]" />
 
               {/* Background Gradients - Inside the Rounded Container */}
               <div className="absolute top-[-10%] right-[20%] w-[500px] h-[500px] bg-rose-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
               <div className="absolute top-[10%] right-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
-              <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
+              
 
               {/* Header - Always show for main app content */}
-              <div className="flex items-center justify-between px-8 py-5 border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-20">
+              <div className="flex items-center justify-between px-8 py-5 bg-transparent backdrop-blur-none sticky top-0 z-20">
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-bold text-white tracking-tight">{activeSection}</h2>
                 </div>

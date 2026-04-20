@@ -35,9 +35,9 @@ import { getLogoById, getDeterministicLogoId } from '@/lib/team-logos';
 /** Design tokens — Activity Log page only */
 const T = {
     bgBase: '#020617', // Deep slate/black
-    bgCard: 'rgba(15, 23, 42, 0.65)',
-    bgSurface: 'rgba(30, 41, 59, 0.4)',
-    border: 'rgba(255, 255, 255, 0.08)',
+    bgCard: 'rgba(255, 255, 255, 0.04)',
+    bgSurface: 'rgba(255, 255, 255, 0.06)',
+    border: 'rgba(255, 255, 255, 0.12)',
     blue: '#3b82f6',
     green: '#10b981',
     orange: '#f59e0b',
@@ -78,14 +78,43 @@ interface ActivityLogViewProps {
     users?: any[];
     teamSessions?: any[];
     currentTeamId?: string;
+    currentTeamName?: string;
+    currentTeamOwnerId?: string;
+    currentTeamLogoId?: string;
     ownedTeams?: any[];
+    myTeams?: any[];
     currentUserId?: string;
+    currentUserDisplayName?: string;
+    currentUserPhotoURL?: string | null;
+    currentUserEmail?: string;
 }
 
 function normStatus(s: unknown): string {
     return String(s ?? '')
         .trim()
         .toLowerCase();
+}
+
+function normalizeUid(value: any): string {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+        return String(value.uid || value.id || value._id || '');
+    }
+    return String(value);
+}
+
+function extractOwnerUid(team: any): string {
+    return normalizeUid(
+        team?.ownerId ||
+        team?.ownerUid ||
+        team?.leaderId ||
+        team?.createdBy ||
+        team?.createdByUid ||
+        team?.owner?.uid ||
+        team?.owner?.id ||
+        team?.owner?._id
+    );
 }
 
 function isCompletedTask(t: any): boolean {
@@ -174,34 +203,205 @@ export default function ActivityLogView({
     users = [],
     teamSessions = [],
     currentTeamId,
+    currentTeamName,
+    currentTeamOwnerId,
+    currentTeamLogoId,
     ownedTeams = [],
+    myTeams: myTeamsFromApi = [],
     currentUserId,
+    currentUserDisplayName,
+    currentUserPhotoURL,
+    currentUserEmail,
 }: ActivityLogViewProps) {
-    const { myTeams, loading: teamsLoading } = useTeamPersistence(currentUserId);
+    const { myTeams: myTeamsFromHook, loading: teamsLoading, syncTeamsFromApi } = useTeamPersistence(currentUserId);
+    const normalizedCurrentUserId = useMemo(() => normalizeUid(currentUserId), [currentUserId]);
+
+    useEffect(() => {
+        if (!normalizedCurrentUserId) return;
+        // Keep Firestore teams aligned with backend source of truth to avoid owner/member mismatch.
+        syncTeamsFromApi([...(Array.isArray(ownedTeams) ? ownedTeams : []), ...(Array.isArray(myTeamsFromApi) ? myTeamsFromApi : [])], normalizedCurrentUserId);
+    }, [syncTeamsFromApi, normalizedCurrentUserId, ownedTeams, myTeamsFromApi]);
+
+    const mergedOwnedTeams = useMemo(() => {
+        const map = new Map<string, any>();
+        (Array.isArray(ownedTeams) ? ownedTeams : []).forEach((t: any) => {
+            const id = t?.id || t?._id || t?.teamId;
+            if (!id) return;
+            const prev = map.get(id) || {};
+            map.set(id, {
+                ...prev,
+                ...t,
+                id,
+                name: t?.name || prev?.name || 'Team',
+            });
+        });
+        return Array.from(map.values());
+    }, [ownedTeams]);
+
+    const mergedMyTeams = useMemo(() => {
+        const map = new Map<string, any>();
+        [...(Array.isArray(myTeamsFromApi) ? myTeamsFromApi : []), ...(Array.isArray(myTeamsFromHook) ? myTeamsFromHook : [])].forEach((t: any) => {
+            const id = t?.id || t?._id;
+            if (!id) return;
+            const prev = map.get(id) || {};
+            map.set(id, { ...prev, ...t, id });
+        });
+        return Array.from(map.values());
+    }, [myTeamsFromApi, myTeamsFromHook]);
 
     // Merge API teams and Firestore teams
     const allTeams = useMemo(() => {
-        const map = new Map();
-        ownedTeams.forEach(t => map.set(t.id || t._id, { id: t.id || t._id, name: t.name, leaderId: t.leaderId || currentUserId }));
-        myTeams.forEach(t => map.set(t.id, t));
+        const map = new Map<string, any>();
+
+        mergedOwnedTeams.forEach((t: any) => {
+            const id = t?.id || t?._id;
+            if (!id) return;
+            const prev = map.get(id) || {};
+            map.set(id, {
+                ...prev,
+                ...t,
+                id,
+                name: t?.name || prev?.name || 'Team',
+                leaderId: extractOwnerUid(t) || prev?.leaderId || normalizedCurrentUserId,
+                ownerId: extractOwnerUid(t) || prev?.ownerId,
+                ownerUid: extractOwnerUid(t) || prev?.ownerUid,
+            });
+        });
+
+        mergedMyTeams.forEach((t: any) => {
+            const id = t?.id || t?._id;
+            if (!id) return;
+            const prev = map.get(id) || {};
+            map.set(id, {
+                ...prev,
+                ...t,
+                id,
+                name: t?.name || prev?.name || 'Team',
+                leaderId: extractOwnerUid(t) || prev?.leaderId,
+                ownerId: extractOwnerUid(t) || prev?.ownerId,
+                ownerUid: extractOwnerUid(t) || prev?.ownerUid,
+            });
+        });
+
+        // Fallback: inject currently selected team from /users/me payload when team APIs fail.
+        if (currentTeamId && !map.has(currentTeamId)) {
+            map.set(currentTeamId, {
+                id: currentTeamId,
+                name: currentTeamName || 'My Team',
+                ownerId: normalizeUid(currentTeamOwnerId),
+                leaderId: normalizeUid(currentTeamOwnerId),
+                logoId: currentTeamLogoId,
+            });
+        }
+
         return Array.from(map.values());
-    }, [ownedTeams, myTeams, currentUserId]);
+    }, [mergedOwnedTeams, mergedMyTeams, normalizedCurrentUserId, currentTeamId, currentTeamName, currentTeamOwnerId, currentTeamLogoId]);
 
-    const isLeader = (ownedTeams && ownedTeams.length > 0) || myTeams.some(t => t.leaderId === currentUserId);
-    const [selectedTeamId, setSelectedTeamId] = useState<string>(currentTeamId || 'all');
+    const ownedTeamIdSet = useMemo(
+        () =>
+            new Set(
+                (Array.isArray(mergedOwnedTeams) ? mergedOwnedTeams : [])
+                    .map((t: any) => t?.id || t?._id)
+                    .filter(Boolean)
+            ),
+        [mergedOwnedTeams]
+    );
+    const leaderTeams = useMemo(
+        () =>
+            allTeams.filter((t: any) => {
+                const id = t?.id || t?._id;
+                if (id && ownedTeamIdSet.has(id)) return true;
+                const owner = extractOwnerUid(t);
+                return Boolean(normalizedCurrentUserId) && owner === normalizedCurrentUserId;
+            }),
+        [allTeams, normalizedCurrentUserId, ownedTeamIdSet]
+    );
+    const teamFilterOptions = useMemo(
+        () => {
+            const fromOwned = (Array.isArray(mergedOwnedTeams) ? mergedOwnedTeams : [])
+                .map((t: any) => ({
+                    ...t,
+                    id: String(t?.id || t?._id || t?.teamId || ''),
+                    name: t?.name || 'My Team',
+                }))
+                .filter((t: any) => Boolean(t.id));
+            const fromMineOwned = (Array.isArray(mergedMyTeams) ? mergedMyTeams : [])
+                .map((t: any) => ({
+                    ...t,
+                    id: String(t?.id || t?._id || t?.teamId || ''),
+                    name: t?.name || 'My Team',
+                }))
+                .filter((t: any) => {
+                    if (!t.id || !normalizedCurrentUserId) return false;
+                    const owner = extractOwnerUid(t);
+                    return Boolean(owner) && owner === normalizedCurrentUserId;
+                });
+
+            if (leaderTeams.length > 0) {
+                return leaderTeams;
+            }
+            if (fromOwned.length > 0) {
+                return fromOwned;
+            }
+            if (fromMineOwned.length > 0) {
+                return fromMineOwned;
+            }
+            const normalizedCurrentTeamOwner = normalizeUid(currentTeamOwnerId);
+            if (currentTeamId && normalizedCurrentTeamOwner && normalizedCurrentTeamOwner === normalizedCurrentUserId) {
+                return [{
+                    id: String(currentTeamId),
+                    name: currentTeamName || 'My Team',
+                    ownerId: normalizedCurrentTeamOwner,
+                    leaderId: normalizedCurrentTeamOwner,
+                    logoId: currentTeamLogoId,
+                }];
+            }
+            return [];
+        },
+        [leaderTeams, mergedOwnedTeams, mergedMyTeams, currentTeamId, currentTeamName, currentTeamOwnerId, currentTeamLogoId, normalizedCurrentUserId]
+    );
+
+    const normalizedTeamFilterOptions = useMemo(() => {
+        const map = new Map<string, any>();
+        teamFilterOptions.forEach((t: any) => {
+            const id = String(t?.id || t?._id || t?.teamId || '');
+            if (!id) return;
+            map.set(id, {
+                ...t,
+                id,
+                name: t?.name || 'My Team',
+            });
+        });
+        return Array.from(map.values());
+    }, [teamFilterOptions]);
+
+    const canShowTeamFilter = normalizedTeamFilterOptions.length > 0;
+    const isLeader = canShowTeamFilter;
+    const [selectedTeamId, setSelectedTeamId] = useState<string>('all');
     const [selectedUserId, setSelectedUserId] = useState<string>(currentUserId || 'all');
-
     const [searchQuery, setSearchQuery] = useState('');
     const [showAllLogs, setShowAllLogs] = useState(false);
     const [taskAnalyticsThisMonth, setTaskAnalyticsThisMonth] = useState(false);
 
     useEffect(() => {
-        if (currentTeamId) {
-            setSelectedTeamId(currentTeamId);
-        } else if (selectedTeamId === 'all' && allTeams.length > 0) {
-            setSelectedTeamId(allTeams[0].id);
+        setSelectedUserId(currentUserId || 'all');
+    }, [currentUserId]);
+
+    useEffect(() => {
+        if (selectedTeamId === 'all' && selectedUserId === 'all' && currentUserId) {
+            setSelectedUserId(currentUserId);
         }
-    }, [currentTeamId, allTeams]);
+    }, [selectedTeamId, selectedUserId, currentUserId]);
+
+    useEffect(() => {
+        if (selectedTeamId === 'all') return;
+        // Keep current selection during transient reload/rate-limit gaps.
+        if (normalizedTeamFilterOptions.length === 0) return;
+        if (!normalizedTeamFilterOptions.some((t: any) => t.id === selectedTeamId)) {
+            setSelectedTeamId('all');
+            setSelectedUserId(currentUserId || 'all');
+        }
+    }, [selectedTeamId, normalizedTeamFilterOptions, currentUserId]);
 
     // Persistence for task progress
     const { stats: persistedStats, saveStats } = useTaskPersistence(selectedUserId === 'all' ? undefined : selectedUserId);
@@ -209,13 +409,105 @@ export default function ActivityLogView({
     const activeUser = useMemo(() => {
         if (selectedUserId === 'all') return null;
         const found = users.find(u => u.uid === selectedUserId);
-        if (found) return found;
+        if (found) {
+            if (selectedUserId === currentUserId) {
+                return {
+                    ...found,
+                    displayName: found.displayName || currentUserDisplayName || 'You',
+                    email: found.email || currentUserEmail,
+                    photoURL: found.photoURL || currentUserPhotoURL || null,
+                };
+            }
+            return found;
+        }
         if (selectedUserId === currentUserId) {
-            // Fallback to minimal current user info if not in users list
-            return { uid: currentUserId, displayName: 'You', photoURL: null };
+            // Fallback to current authenticated user info if not in users list
+            return {
+                uid: currentUserId,
+                displayName: currentUserDisplayName || currentUserEmail?.split('@')[0] || 'You',
+                email: currentUserEmail,
+                photoURL: currentUserPhotoURL || null
+            };
+        }
+        // Secondary fallback: resolve from selected team's embedded member objects.
+        const selectedTeam = allTeams.find((t: any) => t.id === selectedTeamId);
+        const rawMember = (selectedTeam?.members || []).find((m: any) => {
+            if (!m) return false;
+            if (typeof m === 'string') return m === selectedUserId;
+            const candidateId = m.uid || m.userId || m.id || m._id;
+            return candidateId === selectedUserId;
+        });
+        if (rawMember && typeof rawMember === 'object') {
+            return {
+                uid: rawMember.uid || rawMember.userId || rawMember.id || rawMember._id || selectedUserId,
+                displayName: rawMember.displayName || rawMember.name || rawMember.email?.split('@')[0] || 'Member',
+                email: rawMember.email,
+                photoURL: rawMember.photoURL || rawMember.avatar || null,
+            };
         }
         return null;
-    }, [selectedUserId, users, currentUserId]);
+    }, [selectedUserId, users, currentUserId, currentUserDisplayName, currentUserEmail, currentUserPhotoURL, allTeams, selectedTeamId]);
+
+    const selectedTeamMemberOptions = useMemo(() => {
+        if (selectedTeamId === 'all') return [];
+        const team = allTeams.find((t: any) => t.id === selectedTeamId);
+        if (!team) return [];
+
+        const teamUids = new Set<string>();
+        (team.members || []).forEach((member: any) => {
+            const uid = typeof member === 'string' ? member : member?.uid || member?.userId || member?.id || member?._id;
+            if (uid) teamUids.add(uid);
+        });
+        [team.ownerId, team.ownerUid, team.leaderId].forEach((uid: string) => {
+            if (uid) teamUids.add(uid);
+        });
+
+        // Prefer enriched user profiles when available.
+        const fromUsers = users
+            .filter((u: any) => {
+                const hasMembership = u.teamMemberships?.includes(selectedTeamId) || (u as any).teamId === selectedTeamId;
+                return teamUids.has(u.uid) || hasMembership;
+            })
+            .map((u: any) => ({
+                uid: u.uid,
+                label: u.displayName || u.email?.split('@')[0] || u.uid,
+                photoURL: u.photoURL || null,
+            }));
+
+        const map = new Map<string, { uid: string; label: string; photoURL?: string | null }>();
+        fromUsers.forEach((u: { uid: string; label: string; photoURL?: string | null }) => map.set(u.uid, u));
+
+        // Include embedded member objects (when API sends rich member entries on team payload).
+        (team.members || []).forEach((member: any) => {
+            if (!member || typeof member === 'string') return;
+            const uid = member.uid || member.userId || member.id || member._id;
+            if (!uid || map.has(uid)) return;
+            map.set(uid, {
+                uid,
+                label: member.displayName || member.name || member.email?.split('@')[0] || uid,
+                photoURL: member.photoURL || member.avatar || null,
+            });
+        });
+
+        // Fallback when /api/users is rate-limited: show UID-based options so filtering still works.
+        teamUids.forEach((uid) => {
+            if (!map.has(uid)) {
+                map.set(uid, { uid, label: uid === currentUserId ? 'You' : uid, photoURL: null });
+            }
+        });
+
+        return Array.from(map.values());
+    }, [selectedTeamId, allTeams, users, currentUserId]);
+
+    const selectedTeamOption = useMemo(
+        () => normalizedTeamFilterOptions.find((t: any) => t.id === selectedTeamId),
+        [normalizedTeamFilterOptions, selectedTeamId]
+    );
+
+    const selectedMemberOption = useMemo(
+        () => selectedTeamMemberOptions.find((u: any) => u.uid === selectedUserId),
+        [selectedTeamMemberOptions, selectedUserId]
+    );
 
     const doughnutCanvasRef = useRef<HTMLCanvasElement>(null);
     const barCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -247,17 +539,19 @@ export default function ActivityLogView({
             const hasCommitCode = Boolean(task?.commitCode);
             if (!hasRepoLink || !hasCommitCode) return false;
 
+            // Always honor explicit user selection first (including default self view)
+            if (selectedUserId !== 'all') {
+                const assignedTo = task?.assignedTo;
+                const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+                return assignedTo === selectedUserId || assignedUserIds.includes(selectedUserId);
+            }
+
             if (selectedTeamId !== 'all') {
                 // Check if the user is a member of the selected team
                 const isMemberOfSelectedTeam = users.find(u => u.uid === selectedUserId)?.teamId === selectedTeamId; // Fallback
                 
                 const assignedTo = task?.assignedTo;
                 const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
-                
-                // If filtering by specific user, check if they match
-                if (selectedUserId !== 'all') {
-                    return assignedTo === selectedUserId || assignedUserIds.includes(selectedUserId);
-                }
 
                 // If filtering by specific team, check if assigned users are in that team
                 const isUserInTeam = (uid: string) => {
@@ -758,9 +1052,10 @@ export default function ActivityLogView({
                     className="al-fade-up rounded-[24px] border p-8 space-y-8 shadow-2xl relative overflow-hidden"
                     style={{ 
                         animationDelay: '0.1s', 
-                        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.9) 100%)',
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        backdropFilter: 'blur(20px)'
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        borderColor: 'rgba(255,255,255,0.12)',
+                        backdropFilter: 'blur(12px)',
+                        boxShadow: 'none'
                     }}
                 >
                     <div className="flex items-center justify-between">
@@ -769,48 +1064,117 @@ export default function ActivityLogView({
                             Activity Summary
                         </div>
                         <div className="flex items-center gap-4">
-                            {isLeader && (
-                                <div className="flex gap-2">
-                                    <Select value={selectedTeamId} onValueChange={(v) => { setSelectedTeamId(v); setSelectedUserId(currentUserId || 'all'); }}>
-                                        <SelectTrigger className="w-[160px] h-9 bg-white/5 border-white/10 text-[11px] text-text2">
-                                            <SelectValue placeholder="Select Team" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-slate-900 border-white/10 text-text2">
-                                            {allTeams.map(t => {
-                                                const logoId = t.logoId || getDeterministicLogoId(t.id);
-                                                const { icon: LogoIcon } = getLogoById(logoId);
+                            <div className="flex gap-2">
+                                <Select
+                                    value={selectedTeamId === 'all' ? undefined : selectedTeamId}
+                                    onValueChange={(v) => {
+                                        setSelectedTeamId(v);
+                                        if (v === 'all') {
+                                            setSelectedUserId(currentUserId || 'all');
+                                        } else {
+                                            setSelectedUserId('all');
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="w-[170px] h-9 bg-white/[0.04] border-white/20 text-[11px] text-text2 backdrop-blur-md hover:bg-white/[0.08]">
+                                        {selectedTeamId !== 'all' && selectedTeamOption ? (
+                                            (() => {
+                                                const logoId = selectedTeamOption.logoId || getDeterministicLogoId(selectedTeamOption.id);
+                                                const { icon: LogoIcon, fgColor, bgColor, borderColor } = getLogoById(logoId);
                                                 return (
-                                                    <SelectItem key={t.id} value={t.id} className="cursor-pointer">
+                                                    <div className="flex items-center gap-2 truncate">
+                                                        <span
+                                                            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+                                                            style={{ color: fgColor, backgroundColor: bgColor, borderColor }}
+                                                        >
+                                                            <LogoIcon className="h-3 w-3" />
+                                                        </span>
+                                                        <span className="truncate">{selectedTeamOption.name}</span>
+                                                    </div>
+                                                );
+                                            })()
+                                        ) : (
+                                            <SelectValue placeholder="Select Team" />
+                                        )}
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white/[0.05] backdrop-blur-xl border-white/20 text-text2">
+                                        {normalizedTeamFilterOptions.length === 0 ? (
+                                            <SelectItem value="__no_team_available" disabled className="text-text2/70 focus:bg-white/10">
+                                                No teams available
+                                            </SelectItem>
+                                        ) : (
+                                            normalizedTeamFilterOptions.map((t: any) => {
+                                                const logoId = t.logoId || getDeterministicLogoId(t.id);
+                                                const { icon: LogoIcon, fgColor, bgColor, borderColor } = getLogoById(logoId);
+                                                return (
+                                                    <SelectItem key={t.id} value={t.id} className="cursor-pointer focus:bg-white/10 focus:text-white">
                                                         <div className="flex items-center gap-2">
-                                                            <LogoIcon className="h-3.5 w-3.5 text-blue-400" />
+                                                            <span
+                                                                className="inline-flex h-5 w-5 items-center justify-center rounded-full border"
+                                                                style={{ color: fgColor, backgroundColor: bgColor, borderColor }}
+                                                            >
+                                                                <LogoIcon className="h-3 w-3" />
+                                                            </span>
                                                             <span>{t.name}</span>
                                                         </div>
                                                     </SelectItem>
                                                 );
-                                            })}
-                                        </SelectContent>
-                                    </Select>
-                                    
+                                            })
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                
+                                {selectedTeamId !== 'all' && (
                                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                                        <SelectTrigger className="w-[140px] h-9 bg-white/5 border-white/10 text-[11px] text-text2">
-                                            <SelectValue placeholder="Select Member" />
+                                        <SelectTrigger className="w-[170px] h-9 bg-white/[0.04] border-white/20 text-[11px] text-text2 backdrop-blur-md hover:bg-white/[0.08]">
+                                            {selectedUserId !== 'all' && selectedMemberOption ? (
+                                                <div className="flex items-center gap-2 truncate">
+                                                    {selectedMemberOption.photoURL ? (
+                                                        <img
+                                                            src={selectedMemberOption.photoURL}
+                                                            alt={selectedMemberOption.label}
+                                                            className="h-5 w-5 rounded-full object-cover border border-white/20 shrink-0"
+                                                        />
+                                                    ) : (
+                                                        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-[10px] font-semibold text-white">
+                                                            {(selectedMemberOption.label || 'M').charAt(0).toUpperCase()}
+                                                        </span>
+                                                    )}
+                                                    <span className="truncate">{selectedMemberOption.label}</span>
+                                                </div>
+                                            ) : (
+                                                <SelectValue placeholder="Select Member" />
+                                            )}
                                         </SelectTrigger>
-                                        <SelectContent className="bg-slate-900 border-white/10 text-text2">
-                                            {users.filter(u => {
-                                                if (selectedTeamId === 'all') return true;
-                                                const team = allTeams.find(t => t.id === selectedTeamId);
-                                                if (!team) return false;
-                                                const isLeaderOfTeam = team.leaderId === u.uid;
-                                                const isMemberOfTeam = team.members?.includes(u.uid);
-                                                const hasMembership = u.teamMemberships?.includes(selectedTeamId) || (u as any).teamId === selectedTeamId;
-                                                return isLeaderOfTeam || isMemberOfTeam || hasMembership;
-                                            }).map(u => (
-                                                <SelectItem key={u.uid} value={u.uid}>{u.displayName || u.email?.split('@')[0]}</SelectItem>
-                                            ))}
+                                        <SelectContent className="bg-white/[0.05] backdrop-blur-xl border-white/20 text-text2">
+                                            {selectedTeamMemberOptions.length === 0 ? (
+                                                <SelectItem value="__no_member_available" disabled className="text-text2/70 focus:bg-white/10">
+                                                    No members found
+                                                </SelectItem>
+                                            ) : (
+                                                selectedTeamMemberOptions.map((u) => (
+                                                    <SelectItem key={u.uid} value={u.uid} className="cursor-pointer focus:bg-white/10 focus:text-white">
+                                                        <div className="flex items-center gap-2">
+                                                            {u.photoURL ? (
+                                                                <img
+                                                                    src={u.photoURL}
+                                                                    alt={u.label}
+                                                                    className="h-5 w-5 rounded-full object-cover border border-white/20"
+                                                                />
+                                                            ) : (
+                                                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/20 bg-white/10 text-[10px] font-semibold text-white">
+                                                                    {(u.label || 'M').charAt(0).toUpperCase()}
+                                                                </span>
+                                                            )}
+                                                            <span>{u.label}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
-                                </div>
-                            )}
+                                )}
+                            </div>
                             <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-text2">
                                 <Calendar className="h-3.5 w-3.5" />
                                 <span>{new Date().getFullYear()}</span>
@@ -824,16 +1188,16 @@ export default function ActivityLogView({
 
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pt-4">
                         <div className="flex items-center gap-4">
-                            <div className="h-16 w-16 rounded-[20px] overflow-hidden border-2 border-blue/30 shadow-[0_0_20px_rgba(59,130,246,0.15)] bg-slate-900 flex items-center justify-center p-3">
+                            <div className="h-16 w-16 rounded-[20px] overflow-hidden border-2 border-blue/30 shadow-[0_0_20px_rgba(59,130,246,0.15)] bg-slate-900 flex items-center justify-center p-0">
                                 {selectedUserId !== 'all' ? (
                                     activeUser?.photoURL ? (
                                         <img 
                                             src={activeUser.photoURL} 
                                             alt="Profile" 
-                                            className="h-full w-full object-cover rounded-[12px]"
+                                            className="h-full w-full object-cover"
                                         />
                                     ) : (
-                                        <div className="h-full w-full flex items-center justify-center text-2xl font-bold bg-gradient-to-br from-blue to-purple text-white rounded-[12px]">
+                                        <div className="h-full w-full flex items-center justify-center text-2xl font-bold bg-gradient-to-br from-blue to-purple text-white">
                                             {(activeUser?.displayName || 'Z').charAt(0)}
                                         </div>
                                     )
@@ -841,8 +1205,15 @@ export default function ActivityLogView({
                                     (() => {
                                         const team = allTeams.find(t => t.id === selectedTeamId);
                                         const logoId = team?.logoId || getDeterministicLogoId(selectedTeamId || 'default');
-                                        const { icon: LogoIcon } = getLogoById(logoId);
-                                        return <LogoIcon className="h-8 w-8 text-blue-400" />;
+                                        const { icon: LogoIcon, fgColor, bgColor, borderColor } = getLogoById(logoId);
+                                        return (
+                                            <span
+                                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border"
+                                                style={{ color: fgColor, backgroundColor: bgColor, borderColor }}
+                                            >
+                                                <LogoIcon className="h-6 w-6" />
+                                            </span>
+                                        );
                                     })()
                                 )}
                             </div>
@@ -852,6 +1223,9 @@ export default function ActivityLogView({
                                         ? (selectedTeamId === 'all' ? 'Organization Overview' : `${allTeams.find(t => t.id === selectedTeamId)?.name || 'Team'} Overview`)
                                         : (activeUser?.displayName || 'Member Profile')}
                                 </h2>
+                                {selectedUserId !== 'all' && activeUser?.email && (
+                                    <p className="text-xs text-text2/90">{activeUser.email}</p>
+                                )}
                                 <p className="text-sm text-text2">{taskStats.completed} Tasks completed</p>
                             </div>
                         </div>
@@ -1148,8 +1522,15 @@ export default function ActivityLogView({
                                         >
                                             {item.logoId ? (
                                                 (() => {
-                                                    const { icon: CustomIcon } = getLogoById(item.logoId);
-                                                    return <CustomIcon className="h-4 w-4 text-blue-400" />;
+                                                    const { icon: CustomIcon, fgColor, bgColor, borderColor } = getLogoById(item.logoId);
+                                                    return (
+                                                        <span
+                                                            className="inline-flex h-6 w-6 items-center justify-center rounded-full border"
+                                                            style={{ color: fgColor, backgroundColor: bgColor, borderColor }}
+                                                        >
+                                                            <CustomIcon className="h-3.5 w-3.5" />
+                                                        </span>
+                                                    );
                                                 })()
                                             ) : (
                                                 item.tag === 'Session' ? '⏱' : item.tag[0]
