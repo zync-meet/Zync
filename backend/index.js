@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const { Server } = require("socket.io");
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const { loadSheddingMiddleware } = require('./middleware/loadShedding');
 
 const app = express();
 
@@ -81,6 +82,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const calendarRoutes = require('./routes/calendarRoutes');
 const supportRoutes = require('./routes/supportRoutes');
+const internalMetricsRoutes = require('./routes/internalMetrics');
 
 
 
@@ -120,6 +122,7 @@ const limiter = rateLimit({
 
 // Apply rate limiting to all requests
 app.use('/api/', limiter);
+app.use('/api/', loadSheddingMiddleware);
 
 // Keep raw body only for webhook signature verification routes.
 const webhookJsonParser = express.json({
@@ -158,6 +161,7 @@ app.use('/api/google', require('./routes/googleRoutes'));
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/cache/sample', require('./routes/redisCacheSampleRoutes'));
+app.use('/internal', internalMetricsRoutes);
 
 
 
