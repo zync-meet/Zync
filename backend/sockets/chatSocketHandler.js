@@ -15,6 +15,8 @@ const isDbReady = () => mongoose.connection.readyState === 1;
  */
 module.exports = (io) => {
   const chatNamespace = io.of('/chat');
+  const DELIVERY_CATCHUP_BATCH_SIZE = Number.parseInt(process.env.DELIVERY_CATCHUP_BATCH_SIZE || '200', 10);
+  const DELIVERY_CATCHUP_MAX_BATCHES = Number.parseInt(process.env.DELIVERY_CATCHUP_MAX_BATCHES || '10', 10);
 
   // userId → Set<socket.id>  (a user may have several tabs open)
   const userSockets = new Map();
@@ -52,9 +54,15 @@ module.exports = (io) => {
     // ── delivery-catchup (mark queued messages as delivered) ─────────
     if (isDbReady()) {
       try {
-        const undelivered = await Message.find({ receiverId: userId, delivered: false }).lean();
+        for (let batchIndex = 0; batchIndex < DELIVERY_CATCHUP_MAX_BATCHES; batchIndex++) {
+          const undelivered = await Message.find({ receiverId: userId, delivered: false })
+            .select('_id senderId')
+            .sort({ _id: 1 })
+            .limit(DELIVERY_CATCHUP_BATCH_SIZE)
+            .lean();
 
-        if (undelivered.length > 0) {
+          if (undelivered.length === 0) break;
+
           const ids = undelivered.map(m => m._id);
           await Message.updateMany(
             { _id: { $in: ids } },
@@ -67,6 +75,8 @@ module.exports = (io) => {
             const msgIds = undelivered.filter(m => m.senderId === sid).map(m => String(m._id));
             emitToUser(sid, 'message-delivered', { messageIds: msgIds });
           }
+
+          if (undelivered.length < DELIVERY_CATCHUP_BATCH_SIZE) break;
         }
       } catch (err) {
         logger.error('[ChatSocket] delivery-catchup error:', err.message);
