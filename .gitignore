@@ -176,5 +176,8 @@ vite_build_clean.log
 vite_build_debug.log
 
 .vscode
-backend/
+# Do not ignore the whole backend/ tree — required server files (e.g. config/*.js) must ship to Render.
+# Root `node_modules/` already ignores dependencies; add backend-only noise below if needed.
+backend/.env
+backend/.cache/
 docs/
