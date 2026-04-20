@@ -7,6 +7,10 @@ const verifyToken = require('../middleware/authMiddleware');
 const { normalizeDoc } = require('../utils/normalize');
 const { getInstallationAccessToken } = require('../utils/githubAppAuth');
 const cache = require('../utils/cache');
+const {
+  ARCHITECTURE_CACHE_MAX_ENTRIES,
+  ARCHITECTURE_CACHE_TTL_MS,
+} = require('../config/freeTierLimits');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
@@ -23,8 +27,8 @@ const decryptToken = (ciphertext) => {
   return bytes.toString(CryptoJS.enc.Utf8);
 };
 
-const GITHUB_CACHE_MAX_SIZE = Number.parseInt(process.env.GITHUB_CACHE_MAX_SIZE || '100', 10);
-const GITHUB_CACHE_TTL_MS = Number.parseInt(process.env.GITHUB_CACHE_TTL_MS || '300000', 10);
+const GITHUB_CACHE_MAX_SIZE = ARCHITECTURE_CACHE_MAX_ENTRIES;
+const GITHUB_CACHE_TTL_MS = ARCHITECTURE_CACHE_TTL_MS;
 const githubCache = new Map();
 
 const pruneGithubCache = () => {

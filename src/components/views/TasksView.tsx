@@ -4,12 +4,6 @@ import { CheckSquare, Terminal, Layout, Github, ExternalLink, Inbox, ArrowUpCirc
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { API_BASE_URL, getFullUrl } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -60,13 +54,6 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
 
     const [isGitDrawerOpen, setIsGitDrawerOpen] = useState(false);
     const [selectedGitTask, setSelectedGitTask] = useState<FlattenedTask | null>(null);
-
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [newTaskTitle, setNewTaskTitle] = useState("");
-    const [newTaskDesc, setNewTaskDesc] = useState("");
-    const [newTaskProjectId, setNewTaskProjectId] = useState("");
-    const [newTaskAssignedTo, setNewTaskAssignedTo] = useState<string>("");
-    const [isCreating, setIsCreating] = useState(false);
 
     const { toast } = useToast();
 
@@ -207,48 +194,6 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
         window.open(`https://github.com/${task.githubRepoOwner}/${task.githubRepoName}`, '_blank');
     };
 
-    const handleCreateTask = async () => {
-        if (!newTaskTitle || !newTaskProjectId) {
-            toast({ title: "Validation Error", description: "Title and Project are required.", variant: "destructive" });
-            return;
-        }
-
-        setIsCreating(true);
-        try {
-            const token = await auth.currentUser?.getIdToken();
-            const response = await fetch(`${API_BASE_URL}/api/projects/${newTaskProjectId}/quick-task`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    title: newTaskTitle,
-                    description: newTaskDesc,
-                    assignedTo: newTaskAssignedTo || undefined,
-                    assignedToName: newTaskAssignedTo ? users.find(u => u.uid === newTaskAssignedTo)?.displayName : undefined
-                })
-            });
-
-            if (response.ok) {
-                toast({ title: "Success", description: "Task created successfully." });
-                setIsCreateDialogOpen(false);
-                setNewTaskTitle("");
-                setNewTaskDesc("");
-                setNewTaskProjectId("");
-                setNewTaskAssignedTo("");
-                loadTasks();
-            } else {
-                throw new Error("Failed to create task");
-            }
-        } catch (error) {
-            console.error(error);
-            toast({ title: "Error", description: "Failed to create task.", variant: "destructive" });
-        } finally {
-            setIsCreating(false);
-        }
-    };
-
     const getStatusColor = (status: string) => {
         if (['Completed', 'Done'].includes(status)) {return 'bg-emerald-500';}
         if (['In Progress'].includes(status)) {return 'bg-amber-500';}
@@ -293,7 +238,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
 
     return (
         <Skeleton name="task-list-item" loading={loading}>
-        <div className="flex-1 p-6 md:p-8 h-full flex flex-col overflow-hidden bg-background">
+        <div className="flex-1 p-6 md:p-8 h-full flex flex-col overflow-hidden bg-transparent">
             {}
             <div className="mb-8 flex items-start justify-between shrink-0">
                 <div>
@@ -302,29 +247,17 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                         Your assigned work across all projects
                     </p>
                 </div>
-                <Button onClick={() => setIsCreateDialogOpen(true)} size="sm" className="gap-2 shrink-0">
-                    <Plus className="w-4 h-4" /> New Task
-                </Button>
             </div>
 
             {groupedTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center flex-1 text-center px-4">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700/50 flex items-center justify-center mb-6 shadow-lg">
-                        <Inbox className="w-9 h-9 text-zinc-500" strokeWidth={1.5} />
+                    <div className="w-20 h-20 rounded-2xl bg-white/[0.05] border border-white/15 flex items-center justify-center mb-6 backdrop-blur-md">
+                        <Inbox className="w-9 h-9 text-white/60" strokeWidth={1.5} />
                     </div>
                     <h3 className="text-xl font-semibold text-foreground">All caught up!</h3>
                     <p className="text-sm text-muted-foreground mt-2 max-w-sm leading-relaxed">
                         You have no tasks assigned at the moment. When a project owner assigns you work, it will appear here.
                     </p>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-6 gap-2"
-                        onClick={() => setIsCreateDialogOpen(true)}
-                    >
-                        <Plus className="w-4 h-4" />
-                        Create your first task
-                    </Button>
                 </div>
             ) : (
                 <ScrollArea className="flex-1">
@@ -334,7 +267,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                 {}
                                 <div className="flex items-center gap-3 mb-4">
                                     <h3 className="text-base font-medium text-foreground">{group.projectName}</h3>
-                                    <span className="text-[11px] font-medium text-muted-foreground bg-zinc-800 px-2 py-0.5 rounded-full tabular-nums">
+                                    <span className="text-[11px] font-medium text-muted-foreground bg-white/[0.08] px-2 py-0.5 rounded-full tabular-nums border border-white/10">
                                         {group.tasks.length}
                                     </span>
                                     <div className="flex-1 h-px bg-border/40" />
@@ -345,7 +278,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                     {group.tasks.map((task) => (
                                         <div
                                             key={task.id}
-                                            className="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-4 transition-all duration-200 hover:border-zinc-700 hover:shadow-md hover:shadow-zinc-900/50"
+                                            className="bg-white/[0.04] border border-white/12 rounded-xl p-4 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.06] backdrop-blur-md"
                                         >
                                             {}
                                             <div className="flex items-start gap-3 mb-4">
@@ -360,18 +293,18 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground flex-wrap">
-                                                        <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">{task.stepName}</span>
-                                                        <span className="text-zinc-600">·</span>
+                                                        <span className="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 text-white/70">{task.stepName}</span>
+                                                        <span className="text-white/30">·</span>
                                                         <span className={`px-1.5 py-0.5 rounded text-xs ${['Completed', 'Done'].includes(task.status) ? 'bg-emerald-500/20 text-emerald-400' :
                                                                 ['In Progress'].includes(task.status) ? 'bg-amber-500/20 text-amber-400' :
                                                                     ['Active'].includes(task.status) ? 'bg-sky-500/20 text-sky-400' :
-                                                                        'bg-zinc-700/50 text-zinc-400'
+                                                                        'bg-white/10 text-white/65'
                                                             }`}>
                                                             {getStatusLabel(task.status)}
                                                         </span>
                                                         {task.createdAt && (
                                                             <>
-                                                                <span className="text-zinc-600">·</span>
+                                                                <span className="text-white/30">·</span>
                                                                 <span className="tabular-nums">{format(new Date(task.createdAt), 'MMM d')}</span>
                                                             </>
                                                         )}
@@ -385,7 +318,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="h-8 gap-2 text-xs border-zinc-700 hover:bg-zinc-800"
+                                                    className="h-8 gap-2 text-xs border-white/20 bg-white/[0.03] hover:bg-white/[0.10]"
                                                     onClick={() => handleOpenGitHelper(task)}
                                                 >
                                                     <Terminal className="w-3.5 h-3.5" />
@@ -396,7 +329,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="h-8 gap-2 text-xs border-zinc-700 hover:bg-zinc-800"
+                                                    className="h-8 gap-2 text-xs border-white/20 bg-white/[0.03] hover:bg-white/[0.10]"
                                                     onClick={() => handleOpenArchitecture(task)}
                                                 >
                                                     <Layout className="w-3.5 h-3.5" />
@@ -408,7 +341,7 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        className="h-8 gap-2 text-xs border-zinc-700 hover:bg-zinc-800"
+                                                        className="h-8 gap-2 text-xs border-white/20 bg-white/[0.03] hover:bg-white/[0.10]"
                                                         onClick={() => handleOpenRepository(task)}
                                                     >
                                                         <Github className="w-3.5 h-3.5" />
@@ -424,15 +357,15 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                         ))}
 
                         {}
-                        <div className="pt-8 border-t border-zinc-800/40">
+                        <div className="pt-8 border-t border-white/10">
                             <div className="flex items-center gap-6 text-xs text-muted-foreground">
                                 <span>{taskStats.total} total</span>
-                                <span className="text-zinc-700">·</span>
+                                <span className="text-white/30">·</span>
                                 <span className="flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                     {taskStats.inProgress} in progress
                                 </span>
-                                <span className="text-zinc-700">·</span>
+                                <span className="text-white/30">·</span>
                                 <span className="flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                     {taskStats.done} done
@@ -452,76 +385,6 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                     githubRepoName: selectedGitTask.githubRepoName
                 } : null}
             />
-
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Create New Task</DialogTitle>
-                        <DialogDescription>
-                            Add a new task to one of your projects.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Project</Label>
-                            <Select value={newTaskProjectId} onValueChange={setNewTaskProjectId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a project" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {projects.map((p, idx) => (
-                                        <SelectItem key={p._id || idx} value={p._id}>{p.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Task Title</Label>
-                            <Input
-                                placeholder="e.g. Update documentation"
-                                value={newTaskTitle}
-                                onChange={(e) => setNewTaskTitle(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Description</Label>
-                            <Textarea
-                                placeholder="Add more details..."
-                                value={newTaskDesc}
-                                onChange={(e) => setNewTaskDesc(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Assign To (Optional)</Label>
-                            <Select value={newTaskAssignedTo} onValueChange={setNewTaskAssignedTo}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Unassigned" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                                    {users.map((user, idx) => (
-                                        <SelectItem key={user.uid || idx} value={user.uid}>
-                                            <div className="flex items-center gap-2">
-                                                <Avatar className="h-4 w-4">
-                                                    <AvatarImage src={getFullUrl(user.photoURL)} />
-                                                    <AvatarFallback>{user.displayName?.substring(0, 1)}</AvatarFallback>
-                                                </Avatar>
-                                                <span>{user.displayName || user.email}</span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCreateTask} disabled={isCreating}>
-                            {isCreating ? "Creating..." : "Create Task"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
         </Skeleton>
     );
