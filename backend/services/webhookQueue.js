@@ -140,6 +140,26 @@ const getWebhookJobStatus = (deliveryId) => {
   return toPublicJob(job);
 };
 
+const getWebhookQueueMetrics = () => {
+  const now = Date.now();
+  const queuedAgesMs = queue
+    .map((queuedItem) => {
+      const job = jobsByDeliveryId.get(queuedItem.deliveryId);
+      if (!job?.createdAt) return 0;
+      const createdAtMs = Date.parse(job.createdAt);
+      if (!Number.isFinite(createdAtMs)) return 0;
+      return Math.max(0, now - createdAtMs);
+    })
+    .filter((age) => Number.isFinite(age));
+
+  return {
+    depth: queue.length,
+    lagMs: queuedAgesMs.length > 0 ? Math.max(...queuedAgesMs) : 0,
+    processing: isDraining,
+    trackedJobs: jobsByDeliveryId.size,
+  };
+};
+
 const waitForWebhookQueueIdle = async (timeoutMs = 3000) => {
   const start = Date.now();
   while (isDraining || queue.length > 0) {
@@ -161,6 +181,7 @@ module.exports = {
   registerWebhookProcessor,
   enqueueWebhookJob,
   getWebhookJobStatus,
+  getWebhookQueueMetrics,
   waitForWebhookQueueIdle,
   __resetWebhookQueueForTests,
 };
