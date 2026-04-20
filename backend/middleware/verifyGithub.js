@@ -1,13 +1,10 @@
 const crypto = require('crypto');
 
-const assertGithubWebhookSecretConfigured = () => {
-    const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
-    if (process.env.NODE_ENV === 'production' && !webhookSecret) {
-        throw new Error('GITHUB_WEBHOOK_SECRET is required in production');
-    }
-};
-
-assertGithubWebhookSecretConfigured();
+// Do not throw at module load: the API must boot on hosts (e.g. Render) before env is fully wired.
+// Missing secret still fails closed per request below.
+if (process.env.NODE_ENV === 'production' && !process.env.GITHUB_WEBHOOK_SECRET) {
+    console.warn('[verifyGithub] GITHUB_WEBHOOK_SECRET is unset; GitHub webhook routes will return 500 until set.');
+}
 
 const verifyGithub = (req, res, next) => {
     try {
@@ -48,4 +45,3 @@ const verifyGithub = (req, res, next) => {
 };
 
 module.exports = verifyGithub;
-module.exports.assertGithubWebhookSecretConfigured = assertGithubWebhookSecretConfigured;

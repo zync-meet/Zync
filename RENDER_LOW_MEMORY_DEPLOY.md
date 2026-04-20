@@ -87,4 +87,6 @@ That removes static asset handling from the API process (optional optimization).
 
 ## Safety rail in this repo
 
-`npm run dev` is guarded: if **`RENDER=true`** (set on Render), the dev script **exits with an error** so deploys cannot accidentally use the dev stack. Use **`npm start`** on Render.
+If the Start Command is still **`npm run dev`**, **`RENDER=true`** makes the dev script run **`node backend/index.js`** (same as **`npm start`**) so the service does not launch Vite + API and OOM.
+
+Prefer **`npm start`** explicitly. Add **`GITHUB_WEBHOOK_SECRET`** in the dashboard when you enable GitHub webhooks (routes fail closed with **500** until it is set; the process still boots).

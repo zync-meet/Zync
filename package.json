@@ -6,7 +6,8 @@
   "author": "ZYNC Team",
   "description": "ZYNC Desktop Application",
   "scripts": {
-    "dev": "node scripts/ensure-not-render-dev.cjs && concurrently -k -n frontend,backend \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev": "node scripts/run-dev.cjs",
+    "dev:full": "concurrently -k -n frontend,backend \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "vite --force",
     "dev:backend": "npm run dev --prefix backend",
     "dev:backend:watch": "npm run dev:watch --prefix backend",
