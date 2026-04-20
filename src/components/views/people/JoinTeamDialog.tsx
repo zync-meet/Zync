@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTeamPersistence } from "@/hooks/useTeamPersistence";
 
 interface JoinTeamDialogProps {
     open: boolean;
@@ -17,6 +18,7 @@ interface JoinTeamDialogProps {
 
 export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialogProps) => {
     const [inviteCode, setInviteCode] = useState("");
+    const { joinTeamSync } = useTeamPersistence(auth.currentUser?.uid);
     const queryClient = useQueryClient();
 
     const joinTeamMutation = useMutation({
@@ -39,6 +41,11 @@ export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialog
         },
         onSuccess: () => {
             toast.success("Joined team successfully!");
+            
+            // Sync to Firestore for persistent analytics
+            if (auth.currentUser) {
+                joinTeamSync(inviteCode, auth.currentUser.uid);
+            }
             
             // Invalidate queries to refresh UI
             queryClient.invalidateQueries({ queryKey: ['me', auth.currentUser?.uid] });

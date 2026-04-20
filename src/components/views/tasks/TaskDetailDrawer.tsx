@@ -16,6 +16,8 @@ import { CheckSquare, Calendar, FolderKanban, User, Clock, Flag, X } from "lucid
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { TaskGitSync } from "./TaskGitSync";
+import { useTaskPersistence } from "@/hooks/useTaskPersistence";
+import { useEffect } from "react";
 
 export interface TaskDetail {
     id: string;
@@ -39,6 +41,14 @@ interface TaskDetailDrawerProps {
 }
 
 const TaskDetailDrawer = ({ task, open, onOpenChange }: TaskDetailDrawerProps) => {
+    const { markTaskOpened } = useTaskPersistence(task?.assignedTo);
+
+    useEffect(() => {
+        if (open && task?.id) {
+            markTaskOpened(task.id);
+        }
+    }, [open, task?.id]);
+
     if (!task) {return null;}
 
     return (

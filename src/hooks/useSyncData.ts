@@ -74,10 +74,8 @@ export function useSyncData() {
     queryKey: ["syncData", userId],
     queryFn: async () => {
       if (!currentUser || !userId) {return null;}
-      console.log(`[Sync] Fetching new user data from backend for ${userId} in the background...`);
       const token = await currentUser.getIdToken();
       const result = await fetchSyncData(token);
-      console.log("[Sync] Received new data from backend:", result);
       return result;
     },
     enabled: !!userId,
@@ -90,7 +88,6 @@ export function useSyncData() {
     if (!syncQuery.data || !userId) {return;}
 
     const { user, projects } = syncQuery.data;
-    console.log("[Sync] Updating local IndexedDB with freshly fetched background data...");
 
     db.transaction("rw", db.userData, db.projectData, async () => {
       // OVERWRITE the user data
@@ -114,7 +111,6 @@ export function useSyncData() {
           }))
         );
       }
-      console.log("[Sync] Previous local data successfully replaced with the new data from the backend.");
     }).catch((e) => {
       console.error("[Sync] Error! Failed writing API data to IndexedDB:", e);
     });
@@ -123,17 +119,14 @@ export function useSyncData() {
   // 4) Optimistic mutation
   const saveMutation = useMutation({
     mutationFn: async (payload: any) => {
-      console.log(`[Sync] Background save triggered. Sending updated data to backend...`);
       if (!currentUser) {throw new Error("Not authenticated");}
       const token = await currentUser.getIdToken();
       const res = await saveDataToApi(payload, token);
-      console.log(`[Sync] Background save to backend successful!`, res);
       return res;
     },
 
     onMutate: async (payload: any) => {
       if (!userId) {return;}
-      console.log(`[Sync] Optimistic update: Temporarily saving to local DB for instant UI reflection without spinners...`);
       await queryClient.cancelQueries({ queryKey: ["syncData", userId] });
 
       const previousUser = await db.userData.get(userId);
@@ -167,7 +160,6 @@ export function useSyncData() {
     },
 
     onError: async (_error, _payload, context) => {
-      console.warn(`[Sync] Backend save failed! Rolling back local data to prevent fake UI...`);
       if (!context || !userId) {return;}
       await db.transaction("rw", db.userData, db.projectData, async () => {
         if (context.previousUser) {
@@ -181,7 +173,6 @@ export function useSyncData() {
     },
 
     onSuccess: () => {
-      console.log(`[Sync] Triggering background fetch to grab freshly saved data...`);
       queryClient.invalidateQueries({ queryKey: ["syncData", userId] });
     },
   });

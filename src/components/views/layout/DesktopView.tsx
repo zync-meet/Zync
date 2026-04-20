@@ -30,8 +30,8 @@ import {
 } from "lucide-react";
 import { getUserName, getUserInitials, pickUserForDisplay } from "@/lib/utils";
 import { NotesView } from "@/components/notes/NotesView";
-import TasksView from "./TasksView";
-import ActivityLogView from "./ActivityLogView";
+import TasksView from "../tasks/TasksView";
+import ActivityLogView from "../activity/ActivityLogView";
 import Workspace from "@/components/workspace/Workspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,20 +67,20 @@ import {
 
 import { Switch } from "@/components/ui/switch";
 import { connectChat, disconnectChat } from "@/services/chatSocketService";
-import ChatView from "./ChatView";
-import SettingsView from "./SettingsView";
-import DesignView from "./DesignView";
-import MyProjectsView from "./MyProjectsView";
-import CalendarView from "./CalendarView";
-import DashboardView from "./DashboardView";
-import DashboardHome from "./DashboardHome";
-import PeopleView from "./PeopleView";
-import ChatLayout from "./ChatLayout";
-import MessagesPage from "./MessagesPage";
+import ChatView from "../chat/ChatView";
+import SettingsView from "../settings/SettingsView";
+import DesignView from "../design/DesignView";
+import MyProjectsView from "../projects/MyProjectsView";
+import CalendarView from "../calendar/CalendarView";
+import DashboardView from "../dashboard/DashboardView";
+import DashboardHome from "../dashboard/DashboardHome";
+import PeopleView from "../people/PeopleView";
+import ChatLayout from "../chat/ChatLayout";
+import MessagesPage from "../chat/MessagesPage";
 import CreateProject from "@/components/dashboard/CreateProject";
 import ProjectDetails from "@/pages/ProjectDetails";
-import TeamGateway from "./TeamGateway";
-import MeetView from "./MeetView";
+import TeamGateway from "../people/TeamGateway";
+import MeetView from "../meet/MeetView";
 import { usePresence } from "@/hooks/usePresence";
 import {
   PanelResizeHandle,
@@ -289,6 +289,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
   const [leaderTasks, setLeaderTasks] = useState<any[]>([]);
   const [teamSessions, setTeamSessions] = useState<any[]>([]);
   const [ownedTeams, setOwnedTeams] = useState<any[]>([]);
+  const [myTeams, setMyTeams] = useState<any[]>([]);
 
   const buildActivityLogTasks = (projects: any[]) => {
     return projects.flatMap((project: any) =>
@@ -394,75 +395,11 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       setElapsedTime(`${hours}:${minutes}:${seconds}`);
     }, 1000);
 
-    const heartbeatInterval = setInterval(async () => {
-      if (sessionId && auth.currentUser) {
-        try {
-          const heartbeatToken = await auth.currentUser.getIdToken();
-          const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${heartbeatToken}` }
-          });
-
-
-          if (response.status === 404) {
-            console.warn("Session expired or server restarted, resetting session...");
-            localStorage.removeItem("currentSession");
-            setSessionId(null);
-
-            window.location.reload();
-          }
-        } catch (error) {
-          console.error("Heartbeat failed", error);
-        }
-      }
-    }, 60000);
-
-
-    const handleBeforeUnload = () => {
-      if (sessionId && tokenRef.current) {
-        const url = `${API_BASE_URL}/api/sessions/${sessionId}`;
-
-        fetch(url, {
-          method: 'POST',
-          keepalive: true,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${tokenRef.current}`
-          },
-          body: JSON.stringify({})
-        });
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     return () => {
       clearInterval(timerInterval);
-      clearInterval(heartbeatInterval);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [sessionStartTime, sessionId]);
+  }, [sessionStartTime]);
 
-
-  useEffect(() => {
-    if (activeSection === "Activity log" && currentUser && !isPreview) {
-      const fetchLogs = async () => {
-        try {
-          const fetchLogsToken = await currentUser.getIdToken();
-          const response = await fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, {
-            headers: { 'Authorization': `Bearer ${fetchLogsToken}` }
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setActivityLogs(data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch activity logs", error);
-        }
-      };
-      fetchLogs();
-    }
-  }, [activeSection, currentUser, isPreview]);
 
   useEffect(() => {
     if (activeSection !== "Activity log" || !currentUser || isPreview) {
@@ -471,109 +408,70 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
     let cancelled = false;
 
-    const refreshActivityData = async () => {
+    const fetchData = async () => {
       try {
         const token = await currentUser.getIdToken();
-
-        const [logsRes, projectsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, {
-            headers: { 'Authorization': `Bearer ${activityToken}` }
-          }),
-          fetch(`${API_BASE_URL}/api/projects`, {
-            headers: { 'Authorization': `Bearer ${activityToken}` }
-          })
+        
+        // Use batching/parallelism for initial load
+        const [sessionsRes, projectsRes, ownedTeamsRes, myTeamsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/api/projects`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/api/teams/owned`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/api/teams/mine`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
-        if (!cancelled && logsRes.ok) {
-          const logsData = await logsRes.json();
+        if (cancelled) return;
+
+        if (sessionsRes.ok) {
+          const logsData = await sessionsRes.json();
           setActivityLogs(logsData);
         }
 
-        if (!cancelled && projectsRes.ok) {
+        if (projectsRes.ok) {
           const projects = await projectsRes.json();
-          const myTasks = filterCommitCapableTasks(buildActivityLogTasks(projects), currentUser.uid);
-          setLeaderTasks(myTasks);
+          if (Array.isArray(projects)) {
+            const allTasks = buildActivityLogTasks(projects);
+            const myTasks = filterCommitCapableTasks(allTasks, currentUser.uid);
+            const receivedTasks = myTasks.filter((t: any) => t.assignedBy !== currentUser.uid && t.createdBy !== currentUser.uid);
+            setLeaderTasks(receivedTasks);
+          }
         }
+
+        if (ownedTeamsRes.ok) {
+          const teamsData = await ownedTeamsRes.json();
+          setOwnedTeams(teamsData);
+        }
+
+        if (myTeamsRes.ok) {
+          const myTeamsData = await myTeamsRes.json();
+          setMyTeams(myTeamsData);
+        }
+
+        // Fetch team-member specific sessions if needed
+        if (usersList.length > 0) {
+          const teamSessionsRes = await fetch(`${API_BASE_URL}/api/sessions/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ userIds: usersList.map(u => u.uid) })
+          });
+          if (!cancelled && teamSessionsRes.ok) {
+            const sessions = await teamSessionsRes.json();
+            setTeamSessions(sessions);
+          }
+        }
+
       } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to refresh activity data", error);
-        }
+        if (!cancelled) console.error("Initial analytics fetch failed:", error);
       }
     };
 
-    refreshActivityData();
-    const intervalId = setInterval(refreshActivityData, 10000);
+    fetchData();
+    const intervalId = setInterval(fetchData, 30000); // Throttled to 30s instead of 10s
 
     return () => {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, [activeSection, currentUser, isPreview]);
-
-
-  useEffect(() => {
-    if (activeSection === "Activity log" && currentUser && !isPreview) {
-      const fetchLeaderTasks = async () => {
-        try {
-          const leaderToken = await currentUser.getIdToken();
-          const response = await fetch(`${API_BASE_URL}/api/projects`, {
-            headers: { 'Authorization': `Bearer ${leaderToken}` }
-          });
-          if (response.ok) {
-            const projects = await response.json();
-
-            if (Array.isArray(projects)) {
-              const receivedTasks = filterCommitCapableTasks(buildActivityLogTasks(projects), currentUser.uid)
-                .filter((t: any) => t.assignedBy !== currentUser.uid && t.createdBy !== currentUser.uid);
-              setLeaderTasks(receivedTasks);
-            } else {
-              console.warn("Expected an array of projects, received:", projects);
-              setLeaderTasks([]);
-            }
-          }
-        } catch (error) {
-          console.error("Failed to fetch tasks for activity graph", error);
-        }
-      };
-      fetchLeaderTasks();
-    }
-  }, [activeSection, currentUser, isPreview]);
-
-
-  useEffect(() => {
-    if (activeSection === "Activity log" && currentUser && !isPreview && usersList.length > 0) {
-      const fetchTeamSessions = async () => {
-        try {
-          const token = await currentUser.getIdToken();
-          const userIds = usersList.map(u => u.uid);
-          const response = await fetch(`${API_BASE_URL}/api/sessions/batch`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ userIds })
-          });
-          if (response.ok) {
-            const sessions = await response.json();
-            setTeamSessions(sessions);
-          }
-
-
-          const teamsRes = await fetch(`${API_BASE_URL}/api/teams/owned`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (teamsRes.ok) {
-            const teamsData = await teamsRes.json();
-            setOwnedTeams(teamsData);
-          }
-
-        } catch (error) {
-          console.error("Failed to fetch team sessions or teams", error);
-        }
-      };
-      fetchTeamSessions();
-    }
   }, [activeSection, currentUser, isPreview, usersList]);
 
   const handleDeleteLog = async (logId: string) => {
@@ -657,32 +555,9 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
 
-
       if (user && user.metadata.creationTime === user.metadata.lastSignInTime && !localStorage.getItem("ZYNC_HAS_SEEN_LANDING")) {
         if (location.pathname === '/dashboard') {
           setIsLanding(true);
-        }
-      }
-
-      if (user && !isPreview) {
-
-        try {
-          const token = await user.getIdToken();
-          await fetch(`${API_BASE_URL}/api/users/sync`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName || user.email?.split('@')[0],
-              photoURL: user.photoURL,
-            }),
-          });
-        } catch (error) {
-          console.error("Error syncing user:", error);
         }
       }
     });
@@ -862,7 +737,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
                 users={usersList}
                 teamSessions={teamSessions}
                 currentTeamId={typeof userData?.teamId === 'object' ? userData?.teamId?.id : userData?.teamId}
-                ownedTeams={ownedTeams}
+                ownedTeams={myTeams}
                 currentUserId={currentUser?.uid}
               />
             </div>
