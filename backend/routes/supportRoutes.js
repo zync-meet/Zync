@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { send_ZYNC_email } = require('../services/googleMeet');
+const { sendZyncEmail } = require('../services/mailer');
 const { getSupportNotificationTemplate } = require('../utils/emailTemplates');
 
 
@@ -14,7 +14,7 @@ router.post('/', async (req, res) => {
         }
 
 
-        const recipientsString = process.env.SUPPORT_RECIPIENTS || 'chitukullakshya@gmail.com';
+        const recipientsString = process.env.SUPPORT_RECIPIENTS || 'consolemaster.app@gmail.com';
         const recipients = recipientsString.split(',').map(email => email.trim()).filter(Boolean);
 
         if (recipients.length === 0) {
@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
 
 
         const emailPromises = recipients.map(recipientEmail =>
-            send_ZYNC_email(recipientEmail, subject, htmlContent)
+            sendZyncEmail(recipientEmail, subject, htmlContent)
         );
 
 

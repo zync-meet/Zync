@@ -397,10 +397,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     const heartbeatInterval = setInterval(async () => {
       if (sessionId && auth.currentUser) {
         try {
-          const token = await auth.currentUser.getIdToken();
+          const heartbeatToken = await auth.currentUser.getIdToken();
           const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, {
             method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${heartbeatToken}` }
           });
 
 
@@ -448,9 +448,9 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     if (activeSection === "Activity log" && currentUser && !isPreview) {
       const fetchLogs = async () => {
         try {
-          const token = await currentUser.getIdToken();
+          const fetchLogsToken = await currentUser.getIdToken();
           const response = await fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${fetchLogsToken}` }
           });
           if (response.ok) {
             const data = await response.json();
@@ -477,10 +477,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
         const [logsRes, projectsRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${activityToken}` }
           }),
           fetch(`${API_BASE_URL}/api/projects`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${activityToken}` }
           })
         ]);
 
@@ -515,9 +515,9 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
     if (activeSection === "Activity log" && currentUser && !isPreview) {
       const fetchLeaderTasks = async () => {
         try {
-          const token = await currentUser.getIdToken();
+          const leaderToken = await currentUser.getIdToken();
           const response = await fetch(`${API_BASE_URL}/api/projects`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${leaderToken}` }
           });
           if (response.ok) {
             const projects = await response.json();
