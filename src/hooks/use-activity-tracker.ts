@@ -13,7 +13,7 @@ export const useActivityTracker = () => {
   useEffect(() => {
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
+      if (user && !sessionIdRef.current) {
         try {
           const token = await user.getIdToken();
           const res = await fetch(`${API_BASE_URL}/api/sessions/start`, {
@@ -31,7 +31,7 @@ export const useActivityTracker = () => {
         } catch (e) {
           console.error("Failed to start session:", e);
         }
-      } else {
+      } else if (!user) {
         sessionIdRef.current = null;
       }
     });

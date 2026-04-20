@@ -10,6 +10,10 @@ import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTeamPersistence } from "@/hooks/useTeamPersistence";
+import { TEAM_LOGOS, TeamLogoId, getRandomLogoId } from "@/lib/team-logos";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface CreateTeamDialogProps {
     open: boolean;
@@ -30,9 +34,11 @@ const TEAM_TYPES = [
 export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDialogProps) => {
     const [teamName, setTeamName] = useState("");
     const [teamType, setTeamType] = useState("Product");
+    const [selectedLogoId, setSelectedLogoId] = useState<TeamLogoId>(getRandomLogoId());
     const [invites, setInvites] = useState<{ email: string }[]>([]);
     const [currentInvite, setCurrentInvite] = useState("");
     
+    const { createTeamSync } = useTeamPersistence(auth.currentUser?.uid);
     const queryClient = useQueryClient();
 
     const createTeamMutation = useMutation({
@@ -57,8 +63,19 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
             }
             return data;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             toast.success("Team created successfully!");
+            
+            // Sync to Firestore for persistent analytics
+            if (data.team && auth.currentUser) {
+                createTeamSync(
+                    data.team.id || data.team._id, 
+                    data.team.name, 
+                    auth.currentUser.uid, 
+                    data.team.inviteCode,
+                    selectedLogoId
+                );
+            }
             
             // Invalidate queries to refresh UI
             queryClient.invalidateQueries({ queryKey: ['me', auth.currentUser?.uid] });
@@ -136,6 +153,36 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Team Logo</Label>
+                        <ScrollArea className="h-[200px] w-full rounded-md border border-white/10 p-4 bg-white/5">
+                            <div className="grid grid-cols-6 gap-3">
+                                {TEAM_LOGOS.map((logo) => {
+                                    const Icon = logo.icon;
+                                    return (
+                                        <Button
+                                            key={logo.id}
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className={cn(
+                                                "h-10 w-10 p-0 transition-all hover:bg-white/10",
+                                                selectedLogoId === logo.id ? "bg-white/15 ring-2 ring-white/20" : ""
+                                            )}
+                                            onClick={() => setSelectedLogoId(logo.id)}
+                                            title={logo.label}
+                                        >
+                                            <Icon className={cn(
+                                                "h-5 w-5 transition-colors",
+                                                selectedLogoId === logo.id ? "text-white" : "text-text3"
+                                            )} />
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        </ScrollArea>
                     </div>
 
                     <div className="space-y-2">

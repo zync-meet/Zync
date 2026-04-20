@@ -1,6 +1,6 @@
 import { useIsMobile } from "@/hooks/use-mobile";
-import DesktopView from "@/components/views/DesktopView";
-import MobileView from "@/components/views/MobileView";
+import DesktopView from "@/components/views/layout/DesktopView";
+import MobileView from "@/components/views/layout/MobileView";
 
 const Dashboard = () => {
   const isMobile = useIsMobile();

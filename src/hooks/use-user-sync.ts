@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/utils";
@@ -6,10 +6,12 @@ import { detectLocation } from "@/api/geo";
 
 export const useUserSync = () => {
     const queryClient = useQueryClient();
+    const syncInProgress = useRef(false);
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
-            if (user) {
+            if (user && !syncInProgress.current) {
+                syncInProgress.current = true;
                 const displayName = user.displayName || "";
                 const parts = displayName.trim().split(" ");
                 const firstName = parts[0] || "";
@@ -66,10 +68,11 @@ export const useUserSync = () => {
 
                     // Do not invalidate here — that would force an immediate refetch and defeat local cache.
 
-                } catch (error: unknown) {
-                    console.error("Error syncing user data:", error);
-                    void queryClient.invalidateQueries({ queryKey: ['me'] });
+                } finally {
+                    syncInProgress.current = false;
                 }
+            } else if (!user) {
+                syncInProgress.current = false;
             }
         });
 

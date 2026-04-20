@@ -314,4 +314,37 @@ router.get('/:teamId/details', verifyToken, async (req, res) => {
     }
 });
 
+
+router.patch('/:teamId/transfer-ownership', verifyToken, async (req, res) => {
+    const { teamId } = req.params;
+    const { newOwnerId } = req.body;
+    const uid = req.user.uid;
+
+    if (!newOwnerId) return res.status(400).json({ message: 'New owner ID is required' });
+
+    try {
+        const team = await Team.findById(teamId).lean();
+        if (!team) return res.status(404).json({ message: 'Team not found' });
+
+        if (team.ownerId !== uid) {
+            return res.status(403).json({ message: 'Only the current owner can transfer ownership' });
+        }
+
+        if (!team.members.includes(newOwnerId)) {
+            return res.status(400).json({ message: 'Target user is not a member of this team' });
+        }
+
+        if (newOwnerId === uid) {
+            return res.status(400).json({ message: 'You are already the owner' });
+        }
+
+        await Team.findByIdAndUpdate(teamId, { $set: { ownerId: newOwnerId } });
+
+        res.status(200).json({ message: 'Ownership transferred successfully' });
+    } catch (error) {
+        console.error('Error transferring ownership:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;
