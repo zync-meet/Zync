@@ -347,4 +347,38 @@ router.patch('/:teamId/transfer-ownership', verifyToken, async (req, res) => {
     }
 });
 
+router.patch('/:teamId/name', verifyToken, async (req, res) => {
+    const { teamId } = req.params;
+    const uid = req.user.uid;
+    const nextName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+
+    if (!nextName) {
+        return res.status(400).json({ message: 'Team name is required' });
+    }
+
+    if (nextName.length > 80) {
+        return res.status(400).json({ message: 'Team name must be 80 characters or fewer' });
+    }
+
+    try {
+        const team = await Team.findById(teamId).lean();
+        if (!team) return res.status(404).json({ message: 'Team not found' });
+
+        if (team.ownerId !== uid) {
+            return res.status(403).json({ message: 'Only the team owner can rename the team' });
+        }
+
+        const updated = await Team.findByIdAndUpdate(
+            teamId,
+            { $set: { name: nextName } },
+            { returnDocument: 'after', lean: true }
+        );
+
+        res.status(200).json(normalizeDoc(updated));
+    } catch (error) {
+        console.error('Error renaming team:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

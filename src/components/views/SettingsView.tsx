@@ -922,6 +922,10 @@ export default function SettingsView() {
 function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLoading, setTeamLoading, setUserData }: any) {
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [teamNameDraft, setTeamNameDraft] = useState("");
+  const [renameSaved, setRenameSaved] = useState(false);
+  const teamNameInputRef = useRef<HTMLInputElement>(null);
+  const renameSavedTimerRef = useRef<number | null>(null);
 
   const selectedTeam = teamsData.find((t: any) => (t.id || t._id) === selectedTeamId);
 
@@ -931,6 +935,32 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
       setSelectedTeamId(teamsData[0].id || teamsData[0]._id);
     }
   }, [teamsData, selectedTeamId]);
+
+  useEffect(() => {
+    setTeamNameDraft(selectedTeam?.name || "");
+    setRenameSaved(false);
+  }, [selectedTeamId, selectedTeam?.name]);
+
+  useEffect(() => {
+    if (!selectedTeam || selectedTeam.ownerId !== currentUser?.uid) {
+      return;
+    }
+
+    const focusTimer = window.setTimeout(() => {
+      teamNameInputRef.current?.focus();
+      teamNameInputRef.current?.select();
+    }, 0);
+
+    return () => window.clearTimeout(focusTimer);
+  }, [selectedTeamId, selectedTeam, currentUser?.uid]);
+
+  useEffect(() => {
+    return () => {
+      if (renameSavedTimerRef.current) {
+        window.clearTimeout(renameSavedTimerRef.current);
+      }
+    };
+  }, []);
 
 
   useEffect(() => {
@@ -1131,6 +1161,59 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
     }
   };
 
+  const handleRenameTeam = async (teamId: string) => {
+    if (!currentUser) return;
+    const nextName = teamNameDraft.trim();
+    if (!nextName) {
+      toast({ title: "Invalid Name", description: "Team name cannot be empty.", variant: "destructive" });
+      return;
+    }
+    if (nextName === selectedTeam?.name) {
+      return;
+    }
+
+    if (renameSavedTimerRef.current) {
+      window.clearTimeout(renameSavedTimerRef.current);
+      renameSavedTimerRef.current = null;
+    }
+
+    setActionLoading(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/name`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: nextName })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to rename team');
+      }
+
+      const updatedTeam = await res.json();
+      const updatedId = updatedTeam.id || updatedTeam._id;
+      setTeamsData((prev: any[]) =>
+        prev.map((team: any) => ((team.id || team._id) === updatedId ? { ...team, name: updatedTeam.name } : team))
+      );
+
+      setRenameSaved(true);
+      renameSavedTimerRef.current = window.setTimeout(() => {
+        setRenameSaved(false);
+        renameSavedTimerRef.current = null;
+      }, 2000);
+
+      toast({ title: "Team Updated", description: "Team name changed successfully." });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const copyInviteCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast({ title: "Copied!", description: "Invite code copied to clipboard." });
@@ -1243,6 +1326,27 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
                   </div>
                 </div>
               </div>
+              {selectedTeam.ownerId === currentUser?.uid && (
+                <div className="mt-4 space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Team Name</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      ref={teamNameInputRef}
+                      value={teamNameDraft}
+                      onChange={(e) => setTeamNameDraft(e.target.value)}
+                      placeholder="Enter team name"
+                      maxLength={80}
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => handleRenameTeam(selectedTeam.id || selectedTeam._id)}
+                      disabled={actionLoading || !teamNameDraft.trim() || teamNameDraft.trim() === selectedTeam.name}
+                    >
+                      {renameSaved ? "Saved" : "Save Name"}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
