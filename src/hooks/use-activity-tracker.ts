@@ -14,22 +14,16 @@ export const useActivityTracker = () => {
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && !sessionIdRef.current) {
+        // DesktopView already owns session start.
+        // Reuse the persisted active session to avoid duplicate /sessions/start calls.
         try {
-          const token = await user.getIdToken();
-          const res = await fetch(`${API_BASE_URL}/api/sessions/start`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ userId: user.uid }),
-          });
-          if (res.ok) {
-            const session = await res.json();
-            sessionIdRef.current = session._id;
+          const raw = localStorage.getItem('currentSession');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            sessionIdRef.current = parsed?.id || null;
           }
-        } catch (e) {
-          console.error("Failed to start session:", e);
+        } catch {
+          sessionIdRef.current = null;
         }
       } else if (!user) {
         sessionIdRef.current = null;

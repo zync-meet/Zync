@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { API_BASE_URL } from '@/lib/utils';
+import { API_BASE_URL, SOCKET_BASE_URL } from '@/lib/utils';
 
 
 export interface ActiveUser {
@@ -63,7 +63,7 @@ export const useNotePresence = (
     }
 
     const userColor = getColorForUser(user.uid);
-    const socketUrl = import.meta.env.DEV ? 'http://localhost:5000' : API_BASE_URL;
+    const socketUrl = SOCKET_BASE_URL;
 
 
     console.log('[NotePresence] 🔌 Socket URL:', socketUrl);

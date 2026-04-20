@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { API_BASE_URL } from '@/lib/utils';
+import { SOCKET_BASE_URL } from '@/lib/utils';
 
 export interface TaskEvent {
   projectId: string;
@@ -28,13 +28,13 @@ const joinedProjects = new Set<string>();
 export function connectTaskSocket(userId: string): Socket {
   if (socket?.connected) return socket;
 
-  const socketUrl = import.meta.env.DEV ? 'http://localhost:5000' : API_BASE_URL;
+  const socketUrl = SOCKET_BASE_URL;
 
   socket = io(`${socketUrl}/tasks`, {
     query: { userId },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
-    reconnectionAttempts: Infinity,
+    reconnectionAttempts: 5,
     reconnectionDelay: 1000,
   });
 

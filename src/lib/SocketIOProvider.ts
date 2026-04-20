@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
 import { io, Socket } from 'socket.io-client';
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness';
-import { API_BASE_URL } from '@/lib/utils';
+import { SOCKET_BASE_URL } from '@/lib/utils';
 import { Observable } from 'lib0/observable';
 
 export class SocketIOProvider extends Observable<string> {
@@ -20,10 +20,13 @@ export class SocketIOProvider extends Observable<string> {
       color: user.color || '#3b82f6',
     });
 
-    const socketUrl = import.meta.env.DEV ? "http://localhost:5000" : API_BASE_URL;
+    const socketUrl = SOCKET_BASE_URL;
 
     this.socket = io(`${socketUrl}/notes`, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     this.socket.on('connect', () => {

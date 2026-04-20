@@ -9,8 +9,14 @@ export const useUserSync = () => {
     const syncInProgress = useRef(false);
 
     useEffect(() => {
+        const shouldSyncInDev =
+            String(import.meta.env.VITE_ENABLE_DEV_USER_SYNC || "").toLowerCase() === "true";
+
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user && !syncInProgress.current) {
+                if (import.meta.env.DEV && !shouldSyncInDev) {
+                    return;
+                }
                 syncInProgress.current = true;
                 const displayName = user.displayName || "";
                 const parts = displayName.trim().split(" ");
@@ -68,6 +74,9 @@ export const useUserSync = () => {
 
                     // Do not invalidate here — that would force an immediate refetch and defeat local cache.
 
+                } catch {
+                    // Backend can be temporarily unavailable in local/dev setups.
+                    // Keep UI functional and avoid noisy console errors.
                 } finally {
                     syncInProgress.current = false;
                 }
