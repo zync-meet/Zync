@@ -39,12 +39,12 @@ export const JoinTeamDialog = ({ open, onOpenChange, onSuccess }: JoinTeamDialog
             }
             return data;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             toast.success("Joined team successfully!");
             
             // Sync to Firestore for persistent analytics
             if (auth.currentUser) {
-                joinTeamSync(inviteCode, auth.currentUser.uid);
+                joinTeamSync(data || inviteCode, auth.currentUser.uid);
             }
             
             // Invalidate queries to refresh UI
