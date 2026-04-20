@@ -260,8 +260,8 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, user, onUpdate, className
         />
       )}
 
-      <div className="flex-1 overflow-y-auto bg-zinc-950 scrollbar-thin">
-        <div className="max-w-4xl mx-auto min-h-screen bg-zinc-900 border-x border-zinc-800 shadow-2xl">
+      <div className="flex-1 overflow-y-auto bg-transparent scrollbar-thin">
+        <div className="max-w-4xl mx-auto min-h-screen bg-white/[0.04] border-x border-white/12 backdrop-blur-md shadow-none">
           <div className="px-16 py-12">
             <EditorHeader
               note={note}

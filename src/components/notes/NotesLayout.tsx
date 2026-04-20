@@ -566,7 +566,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   }
 
   return (
-    <div className={cn("flex h-full bg-background overflow-hidden", className)}>
+    <div className={cn("flex h-full bg-transparent overflow-hidden", className)}>
       {/* ═══════════════════════════════════════════════════════════════════
           LEFT PANEL: Notes List (300px fixed)
       ═══════════════════════════════════════════════════════════════════ */}
@@ -705,12 +705,12 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
       {/* ═══════════════════════════════════════════════════════════════════
           RIGHT PANEL: Editor Canvas (Flex-1)
       ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background">
+      <div className="flex-1 flex flex-col min-w-0 bg-transparent">
 
         {selectedNote && user ? (
           <>
             {/* Slim Sticky Top Bar */}
-            <div className="h-12 shrink-0 sticky top-0 z-10 flex items-center justify-between px-4 border-b border-border/50 backdrop-blur-md bg-background/80">
+            <div className="h-12 shrink-0 sticky top-0 z-10 flex items-center justify-between px-4 border-b border-white/10 backdrop-blur-md bg-white/[0.04]">
               {/* Breadcrumbs */}
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
                 {breadcrumb.map((part, i) => (
@@ -794,7 +794,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
             </div>
 
             {/* Editor Canvas - Full height, NoteEditor handles paper styling */}
-            <div className="flex-1 overflow-hidden bg-zinc-950">
+            <div className="flex-1 overflow-hidden bg-transparent">
               <NoteEditor
                 key={selectedNote.id}
                 note={selectedNote}
@@ -806,8 +806,8 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
           </>
         ) : (
           /* Empty State */
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-zinc-950">
-            <div className="mb-6 p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800">
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-transparent">
+            <div className="mb-6 p-6 bg-white/[0.05] rounded-2xl border border-white/12 backdrop-blur-md">
               <FilePenLine size={40} className="text-muted-foreground/50" />
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">No note selected</h3>

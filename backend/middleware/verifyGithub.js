@@ -1,13 +1,21 @@
 const crypto = require('crypto');
 
+const assertGithubWebhookSecretConfigured = () => {
+    const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+    if (process.env.NODE_ENV === 'production' && !webhookSecret) {
+        throw new Error('GITHUB_WEBHOOK_SECRET is required in production');
+    }
+};
+
+assertGithubWebhookSecretConfigured();
+
 const verifyGithub = (req, res, next) => {
     try {
         const signature = req.headers['x-hub-signature-256'];
         const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
 
         if (!WEBHOOK_SECRET) {
-            console.warn("GITHUB_WEBHOOK_SECRET is missing. Webhook signature verification skipped.");
-            return next();
+            return res.status(500).json({ message: 'Webhook secret is not configured' });
         }
 
         if (!signature) {
@@ -22,11 +30,17 @@ const verifyGithub = (req, res, next) => {
         const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
         const digest = 'sha256=' + hmac.update(req.rawBody).digest('hex');
 
-        if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))) {
-            return next();
-        } else {
+        const providedSig = Buffer.from(String(signature));
+        const expectedSig = Buffer.from(String(digest));
+        if (providedSig.length !== expectedSig.length) {
             return res.status(401).json({ message: 'Invalid signature' });
         }
+
+        if (!crypto.timingSafeEqual(providedSig, expectedSig)) {
+            return res.status(401).json({ message: 'Invalid signature' });
+        }
+
+        return next();
     } catch (error) {
         console.error("Webhook Verification Error:", error);
         return res.status(500).json({ message: 'Internal Server Error' });
@@ -34,3 +48,4 @@ const verifyGithub = (req, res, next) => {
 };
 
 module.exports = verifyGithub;
+module.exports.assertGithubWebhookSecretConfigured = assertGithubWebhookSecretConfigured;
