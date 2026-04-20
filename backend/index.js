@@ -2,6 +2,7 @@ const express = require('express');
 require('dotenv').config();
 const mongoose = require('mongoose');
 const cors = require('cors');
+const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const helmet = require('helmet');
@@ -163,7 +164,25 @@ app.use('/api/support', supportRoutes);
 app.use('/api/cache/sample', require('./routes/redisCacheSampleRoutes'));
 app.use('/internal', internalMetricsRoutes);
 
-
+// Production / Render: serve Vite build from repo `dist/` (single process, low memory).
+const distPath = path.join(__dirname, '..', 'dist');
+const distIndexHtml = path.join(distPath, 'index.html');
+if (fs.existsSync(distIndexHtml)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/internal')) {
+      return next();
+    }
+    if (req.method !== 'GET') {
+      return next();
+    }
+    return res.sendFile(distIndexHtml);
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.send('API is running...');
+  });
+}
 
 // ── Database connection with automatic retry ──────────────────────────
 const MONGO_OPTIONS = {
@@ -202,10 +221,6 @@ connectWithRetry();
 // ── Redis connection (non-blocking) ────────────────────────────────────
 const { connectRedis } = require('./utils/redisClient');
 connectRedis();
-
-app.get('/', (req, res) => {
-  res.send('API is running...');
-});
 
 const startServer = (port, retriesLeft = 10) => {
   const onError = (error) => {
