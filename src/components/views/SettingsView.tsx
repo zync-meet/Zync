@@ -549,15 +549,10 @@ export default function SettingsView() {
   };
 
   return (
-    <div className="flex-1 h-full overflow-y-auto bg-background p-6">
+    <div className="flex-1 h-full overflow-y-auto bg-transparent p-6">
       <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-          <p className="text-muted-foreground">Manage your account settings and preferences.</p>
-        </div>
-
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList>
+          <TabsList className="bg-black border border-white/10">
             <TabsTrigger value="profile">My Profile</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
             <TabsTrigger value="preferences">Preferences</TabsTrigger>
@@ -568,7 +563,7 @@ export default function SettingsView() {
 
           {}
           <TabsContent value="profile">
-            <Card>
+            <Card className="bg-white/5 border-white/10 backdrop-blur-md">
               <CardHeader>
                 <CardTitle>Personal Information</CardTitle>
                 <CardDescription>Update your personal details here.</CardDescription>
@@ -699,7 +694,7 @@ export default function SettingsView() {
 
           {}
           <TabsContent value="integrations">
-            <Card>
+            <Card className="bg-white/5 border-white/10 backdrop-blur-md">
               <CardHeader>
                 <CardTitle>Connected Accounts</CardTitle>
                 <CardDescription>Manage your external connections to sync projects.</CardDescription>
@@ -755,7 +750,7 @@ export default function SettingsView() {
 
           {}
           <TabsContent value="preferences">
-            <Card>
+            <Card className="bg-white/5 border-white/10 backdrop-blur-md">
               <CardHeader><CardTitle>App Preferences</CardTitle></CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -789,7 +784,7 @@ export default function SettingsView() {
                 </div>
 
                 {}
-                <Card className="shadow-lg">
+                <Card className="shadow-lg bg-white/5 border-white/10 backdrop-blur-md">
                   <CardHeader>
                     <CardTitle>Get in Touch</CardTitle>
                     <CardDescription>You can reach us anytime</CardDescription>
@@ -825,7 +820,7 @@ export default function SettingsView() {
 
               {}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-muted/30">
+                <Card className="bg-white/5 border-white/10 backdrop-blur-md">
                   <CardContent className="pt-6">
                     <div className="flex flex-col gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -839,7 +834,7 @@ export default function SettingsView() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-muted/30">
+                <Card className="bg-white/5 border-white/10 backdrop-blur-md">
                   <CardContent className="pt-6">
                     <div className="flex flex-col gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -853,7 +848,7 @@ export default function SettingsView() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-muted/30">
+                <Card className="bg-white/5 border-white/10 backdrop-blur-md">
                   <CardContent className="pt-6">
                     <div className="flex flex-col gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -923,6 +918,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [teamNameDraft, setTeamNameDraft] = useState("");
+  const [isEditingTeamName, setIsEditingTeamName] = useState(false);
   const [renameSaved, setRenameSaved] = useState(false);
   const teamNameInputRef = useRef<HTMLInputElement>(null);
   const renameSavedTimerRef = useRef<number | null>(null);
@@ -938,11 +934,12 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
 
   useEffect(() => {
     setTeamNameDraft(selectedTeam?.name || "");
+    setIsEditingTeamName(false);
     setRenameSaved(false);
   }, [selectedTeamId, selectedTeam?.name]);
 
   useEffect(() => {
-    if (!selectedTeam || selectedTeam.ownerId !== currentUser?.uid) {
+    if (!selectedTeam || !isEditingTeamName) {
       return;
     }
 
@@ -952,7 +949,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
     }, 0);
 
     return () => window.clearTimeout(focusTimer);
-  }, [selectedTeamId, selectedTeam, currentUser?.uid]);
+  }, [selectedTeamId, selectedTeam, currentUser?.uid, isEditingTeamName]);
 
   useEffect(() => {
     return () => {
@@ -1163,12 +1160,18 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
 
   const handleRenameTeam = async (teamId: string) => {
     if (!currentUser) return;
-    const nextName = teamNameDraft.trim();
+    const currentName = selectedTeam?.name?.trim() || "";
+    const typedName = teamNameDraft.trim();
+    const nextName = typedName || currentName;
+
     if (!nextName) {
       toast({ title: "Invalid Name", description: "Team name cannot be empty.", variant: "destructive" });
       return;
     }
-    if (nextName === selectedTeam?.name) {
+
+    if (nextName === currentName) {
+      setTeamNameDraft(currentName);
+      setIsEditingTeamName(false);
       return;
     }
 
@@ -1201,6 +1204,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
       );
 
       setRenameSaved(true);
+      setIsEditingTeamName(false);
       renameSavedTimerRef.current = window.setTimeout(() => {
         setRenameSaved(false);
         renameSavedTimerRef.current = null;
@@ -1252,7 +1256,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
           const tid = team.id || team._id;
           const isSelected = selectedTeamId === tid;
           const logoId = team.logoId || getDeterministicLogoId(tid);
-          const { icon: LogoIcon } = getLogoById(logoId);
+          const { icon: LogoIcon, fgColor, bgColor, borderColor } = getLogoById(logoId);
           const isOwner = team.ownerId === currentUser?.uid;
 
           return (
@@ -1266,11 +1270,15 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
             >
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "h-10 w-10 flex items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20",
-                    isSelected ? "bg-blue-500/20" : ""
-                  )}>
-                    <LogoIcon className="h-5 w-5 text-blue-400" />
+                  <div
+                    className="h-10 w-10 flex items-center justify-center rounded-full border"
+                    style={{
+                      color: fgColor,
+                      backgroundColor: isSelected ? bgColor : `${bgColor}CC`,
+                      borderColor
+                    }}
+                  >
+                    <LogoIcon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold truncate max-w-[120px]">{team.name}</p>
@@ -1294,13 +1302,18 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
-                    {(() => {
-                      const lid = selectedTeam.logoId || getDeterministicLogoId(selectedTeam.id);
-                      const { icon: LI } = getLogoById(lid);
-                      return <LI className="h-6 w-6 text-blue-400" />;
-                    })()}
-                  </div>
+                  {(() => {
+                    const lid = selectedTeam.logoId || getDeterministicLogoId(selectedTeam.id);
+                    const { icon: LI, fgColor, bgColor, borderColor } = getLogoById(lid);
+                    return (
+                      <div
+                        className="h-12 w-12 flex items-center justify-center rounded-full border"
+                        style={{ color: fgColor, backgroundColor: bgColor, borderColor }}
+                      >
+                        <LI className="h-6 w-6" />
+                      </div>
+                    );
+                  })()}
                   <div>
                     <CardTitle>{selectedTeam.name}</CardTitle>
                     <CardDescription>{selectedTeam.type} · {selectedTeam.members?.length || 0} member{selectedTeam.members?.length !== 1 ? 's' : ''}</CardDescription>
@@ -1336,14 +1349,29 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
                       onChange={(e) => setTeamNameDraft(e.target.value)}
                       placeholder="Enter team name"
                       maxLength={80}
+                      readOnly={!isEditingTeamName}
                     />
-                    <Button
-                      type="button"
-                      onClick={() => handleRenameTeam(selectedTeam.id || selectedTeam._id)}
-                      disabled={actionLoading || !teamNameDraft.trim() || teamNameDraft.trim() === selectedTeam.name}
-                    >
-                      {renameSaved ? "Saved" : "Save Name"}
-                    </Button>
+                    {isEditingTeamName ? (
+                      <Button
+                        type="button"
+                        onClick={() => handleRenameTeam(selectedTeam.id || selectedTeam._id)}
+                        disabled={actionLoading}
+                      >
+                        Save
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setRenameSaved(false);
+                          setIsEditingTeamName(true);
+                        }}
+                        disabled={actionLoading}
+                      >
+                        {renameSaved ? "Saved" : "Edit"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
