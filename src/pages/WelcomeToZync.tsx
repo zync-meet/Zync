@@ -13,7 +13,7 @@ import {
   StickyNote,
 } from 'lucide-react';
 import { auth } from '@/lib/firebase';
-import { markWelcomeComplete } from '@/lib/postLoginRedirect';
+import { markWelcomeComplete, postLoginRedirect } from '@/lib/postLoginRedirect';
 
 const features = [
   {
@@ -53,7 +53,10 @@ const WelcomeToZync = () => {
         return onAuthStateChanged(auth, (u) => {
             if (!u) {
                 navigate('/login', { replace: true });
+                return;
             }
+            // Guard route: existing users should not stay on /welcome.
+            void postLoginRedirect(navigate, u);
         });
     }, [navigate]);
 

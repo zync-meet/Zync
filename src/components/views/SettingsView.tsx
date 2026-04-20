@@ -15,6 +15,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, Github, AlertTriangle, Check, ChevronsUpDown, Mail, Headphones, MessageSquare, Newspaper, UserMinus, Trash2, Copy, LogOut, Crown, Users } from "lucide-react";
 import { cn, API_BASE_URL, getFullUrl } from "@/lib/utils";
+import { getLogoById, getDeterministicLogoId } from "@/lib/team-logos";
 import {
   Command,
   CommandEmpty,
@@ -920,6 +921,16 @@ export default function SettingsView() {
 
 function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLoading, setTeamLoading, setUserData }: any) {
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+
+  const selectedTeam = teamsData.find((t: any) => (t.id || t._id) === selectedTeamId);
+
+  // Auto-select first team when data loads
+  useEffect(() => {
+    if (teamsData.length > 0 && !selectedTeamId) {
+      setSelectedTeamId(teamsData[0].id || teamsData[0]._id);
+    }
+  }, [teamsData, selectedTeamId]);
 
 
   useEffect(() => {
@@ -1060,10 +1071,59 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
 
       toast({ title: "Team Deleted", description: "The team has been permanently deleted." });
       setTeamsData((prev: any[]) => prev.filter(t => t.id !== teamId));
+      if (selectedTeamId === teamId) {
+        setSelectedTeamId(null);
+      }
       setUserData((prev: any) => ({
         ...prev,
         teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamId) || []
       }));
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleTransferOwnership = async (teamId: string, newOwnerId: string) => {
+    if (!currentUser) return;
+    const team = teamsData.find((t: any) => t.id === teamId);
+    const member = team?.memberDetails?.find((m: any) => m.uid === newOwnerId);
+    
+    if (!window.confirm(`Are you sure you want to transfer ownership to ${member?.displayName || 'this member'}? You will lose owner permissions.`)) {
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/transfer-ownership`, {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newOwnerId })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to transfer ownership');
+      }
+
+      toast({ title: "Ownership Transferred", description: "Successfully updated the team leader." });
+      
+      // Update local state
+      setTeamsData((prev: any[]) => prev.map(t => 
+        t.id === teamId ? { 
+          ...t, 
+          ownerId: newOwnerId,
+          memberDetails: t.memberDetails.map((m: any) => ({
+            ...m,
+            isOwner: m.uid === newOwnerId
+          }))
+        } : t
+      ));
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -1102,126 +1162,193 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
   }
 
   return (
-    <div className="space-y-8">
-      {teamsData.map((team: any) => {
-        const isOwner = team.ownerId === currentUser?.uid;
-        return (
-          <div key={team.id} className="space-y-6">
-            {/* Team Info Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>{team.name}</CardTitle>
-                    <CardDescription>{team.type} · {team.members?.length || 0} member{team.members?.length !== 1 ? 's' : ''}</CardDescription>
-                  </div>
-                  {isOwner && (
-                    <Badge variant="secondary" className="gap-1">
-                      <Crown className="h-3 w-3" />
-                      Owner
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
+    <div className="space-y-6">
+      {/* Team Selector Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {teamsData.map((team: any) => {
+          const tid = team.id || team._id;
+          const isSelected = selectedTeamId === tid;
+          const logoId = team.logoId || getDeterministicLogoId(tid);
+          const { icon: LogoIcon } = getLogoById(logoId);
+          const isOwner = team.ownerId === currentUser?.uid;
+
+          return (
+            <Card 
+              key={tid}
+              className={cn(
+                "cursor-pointer transition-all hover:bg-muted/50 border-white/5",
+                isSelected ? "ring-2 ring-primary bg-muted/40" : "bg-card/40"
+              )}
+              onClick={() => setSelectedTeamId(tid)}
+            >
+              <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="space-y-1 flex-1">
-                    <Label className="text-xs text-muted-foreground">Invite Code</Label>
-                    <div className="flex items-center gap-2">
-                      <code className="px-3 py-1.5 rounded-md bg-muted text-sm font-mono tracking-wider">{team.inviteCode}</code>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyInviteCode(team.inviteCode)}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  <div className={cn(
+                    "h-10 w-10 flex items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20",
+                    isSelected ? "bg-blue-500/20" : ""
+                  )}>
+                    <LogoIcon className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate max-w-[120px]">{team.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{isOwner ? "Owner" : "Member"}</p>
                   </div>
                 </div>
+                <div className={cn(
+                  "h-4 w-4 rounded-full border-2 border-primary/20",
+                  isSelected ? "bg-primary border-primary" : ""
+                )} />
               </CardContent>
             </Card>
+          );
+        })}
+      </div>
 
-            {/* Members Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Members</CardTitle>
-                <CardDescription>
-                  {isOwner ? "Manage your team members." : "View team members."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {team.memberDetails?.map((member: any) => (
-                  <div key={member.uid} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+      {selectedTeam ? (
+        <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+          {/* Team Info Card */}
+          <Card className="bg-card/60 backdrop-blur-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    {(() => {
+                      const lid = selectedTeam.logoId || getDeterministicLogoId(selectedTeam.id);
+                      const { icon: LI } = getLogoById(lid);
+                      return <LI className="h-6 w-6 text-blue-400" />;
+                    })()}
+                  </div>
+                  <div>
+                    <CardTitle>{selectedTeam.name}</CardTitle>
+                    <CardDescription>{selectedTeam.type} · {selectedTeam.members?.length || 0} member{selectedTeam.members?.length !== 1 ? 's' : ''}</CardDescription>
+                  </div>
+                </div>
+                {selectedTeam.ownerId === currentUser?.uid && (
+                  <Badge variant="secondary" className="gap-1 bg-amber-500/10 text-amber-500 border-amber-500/20 py-1">
+                    <Crown className="h-3 w-3" />
+                    Owner
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <div className="space-y-1.5 flex-1">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Invite Code</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="px-4 py-2 rounded-lg bg-black/40 text-sm font-mono tracking-widest text-blue-400 border border-white/5">{selectedTeam.inviteCode}</code>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-white/10" onClick={() => copyInviteCode(selectedTeam.inviteCode)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Members Card */}
+          <Card className="bg-card/60 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg">Members Management</CardTitle>
+              <CardDescription>
+                {selectedTeam.ownerId === currentUser?.uid ? "Manage authority and participation." : "View team collaborators."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {selectedTeam.memberDetails?.map((member: any) => {
+                const isMemberOwner = member.uid === selectedTeam.ownerId;
+                const isYou = member.uid === currentUser?.uid;
+                const amITheOwner = selectedTeam.ownerId === currentUser?.uid;
+
+                return (
+                  <div key={member.uid} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
+                      <Avatar className="h-10 w-10 border border-white/10 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
                         <AvatarImage src={member.photoURL ? getFullUrl(member.photoURL) : undefined} />
-                        <AvatarFallback className="text-xs">
+                        <AvatarFallback className="text-xs bg-slate-800 text-white font-bold">
                           {member.displayName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium flex items-center gap-1.5">
-                          {member.displayName}
-                          {member.isOwner && (
-                            <Crown className="h-3.5 w-3.5 text-amber-500" />
+                        <p className="text-sm font-bold flex items-center gap-2">
+                          {member.displayName} {isYou && <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">You</span>}
+                          {isMemberOwner && (
+                            <Crown className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />
                           )}
                         </p>
                         <p className="text-xs text-muted-foreground">{member.email}</p>
                       </div>
                     </div>
 
-                    {isOwner && !member.isOwner && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleRemoveMember(team.id, member.uid)}
-                        disabled={actionLoading}
-                      >
-                        <UserMinus className="h-4 w-4 mr-1" />
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Danger Zone / Leave */}
-            <Card className={isOwner ? "border-destructive/50" : ""}>
-              <CardHeader>
-                <CardTitle className={isOwner ? "text-destructive" : ""}>{isOwner ? "Danger Zone" : "Team Actions"}</CardTitle>
-                <CardDescription>
-                  {isOwner
-                    ? "Permanently delete this team and remove all members."
-                    : "Leave this team to stop receiving updates and lose access to team resources."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isOwner ? (
-                  <div className="space-y-4">
-                    <div className="bg-destructive/10 p-4 rounded-md text-sm text-destructive font-medium border border-destructive/20">
-                      <AlertTriangle className="w-4 h-4 inline mr-2" />
-                      Deleting the team will remove all members and cannot be undone.
+                    <div className="flex items-center gap-1">
+                      {amITheOwner && !isMemberOwner && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-[10px] hover:bg-amber-500/10 hover:text-amber-500 text-text3 font-bold"
+                            onClick={() => handleTransferOwnership(selectedTeam.id, member.uid)}
+                            disabled={actionLoading}
+                          >
+                            Transfer Ownership
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => handleRemoveMember(selectedTeam.id, member.uid)}
+                            disabled={actionLoading}
+                            title="Remove from team"
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
-                    <Button variant="destructive" onClick={() => handleDeleteTeam(team.id)} disabled={actionLoading}>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      {actionLoading ? "Deleting..." : "Delete Team"}
-                    </Button>
                   </div>
-                ) : (
-                  <Button variant="outline" onClick={() => handleLeaveTeam(team.id)} disabled={actionLoading}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {actionLoading ? "Leaving..." : "Leave Team"}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+                );
+              })}
+            </CardContent>
+          </Card>
 
-            {/* Separator between teams */}
-            {teamsData.indexOf(team) < teamsData.length - 1 && (
-              <div className="border-t border-border my-2" />
-            )}
-          </div>
-        );
-      })}
+          {/* Danger Zone / Leave */}
+          <Card className={cn("bg-card/60 backdrop-blur-sm", selectedTeam.ownerId === currentUser?.uid ? "border-destructive/30 bg-destructive/5" : "")}>
+            <CardHeader>
+              <CardTitle className={cn("flex items-center gap-2", selectedTeam.ownerId === currentUser?.uid ? "text-destructive" : "")}>
+                {selectedTeam.ownerId === currentUser?.uid ? <AlertTriangle className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
+                {selectedTeam.ownerId === currentUser?.uid ? "Danger Zone" : "Leave Team"}
+              </CardTitle>
+              <CardDescription>
+                {selectedTeam.ownerId === currentUser?.uid
+                  ? "Permanently delete this team and wipe all associated data."
+                  : "Remove yourself from this workspace and lose access."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {selectedTeam.ownerId === currentUser?.uid ? (
+                <div className="space-y-4">
+                  <p className="text-xs text-destructive/80 font-medium">
+                    This action is destructive and cannot be undone. All project mappings for this team will be lost.
+                  </p>
+                  <Button variant="destructive" onClick={() => handleDeleteTeam(selectedTeam.id)} disabled={actionLoading} className="font-bold shadow-lg shadow-destructive/20">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {actionLoading ? "Processing..." : "Wipe Team Data"}
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={() => handleLeaveTeam(selectedTeam.id)} disabled={actionLoading} className="border-white/10 hover:bg-destructive/10 hover:text-destructive font-bold transition-all">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {actionLoading ? "Leaving..." : "Leave Workspace"}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <Card className="h-[200px] flex items-center justify-center bg-card/40 border-dashed">
+          <p className="text-muted-foreground text-sm">Select a team to view and manage settings.</p>
+        </Card>
+      )}
     </div>
   );
 }

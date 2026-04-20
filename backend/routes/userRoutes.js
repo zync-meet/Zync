@@ -19,6 +19,54 @@ const { checkPassword } = require('../services/haveIBeenPwnedService');
 const { resolveIp } = require('../services/geoService');
 const cache = require('../utils/cache');
 
+const getNewUserAlertRecipients = () => {
+  const recipients = process.env.NEW_USER_ALERT_RECIPIENTS || process.env.SUPPORT_RECIPIENTS || '';
+  return recipients
+    .split(',')
+    .map(r => r.trim())
+    .filter(Boolean);
+};
+
+const wasUserInsertedFromUpsertResult = (result) => {
+  const lastErrorObject = result?.lastErrorObject;
+  if (!lastErrorObject) return false;
+
+  if (Object.prototype.hasOwnProperty.call(lastErrorObject, 'upserted')) {
+    return Boolean(lastErrorObject.upserted);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(lastErrorObject, 'updatedExisting')) {
+    return lastErrorObject.updatedExisting === false;
+  }
+
+  return false;
+};
+
+const dispatchNewUserNotifications = ({ displayName, email, uid }) => {
+  const recipients = getNewUserAlertRecipients();
+
+  if (recipients.length === 0) {
+    console.warn('[SYNC] NEW_USER_ALERT_RECIPIENTS/SUPPORT_RECIPIENTS not configured; skipping admin email notification');
+  } else {
+    sendZyncEmail(
+      recipients.join(','),
+      '🚀 New User Joined ZYNC!',
+      getNewUserRegistrationTemplate({
+        name: displayName || 'N/A',
+        email,
+        uid
+      }),
+      `New User Alert! Name: ${displayName || 'N/A'}, Email: ${email}`
+    ).catch(err => console.error('Failed to send admin notification:', err));
+  }
+
+  appendRow(
+    displayName || 'N/A',
+    email,
+    new Date().toISOString()
+  ).catch(err => console.error('Failed to log user to Google Sheets:', err));
+};
+
 
 const sendVerificationEmail = async (email, code) => {
   return sendZyncEmail(
@@ -76,6 +124,10 @@ router.post('/sync', verifyToken, async (req, res) => {
   const { uid: bodyUid, email, displayName, photoURL, phoneNumber, firstName, lastName, timezone } = req.body;
   const uid = req.user.uid;
 
+  if (bodyUid && bodyUid !== uid) {
+    return res.status(403).json({ message: 'Unauthorized: UID mismatch' });
+  }
+
   try {
     let finalDisplayName = displayName;
     if (!finalDisplayName && email) {
@@ -107,42 +159,31 @@ router.post('/sync', verifyToken, async (req, res) => {
           phoneNumber: phoneNumber || null,
           status: 'online',
           lastSeen: new Date(),
-          createdAt: new Date()
+          createdAt: new Date(),
+          welcomeNotificationSent: true
         }
       },
-      { upsert: true, returnDocument: 'after', lean: true }
+      {
+        upsert: true,
+        returnDocument: 'after',
+        lean: true,
+        includeResultMetadata: true,
+        rawResult: true,
+        setDefaultsOnInsert: true
+      }
     );
 
-    const user = result.value || result;
+    const user = result?.value || result;
+    const isNewUserInsert = wasUserInsertedFromUpsertResult(result);
 
-    // Idempotent welcome notifications
-    if (!user.welcomeNotificationSent) {
-      const claim = await User.updateOne(
-        { uid, welcomeNotificationSent: { $ne: true } },
-        { $set: { welcomeNotificationSent: true } }
-      );
-
-      if (claim.modifiedCount > 0) {
-        console.log(`[SYNC] Sending welcome notifications for user: ${uid} (${email})`);
-        
-        // Fire-and-forget: don't block response on external notifications
-        sendZyncEmail(
-          'consolemaster.app@gmail.com',
-          '🚀 New User Joined ZYNC!',
-          getNewUserRegistrationTemplate({
-            name: finalDisplayName || 'N/A',
-            email: email,
-            uid: uid
-          }),
-          `New User Alert! Name: ${finalDisplayName || 'N/A'}, Email: ${email}`
-        ).catch(err => console.error("Failed to send admin notification:", err));
-
-        appendRow(
-          finalDisplayName || 'N/A',
-          email,
-          new Date().toISOString()
-        ).catch(err => console.error('Failed to log user to Google Sheets:', err));
-      }
+    if (isNewUserInsert) {
+      console.log(`[SYNC] Sending welcome notifications for newly inserted user: ${uid} (${email})`);
+      // Fire-and-forget: don't block response on external notifications
+      dispatchNewUserNotifications({
+        displayName: finalDisplayName,
+        email,
+        uid
+      });
     }
 
     // Fire-and-forget: enrich location from IP if country is missing

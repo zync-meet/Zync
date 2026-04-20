@@ -3,6 +3,13 @@ import Chart from 'chart.js/auto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Calendar,
     CheckSquare,
     ChevronDown,
@@ -21,21 +28,24 @@ import {
     endOfMonth,
     subMonths,
 } from 'date-fns';
+import { useTaskPersistence } from '@/hooks/useTaskPersistence';
+import { useTeamPersistence } from '@/hooks/useTeamPersistence';
+import { getLogoById, getDeterministicLogoId } from '@/lib/team-logos';
 
 /** Design tokens — Activity Log page only */
 const T = {
-    bgBase: '#060b14',
-    bgCard: '#0d1421',
-    bgSurface: '#101b2e',
-    border: '#1c2a3f',
-    blue: '#1a8fd1',
-    green: '#22c55e',
-    orange: '#fb923c',
+    bgBase: '#020617', // Deep slate/black
+    bgCard: 'rgba(15, 23, 42, 0.65)',
+    bgSurface: 'rgba(30, 41, 59, 0.4)',
+    border: 'rgba(255, 255, 255, 0.08)',
+    blue: '#3b82f6',
+    green: '#10b981',
+    orange: '#f59e0b',
     red: '#ef4444',
-    text1: '#f0f6ff',
-    text2: '#8da2b8',
-    text3: '#3a5a78',
-    purple: '#a855f7',
+    text1: '#f8fafc',
+    text2: '#94a3b8',
+    text3: '#475569',
+    purple: '#8b5cf6',
     pink: '#ec4899',
 } as const;
 
@@ -43,6 +53,7 @@ const FONT_LINK_ID = 'activity-log-dm-fonts';
 
 interface ActivityLog {
     _id: string;
+    userId: string;
     startTime: string;
     endTime: string;
     duration?: number;
@@ -142,6 +153,7 @@ interface FeedItem {
     tag: FeedTag;
     iconBg: string;
     onDelete?: () => void;
+    logoId?: string;
 }
 
 const tagStyles: Record<FeedTag, { bg: string; text: string }> = {
@@ -159,11 +171,51 @@ export default function ActivityLogView({
     handleClearLogs,
     handleDeleteLog,
     tasks = [],
+    users = [],
+    teamSessions = [],
+    currentTeamId,
+    ownedTeams = [],
     currentUserId,
 }: ActivityLogViewProps) {
+    const { myTeams, loading: teamsLoading } = useTeamPersistence(currentUserId);
+
+    // Merge API teams and Firestore teams
+    const allTeams = useMemo(() => {
+        const map = new Map();
+        ownedTeams.forEach(t => map.set(t.id || t._id, { id: t.id || t._id, name: t.name, leaderId: t.leaderId || currentUserId }));
+        myTeams.forEach(t => map.set(t.id, t));
+        return Array.from(map.values());
+    }, [ownedTeams, myTeams, currentUserId]);
+
+    const isLeader = (ownedTeams && ownedTeams.length > 0) || myTeams.some(t => t.leaderId === currentUserId);
+    const [selectedTeamId, setSelectedTeamId] = useState<string>(currentTeamId || 'all');
+    const [selectedUserId, setSelectedUserId] = useState<string>(currentUserId || 'all');
+
     const [searchQuery, setSearchQuery] = useState('');
     const [showAllLogs, setShowAllLogs] = useState(false);
-    const [projectAnalyticsThisMonth, setProjectAnalyticsThisMonth] = useState(false);
+    const [taskAnalyticsThisMonth, setTaskAnalyticsThisMonth] = useState(false);
+
+    useEffect(() => {
+        if (currentTeamId) {
+            setSelectedTeamId(currentTeamId);
+        } else if (selectedTeamId === 'all' && allTeams.length > 0) {
+            setSelectedTeamId(allTeams[0].id);
+        }
+    }, [currentTeamId, allTeams]);
+
+    // Persistence for task progress
+    const { stats: persistedStats, saveStats } = useTaskPersistence(selectedUserId === 'all' ? undefined : selectedUserId);
+
+    const activeUser = useMemo(() => {
+        if (selectedUserId === 'all') return null;
+        const found = users.find(u => u.uid === selectedUserId);
+        if (found) return found;
+        if (selectedUserId === currentUserId) {
+            // Fallback to minimal current user info if not in users list
+            return { uid: currentUserId, displayName: 'You', photoURL: null };
+        }
+        return null;
+    }, [selectedUserId, users, currentUserId]);
 
     const doughnutCanvasRef = useRef<HTMLCanvasElement>(null);
     const barCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -183,9 +235,9 @@ export default function ActivityLogView({
     }, []);
 
     const taskList = useMemo(() => {
-        return (tasks ?? []).filter((task: any) => {
-            const assignedTo = task?.assignedTo;
-            const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+        let baseTasks = tasks ?? [];
+        
+        return baseTasks.filter((task: any) => {
             const hasRepoLink = Boolean(
                 task?.githubRepoOwner ||
                 task?.githubRepoName ||
@@ -193,18 +245,124 @@ export default function ActivityLogView({
                 (Array.isArray(task?.repoIds) && task.repoIds.length > 0)
             );
             const hasCommitCode = Boolean(task?.commitCode);
-            const isCurrentUserTask = currentUserId && (assignedTo === currentUserId || assignedUserIds.includes(currentUserId));
-            return hasRepoLink && hasCommitCode && Boolean(isCurrentUserTask);
+            if (!hasRepoLink || !hasCommitCode) return false;
+
+            if (selectedTeamId !== 'all') {
+                // Check if the user is a member of the selected team
+                const isMemberOfSelectedTeam = users.find(u => u.uid === selectedUserId)?.teamId === selectedTeamId; // Fallback
+                
+                const assignedTo = task?.assignedTo;
+                const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+                
+                // If filtering by specific user, check if they match
+                if (selectedUserId !== 'all') {
+                    return assignedTo === selectedUserId || assignedUserIds.includes(selectedUserId);
+                }
+
+                // If filtering by specific team, check if assigned users are in that team
+                const isUserInTeam = (uid: string) => {
+                    const u = users.find(usr => usr.uid === uid);
+                    return u?.teamMemberships?.includes(selectedTeamId);
+                };
+
+                return isUserInTeam(assignedTo) || assignedUserIds.some(isUserInTeam);
+            }
+
+            // Default (no filter or current user only if not leader)
+            if (!isLeader) {
+                const assignedTo = task?.assignedTo;
+                const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+                return currentUserId && (assignedTo === currentUserId || assignedUserIds.includes(currentUserId));
+            }
+
+            return true;
         });
-    }, [tasks, currentUserId]);
+    }, [tasks, currentUserId, isLeader, selectedTeamId, selectedUserId, users]);
+
+    const dailyStats = useMemo(() => {
+        const subjectSessions = (selectedUserId === 'all' 
+            ? (selectedTeamId === 'all' 
+                ? teamSessions 
+                : teamSessions.filter(s => {
+                    const u = users.find(user => user.uid === s.userId);
+                    const t = allTeams.find(team => team.id === selectedTeamId);
+                    return u?.teamMemberships?.includes(selectedTeamId) || t?.members?.includes(s.userId);
+                })
+              )
+            : teamSessions.filter(s => s.userId === selectedUserId)
+        );
+
+        const totalSecs = subjectSessions.reduce((acc, s) => acc + (s.activeDuration || 0), 0);
+        const uniqueDays = new Set(subjectSessions.map(s => new Date(s.startTime).toDateString())).size || 1;
+        const avgSecsPerDay = totalSecs / uniqueDays;
+        
+        return {
+            avgMins: Math.round(avgSecsPerDay / 60),
+            totalDays: uniqueDays
+        };
+    }, [selectedUserId, selectedTeamId, teamSessions, users, allTeams]);
 
     const taskStats = useMemo(() => {
+        // If we have persisted stats for a selected member, use those (since we might not have their full task list)
+        if (selectedUserId !== 'all' && selectedUserId !== currentUserId && persistedStats) {
+            return persistedStats;
+        }
+
         const total = taskList.length;
-        const inProgress = taskList.filter(isInProgressTask).length;
-        const completed = taskList.filter(isCompletedTask).length;
-        const overdue = taskList.filter(isOverdueTask).length;
-        return { total, inProgress, completed, overdue };
-    }, [taskList]);
+        const completedCount = taskList.filter(isCompletedTask).length;
+        
+        const hasAnyCommit = taskList.some(t => Boolean(
+            (t as any).commitUrl || 
+            (t as any).commitMessage || 
+            (t as any).commitInfo?.message
+        ));
+        const inProgress = hasAnyCommit ? 1 : 0;
+        const efficiency = total ? Math.round((completedCount / total) * 100) : 0;
+
+        return { 
+            total, 
+            inProgress, 
+            completed: completedCount, 
+            overdue: persistedStats?.overdue || 0,
+            efficiency,
+            dailyActiveAvg: dailyStats.avgMins
+        };
+    }, [taskList, persistedStats, selectedUserId, currentUserId, dailyStats.avgMins]);
+
+    const totalActiveSeconds = useMemo(() => {
+        const list = selectedUserId === 'all' 
+            ? (selectedTeamId === 'all' ? teamSessions : teamSessions.filter(s => {
+                const u = users.find(usr => usr.uid === s.userId);
+                const t = allTeams.find(team => team.id === selectedTeamId);
+                return u?.teamMemberships?.includes(selectedTeamId) || t?.members?.includes(s.userId);
+              }))
+            : teamSessions.filter(s => s.userId === selectedUserId);
+        
+        let total = list.reduce((acc, s) => acc + (s.activeDuration || 0), 0);
+        
+        // Add current elapsed time if viewing self or a team which self is a member of
+        const isSelfInSelection = selectedUserId === currentUserId || (selectedUserId === 'all' && (selectedTeamId === 'all' || users.find(u => u.uid === currentUserId)?.teamMemberships?.includes(selectedTeamId) || allTeams.find(t => t.id === selectedTeamId)?.members?.includes(currentUserId)));
+        if (isSelfInSelection) {
+            const [h, m] = elapsedTime.split(':').map(val => parseInt(val) || 0);
+            total += (h * 3600 + m * 60);
+        }
+        return total;
+    }, [selectedUserId, selectedTeamId, teamSessions, users, allTeams, currentUserId, elapsedTime]);
+
+    // Sync stats to Firestore for current user
+    useEffect(() => {
+        if (selectedUserId !== 'all' && selectedUserId === currentUserId) {
+            saveStats({
+                total: taskStats.total,
+                inProgress: taskStats.inProgress,
+                completed: taskStats.completed,
+                overdue: taskStats.overdue,
+                efficiency: taskStats.efficiency,
+                dailyActiveAvg: taskStats.dailyActiveAvg
+            });
+        }
+    }, [taskStats.total, taskStats.inProgress, taskStats.completed, taskStats.efficiency, taskStats.dailyActiveAvg, selectedUserId, currentUserId]);
+
 
     const totalTasksDelta = useMemo(() => {
         const w = 7 * 24 * 60 * 60 * 1000;
@@ -274,6 +432,8 @@ export default function ActivityLogView({
         const out: FeedItem[] = [];
 
         activityLogs.forEach((log, logIndex) => {
+            if (selectedUserId !== 'all' && log.userId !== selectedUserId) return;
+            
             const start = new Date(log.startTime);
             const end = new Date(log.endTime);
             const dur = log.duration ?? Math.round((end.getTime() - start.getTime()) / 1000);
@@ -319,15 +479,46 @@ export default function ActivityLogView({
             out.push({
                 id: `log-${log._id ?? logIndex}`,
                 sortTime: start.getTime(),
-                actor: 'You',
+                actor: log.actorName || (log.userId === currentUserId ? 'You' : users.find(u => u.uid === log.userId)?.displayName || 'Member'),
                 entity: `Session · ${Math.max(1, Math.round(dur / 60))} min`,
                 timeLabel: formatDistanceToNow(start, { addSuffix: true }),
                 source: 'Activity',
                 tag: 'Session',
                 iconBg: T.bgSurface,
-                onDelete: () => handleDeleteLog(log._id),
+                onDelete: log.userId === currentUserId ? () => handleDeleteLog(log._id) : undefined,
             });
         });
+
+        // If leader, add team sessions to the feed
+        if (isLeader && Array.isArray(teamSessions)) {
+            teamSessions.forEach((session, idx) => {
+                if (selectedUserId !== 'all' && session.userId !== selectedUserId) return;
+                
+                // Skip if session is already in activityLogs (though unlikely to overlap perfectly)
+                if (activityLogs.some(al => al.startTime === session.startTime && al.userId === session.userId)) return;
+                
+                const start = new Date(session.startTime);
+                const end = new Date(session.endTime);
+                const dur = session.activeDuration ?? Math.round((end.getTime() - start.getTime()) / 1000);
+                const member = users.find(u => u.uid === session.userId);
+                
+                // Get logo from team
+                const team = allTeams.find(t => t.id === selectedTeamId);
+                const logoId = team?.logoId || getDeterministicLogoId(selectedTeamId || 'default');
+
+                out.push({
+                    id: `team-session-${session._id || idx}`,
+                    sortTime: start.getTime(),
+                    actor: member?.displayName || 'Member',
+                    entity: `Session · ${Math.max(1, Math.round(dur / 60))} min`,
+                    timeLabel: formatDistanceToNow(start, { addSuffix: true }),
+                    source: 'Team Activity',
+                    tag: 'Session',
+                    iconBg: T.bgSurface,
+                    logoId: logoId
+                });
+            });
+        }
 
         taskList.forEach((t) => {
             const ci = (t as any).commitInfo;
@@ -379,7 +570,7 @@ export default function ActivityLogView({
 
         out.sort((a, b) => b.sortTime - a.sortTime);
         return out;
-    }, [activityLogs, taskList, handleDeleteLog]);
+    }, [activityLogs, teamSessions, taskList, selectedUserId, isLeader, users, handleDeleteLog]);
 
     const filteredFeed = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -446,13 +637,13 @@ export default function ActivityLogView({
         }
         barChartRef.current?.destroy();
 
-        const labels = projectAnalyticsThisMonth
+        const labels = taskAnalyticsThisMonth
             ? [thisMonthBar.label]
             : sixMonthBars.map((b) => b.label);
-        const data = projectAnalyticsThisMonth ? [thisMonthBar.minutes] : sixMonthBars.map((b) => b.minutes);
-        const colors = projectAnalyticsThisMonth
+        const data = taskAnalyticsThisMonth ? [thisMonthBar.minutes] : sixMonthBars.map((b) => b.minutes);
+        const colors = taskAnalyticsThisMonth
             ? [T.blue]
-            : sixMonthBars.map((b) => (b.active ? T.blue : T.border));
+            : sixMonthBars.map((b) => (b.active ? T.blue : 'rgba(148, 163, 184, 0.1)'));
 
         barChartRef.current = new Chart(barCanvasRef.current, {
             type: 'bar',
@@ -462,8 +653,9 @@ export default function ActivityLogView({
                     {
                         data,
                         backgroundColor: colors,
-                        borderRadius: 8,
+                        borderRadius: 6,
                         borderSkipped: false,
+                        barThickness: 32,
                     },
                 ],
             },
@@ -472,25 +664,32 @@ export default function ActivityLogView({
                 maintainAspectRatio: false,
                 scales: {
                     x: {
-                        grid: { display: false, color: T.border },
-                        ticks: { color: T.text2, font: { family: 'DM Sans', size: 11 } },
+                        grid: { display: false },
+                        ticks: { color: T.text2, font: { family: 'DM Sans', size: 10 } },
                     },
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(28,42,63,0.6)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.03)' },
                         ticks: {
                             color: T.text3,
-                            font: { family: 'DM Mono', size: 10 },
+                            font: { family: 'DM Mono', size: 9 },
                             callback: (v: any) => `${v}m`,
                         },
                     },
                 },
                 plugins: {
                     legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { family: 'DM Sans' },
+                        bodyFont: { family: 'DM Mono' },
+                        padding: 10,
+                        cornerRadius: 8,
+                    }
                 },
                 animation: {
-                    duration: 900,
-                    easing: 'easeInOutQuart' as const,
+                    duration: 1000,
+                    easing: 'easeOutQuart' as const,
                 },
             },
         });
@@ -498,7 +697,7 @@ export default function ActivityLogView({
             barChartRef.current?.destroy();
             barChartRef.current = null;
         };
-    }, [projectAnalyticsThisMonth, sixMonthBars, thisMonthBar]);
+    }, [taskAnalyticsThisMonth, sixMonthBars, thisMonthBar]);
 
     const dateSubtitle = format(new Date(), 'EEEE, MMMM d, yyyy');
 
@@ -554,6 +753,167 @@ export default function ActivityLogView({
       `}</style>
 
             <div className="mx-auto max-w-[1400px] px-5 py-6 space-y-6">
+                {/* Activity Summary Premium Card */}
+                <div 
+                    className="al-fade-up rounded-[24px] border p-8 space-y-8 shadow-2xl relative overflow-hidden"
+                    style={{ 
+                        animationDelay: '0.1s', 
+                        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.9) 100%)',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        backdropFilter: 'blur(20px)'
+                    }}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-text1 opacity-80 uppercase tracking-[0.2em] text-[10px] font-bold">
+                            <PlayCircle className="h-4 w-4 text-blue" />
+                            Activity Summary
+                        </div>
+                        <div className="flex items-center gap-4">
+                            {isLeader && (
+                                <div className="flex gap-2">
+                                    <Select value={selectedTeamId} onValueChange={(v) => { setSelectedTeamId(v); setSelectedUserId(currentUserId || 'all'); }}>
+                                        <SelectTrigger className="w-[160px] h-9 bg-white/5 border-white/10 text-[11px] text-text2">
+                                            <SelectValue placeholder="Select Team" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-900 border-white/10 text-text2">
+                                            {allTeams.map(t => {
+                                                const logoId = t.logoId || getDeterministicLogoId(t.id);
+                                                const { icon: LogoIcon } = getLogoById(logoId);
+                                                return (
+                                                    <SelectItem key={t.id} value={t.id} className="cursor-pointer">
+                                                        <div className="flex items-center gap-2">
+                                                            <LogoIcon className="h-3.5 w-3.5 text-blue-400" />
+                                                            <span>{t.name}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                );
+                                            })}
+                                        </SelectContent>
+                                    </Select>
+                                    
+                                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                                        <SelectTrigger className="w-[140px] h-9 bg-white/5 border-white/10 text-[11px] text-text2">
+                                            <SelectValue placeholder="Select Member" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-900 border-white/10 text-text2">
+                                            {users.filter(u => {
+                                                if (selectedTeamId === 'all') return true;
+                                                const team = allTeams.find(t => t.id === selectedTeamId);
+                                                if (!team) return false;
+                                                const isLeaderOfTeam = team.leaderId === u.uid;
+                                                const isMemberOfTeam = team.members?.includes(u.uid);
+                                                const hasMembership = u.teamMemberships?.includes(selectedTeamId) || (u as any).teamId === selectedTeamId;
+                                                return isLeaderOfTeam || isMemberOfTeam || hasMembership;
+                                            }).map(u => (
+                                                <SelectItem key={u.uid} value={u.uid}>{u.displayName || u.email?.split('@')[0]}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-text2">
+                                <Calendar className="h-3.5 w-3.5" />
+                                <span>{new Date().getFullYear()}</span>
+                                <ChevronDown className="h-3 w-3 ml-1" />
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-white/10 text-text2">
+                                <span className="text-xl leading-none">···</span>
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pt-4">
+                        <div className="flex items-center gap-4">
+                            <div className="h-16 w-16 rounded-[20px] overflow-hidden border-2 border-blue/30 shadow-[0_0_20px_rgba(59,130,246,0.15)] bg-slate-900 flex items-center justify-center p-3">
+                                {selectedUserId !== 'all' ? (
+                                    activeUser?.photoURL ? (
+                                        <img 
+                                            src={activeUser.photoURL} 
+                                            alt="Profile" 
+                                            className="h-full w-full object-cover rounded-[12px]"
+                                        />
+                                    ) : (
+                                        <div className="h-full w-full flex items-center justify-center text-2xl font-bold bg-gradient-to-br from-blue to-purple text-white rounded-[12px]">
+                                            {(activeUser?.displayName || 'Z').charAt(0)}
+                                        </div>
+                                    )
+                                ) : (
+                                    (() => {
+                                        const team = allTeams.find(t => t.id === selectedTeamId);
+                                        const logoId = team?.logoId || getDeterministicLogoId(selectedTeamId || 'default');
+                                        const { icon: LogoIcon } = getLogoById(logoId);
+                                        return <LogoIcon className="h-8 w-8 text-blue-400" />;
+                                    })()
+                                )}
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-text1">
+                                    {selectedUserId === 'all' 
+                                        ? (selectedTeamId === 'all' ? 'Organization Overview' : `${allTeams.find(t => t.id === selectedTeamId)?.name || 'Team'} Overview`)
+                                        : (activeUser?.displayName || 'Member Profile')}
+                                </h2>
+                                <p className="text-sm text-text2">{taskStats.completed} Tasks completed</p>
+                            </div>
+                        </div>
+
+                        <div className="text-right">
+                            <p className="text-[10px] text-text3 uppercase tracking-[0.15em] font-bold mb-1">Total time worked</p>
+                            <h3 className="text-4xl font-bold tracking-tight text-text1">
+                                {Math.floor(totalActiveSeconds / 3600)}h {Math.floor((totalActiveSeconds % 3600) / 60)}m
+                            </h3>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-white/5">
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2">
+                                <span className="h-3 w-3 rounded-full bg-green" />
+                                <span className="text-[11px] font-bold text-text2 uppercase tracking-wider">Completed</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="h-3 w-3 rounded-full bg-blue" />
+                                <span className="text-[11px] font-bold text-text2 uppercase tracking-wider">In Progress</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="h-3 w-3 rounded-full bg-orange" />
+                                <span className="text-[11px] font-bold text-text2 uppercase tracking-wider">Overdue</span>
+                            </div>
+                        </div>
+
+                        <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden flex">
+                            <div 
+                                className="h-full bg-green transition-all duration-1000 shadow-[0_0_15px_rgba(16,185,129,0.3)]" 
+                                style={{ width: `${taskStats.total ? (taskStats.completed / taskStats.total) * 100 : 0}%` }}
+                            />
+                            <div 
+                                className="h-full bg-blue transition-all duration-1000 shadow-[0_0_15px_rgba(59,130,246,0.3)]" 
+                                style={{ width: `${taskStats.total ? (taskStats.inProgress / taskStats.total) * 100 : 0}%` }}
+                            />
+                            <div 
+                                className="h-full bg-orange transition-all duration-1000 shadow-[0_0_15px_rgba(245,158,11,0.3)]" 
+                                style={{ width: `${taskStats.total ? (taskStats.overdue / taskStats.total) * 100 : 0}%` }}
+                            />
+                        </div>
+                        
+                        <div className="flex justify-between items-center text-[11px] text-text3 font-mono">
+                           <div className="flex gap-12">
+                                <div>
+                                    <p className="text-text1 font-bold">{taskStats.efficiency}%</p>
+                                    <p>Efficiency</p>
+                                </div>
+                                <div>
+                                    <p className="text-text1 font-bold">{Math.floor(taskStats.dailyActiveAvg / 60)}h {taskStats.dailyActiveAvg % 60}m</p>
+                                    <p>Daily Active (Avg)</p>
+                                </div>
+                                <div>
+                                    <p className="text-text1 font-bold">{dailyStats.totalDays}</p>
+                                    <p>Days Active</p>
+                                </div>
+                           </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Topbar */}
                 <header
                     className="al-fade-up flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
@@ -660,7 +1020,7 @@ export default function ActivityLogView({
                     >
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                             <h2 className="text-sm font-semibold" style={{ color: T.text1 }}>
-                                My Progress
+                                Task Analytics
                             </h2>
                         </div>
                         <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
@@ -703,34 +1063,34 @@ export default function ActivityLogView({
                     >
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                             <h2 className="text-sm font-semibold" style={{ color: T.text1 }}>
-                                Project Analytics
+                                Work Summary
                             </h2>
                             <div
                                 className="flex rounded-[8px] border p-0.5 font-mono text-[11px]"
                                 style={{ borderColor: T.border, background: T.bgSurface }}
                             >
-                                <button
-                                    type="button"
-                                    className="rounded-[6px] px-2 py-1 transition-colors"
-                                    style={{
-                                        background: !projectAnalyticsThisMonth ? T.blue : 'transparent',
-                                        color: !projectAnalyticsThisMonth ? '#fff' : T.text2,
-                                    }}
-                                    onClick={() => setProjectAnalyticsThisMonth(false)}
-                                >
-                                    6 months
-                                </button>
-                                <button
-                                    type="button"
-                                    className="rounded-[6px] px-2 py-1 transition-colors"
-                                    style={{
-                                        background: projectAnalyticsThisMonth ? T.blue : 'transparent',
-                                        color: projectAnalyticsThisMonth ? '#fff' : T.text2,
-                                    }}
-                                    onClick={() => setProjectAnalyticsThisMonth(true)}
-                                >
-                                    This Month
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="rounded-[6px] px-2 py-1 transition-colors"
+                                        style={{
+                                            background: !taskAnalyticsThisMonth ? T.blue : 'transparent',
+                                            color: !taskAnalyticsThisMonth ? '#fff' : T.text2,
+                                        }}
+                                        onClick={() => setTaskAnalyticsThisMonth(false)}
+                                    >
+                                        6 months
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="rounded-[6px] px-2 py-1 transition-colors"
+                                        style={{
+                                            background: taskAnalyticsThisMonth ? T.blue : 'transparent',
+                                            color: taskAnalyticsThisMonth ? '#fff' : T.text2,
+                                        }}
+                                        onClick={() => setTaskAnalyticsThisMonth(true)}
+                                    >
+                                        This Month
+                                    </button>
                             </div>
                         </div>
                         <div className="h-[220px] w-full">
@@ -783,10 +1143,17 @@ export default function ActivityLogView({
                                         className="flex gap-3 px-5 py-4 transition-colors hover:bg-[rgba(16,27,46,0.5)]"
                                     >
                                         <div
-                                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] text-sm font-medium"
+                                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] text-sm font-medium border border-white/5"
                                             style={{ background: item.iconBg, color: T.text2 }}
                                         >
-                                            {item.tag === 'Session' ? '⏱' : item.tag[0]}
+                                            {item.logoId ? (
+                                                (() => {
+                                                    const { icon: CustomIcon } = getLogoById(item.logoId);
+                                                    return <CustomIcon className="h-4 w-4 text-blue-400" />;
+                                                })()
+                                            ) : (
+                                                item.tag === 'Session' ? '⏱' : item.tag[0]
+                                            )}
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="text-sm" style={{ color: T.text1 }}>

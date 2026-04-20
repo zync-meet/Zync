@@ -55,7 +55,9 @@ export const useNotePresence = (
 
   useEffect(() => {
     if (!noteId || !user?.uid) {
-      console.log('[NotePresence] ❌ Missing noteId or user:', { noteId, userId: user?.uid });
+      if (import.meta.env.DEV) {
+        console.debug('[NotePresence] Missing noteId or user, skipping connection');
+      }
       setActiveUsers([]);
       return;
     }

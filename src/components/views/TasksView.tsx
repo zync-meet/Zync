@@ -469,8 +469,8 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                     <SelectValue placeholder="Select a project" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {projects.map(p => (
-                                        <SelectItem key={p._id} value={p._id}>{p.name}</SelectItem>
+                                    {projects.map((p, idx) => (
+                                        <SelectItem key={p._id || idx} value={p._id}>{p.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -499,8 +499,8 @@ const TasksView = ({ currentUser, users = [] }: TasksViewProps) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="unassigned">Unassigned</SelectItem>
-                                    {users.map(user => (
-                                        <SelectItem key={user.uid} value={user.uid}>
+                                    {users.map((user, idx) => (
+                                        <SelectItem key={user.uid || idx} value={user.uid}>
                                             <div className="flex items-center gap-2">
                                                 <Avatar className="h-4 w-4">
                                                     <AvatarImage src={getFullUrl(user.photoURL)} />
