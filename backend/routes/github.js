@@ -23,18 +23,37 @@ const decryptToken = (ciphertext) => {
   return bytes.toString(CryptoJS.enc.Utf8);
 };
 
-const GITHUB_CACHE_MAX_SIZE = 500;
+const GITHUB_CACHE_MAX_SIZE = Number.parseInt(process.env.GITHUB_CACHE_MAX_SIZE || '100', 10);
+const GITHUB_CACHE_TTL_MS = Number.parseInt(process.env.GITHUB_CACHE_TTL_MS || '300000', 10);
 const githubCache = new Map();
 
-const githubCacheSet = (key, value) => {
-  if (githubCache.size >= GITHUB_CACHE_MAX_SIZE) {
-    const firstKey = githubCache.keys().next().value;
-    githubCache.delete(firstKey);
+const pruneGithubCache = () => {
+  const now = Date.now();
+
+  for (const [key, value] of githubCache.entries()) {
+    if (!value || value.expiresAt <= now) {
+      githubCache.delete(key);
+    }
   }
-  githubCache.set(key, value);
+
+  while (githubCache.size > GITHUB_CACHE_MAX_SIZE) {
+    const oldestKey = githubCache.keys().next().value;
+    if (!oldestKey) break;
+    githubCache.delete(oldestKey);
+  }
+};
+
+const githubCacheSet = (key, value) => {
+  pruneGithubCache();
+  githubCache.set(key, {
+    ...value,
+    expiresAt: Date.now() + GITHUB_CACHE_TTL_MS,
+  });
+  pruneGithubCache();
 };
 
 const fetchWithEtag = async (url, config, cacheKey) => {
+  pruneGithubCache();
   const cached = githubCache.get(cacheKey);
   const headers = { ...config.headers };
   if (cached && cached.etag) {

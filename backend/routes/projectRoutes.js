@@ -30,7 +30,24 @@ const MODEL_NAME = "gemini-2.5-flash";
 console.log(`[Config] Using Gemini Model: ${MODEL_NAME}`);
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const ARCHITECTURE_CACHE_TTL_MS = Number.parseInt(process.env.ARCHITECTURE_CACHE_TTL_MS || '21600000', 10);
+const ARCHITECTURE_CACHE_MAX_ENTRIES = Number.parseInt(process.env.ARCHITECTURE_CACHE_MAX_ENTRIES || '100', 10);
 const architectureAnalysisCache = new Map();
+
+const pruneArchitectureMemoryCache = () => {
+  const now = Date.now();
+
+  for (const [cacheId, cacheEntry] of architectureAnalysisCache.entries()) {
+    if (!cacheEntry || cacheEntry.expiresAt <= now) {
+      architectureAnalysisCache.delete(cacheId);
+    }
+  }
+
+  while (architectureAnalysisCache.size > ARCHITECTURE_CACHE_MAX_ENTRIES) {
+    const oldestKey = architectureAnalysisCache.keys().next().value;
+    if (!oldestKey) break;
+    architectureAnalysisCache.delete(oldestKey);
+  }
+};
 
 
 const decryptToken = (ciphertext) => {
@@ -63,6 +80,7 @@ const logDebug = (message) => {
 const makeArchitectureCacheId = (projectId, repoCacheKey) => `${projectId}:${repoCacheKey}`;
 
 const getArchitectureFromMemoryCache = (projectId, repoCacheKey) => {
+  pruneArchitectureMemoryCache();
   if (!projectId || !repoCacheKey) return null;
   const cacheId = makeArchitectureCacheId(projectId, repoCacheKey);
   const cacheEntry = architectureAnalysisCache.get(cacheId);
@@ -78,11 +96,13 @@ const getArchitectureFromMemoryCache = (projectId, repoCacheKey) => {
 
 const setArchitectureInMemoryCache = (projectId, repoCacheKey, architecture) => {
   if (!projectId || !repoCacheKey || !architecture) return;
+  pruneArchitectureMemoryCache();
   const cacheId = makeArchitectureCacheId(projectId, repoCacheKey);
   architectureAnalysisCache.set(cacheId, {
     architecture,
     expiresAt: Date.now() + ARCHITECTURE_CACHE_TTL_MS,
   });
+  pruneArchitectureMemoryCache();
 };
 
 const buildRepoFreshnessKey = async (accessToken, owner, repo) => {

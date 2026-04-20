@@ -120,11 +120,17 @@ const limiter = rateLimit({
 // Apply rate limiting to all requests
 app.use('/api/', limiter);
 
-app.use(express.json({
+// Keep raw body only for webhook signature verification routes.
+const webhookJsonParser = express.json({
   verify: (req, res, buf) => {
     req.rawBody = buf;
   }
-}));
+});
+app.use('/api/webhooks', webhookJsonParser);
+app.use('/api/github-app', webhookJsonParser);
+
+// Use plain JSON parser for all other routes to avoid buffering raw payloads globally.
+app.use(express.json());
 
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
