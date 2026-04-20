@@ -26,6 +26,17 @@ const projectSchema = new mongoose.Schema(
 
     // Tracking
     isTrackingActive: { type: Boolean, default: false },
+
+    // Webhook aggregation snapshot (used to reduce per-commit fanout/write load)
+    lastWebhookEventAt: { type: Date, default: null },
+    lastWebhookCommitCount: { type: Number, default: 0 },
+    lastWebhookCommitShas: { type: [String], default: [] },
+    lastWebhookChangedFiles: { type: [String], default: [] },
+    lastWebhookPusher: { type: String, default: null },
+    lastWebhookDeliveryId: { type: String, default: null },
+    lastWebhookAiSummary: { type: String, default: null },
+    lastWebhookAiTaskMentions: { type: Number, default: 0 },
+    lastWebhookAiAnalyzedCommits: { type: Number, default: 0 },
   },
   {
     timestamps: true,
