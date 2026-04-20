@@ -189,7 +189,11 @@ module.exports = (io) => {
   });
 
 
-  setInterval(() => {
+  const cleanupInterval = setInterval(() => {
+    if (notePresence.size === 0) {
+      return;
+    }
+
     const now = Date.now();
     const staleThreshold = 120000;
 
@@ -212,4 +216,8 @@ module.exports = (io) => {
       }
     }
   }, 30000);
+
+  if (typeof cleanupInterval.unref === 'function') {
+    cleanupInterval.unref();
+  }
 };
