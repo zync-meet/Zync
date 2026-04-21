@@ -3,6 +3,7 @@ import Cropper, { Area } from "react-easy-crop";
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -143,6 +144,9 @@ const ProfilePhotoCropper: React.FC<ProfilePhotoCropperProps> = ({
             <DialogContent className="sm:max-w-[500px] p-0 gap-0 overflow-hidden">
                 <DialogHeader className="px-6 pt-6 pb-2">
                     <DialogTitle>Adjust Profile Photo</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Crop, zoom, and rotate your profile image before saving.
+                    </DialogDescription>
                 </DialogHeader>
 
                 {}

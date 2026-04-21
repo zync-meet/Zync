@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import Workspace from "@/components/workspace/Workspace";
-import DashboardView from "./DashboardView";
 import TasksView from "./TasksView";
 import PeopleView from "./PeopleView";
 import CalendarView from "./CalendarView";
@@ -31,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MobileActivityLogView from "@/components/views/mobile/MobileActivityLogView";
+import MobileDashboardView from "@/components/views/mobile/MobileDashboardView";
 
 const MobileView = () => {
   const [activeTab, setActiveTab] = useState("Home");
@@ -39,6 +39,7 @@ const MobileView = () => {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [leaderTasks, setLeaderTasks] = useState<any[]>([]);
+  const [teamTasks, setTeamTasks] = useState<any[]>([]);
   const [teamSessions, setTeamSessions] = useState<any[]>([]);
   const [ownedTeams, setOwnedTeams] = useState<any[]>([]);
   const [myTeams, setMyTeams] = useState<any[]>([]);
@@ -172,6 +173,7 @@ const MobileView = () => {
           const projects = await projectsRes.json();
           if (Array.isArray(projects)) {
             const allTasks = buildActivityLogTasks(projects);
+            setTeamTasks(allTasks);
             const myTasks = filterCommitCapableTasks(allTasks, currentUser.uid);
             const receivedTasks = myTasks.filter(
               (task: any) => task.assignedBy !== currentUser.uid && task.createdBy !== currentUser.uid
@@ -268,7 +270,7 @@ const MobileView = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "Home":
-        return currentUser ? <DashboardView currentUser={currentUser} /> : null;
+        return currentUser ? <MobileDashboardView currentUser={currentUser} /> : null;
       case "Projects":
         return currentUser ? (
           <div className="p-4">
@@ -286,6 +288,21 @@ const MobileView = () => {
           <MobileActivityLogView
             activityLogs={activityLogs}
             tasks={leaderTasks}
+            users={usersList}
+            teamSessions={teamSessions}
+            ownedTeams={ownedTeams}
+            myTeams={myTeams}
+            currentUserId={currentUser?.uid}
+            currentUserProfile={
+              currentUser
+                ? {
+                    displayName: currentUser.displayName || undefined,
+                    email: currentUser.email || undefined,
+                    photoURL: currentUser.photoURL || undefined,
+                  }
+                : null
+            }
+            teamTasks={teamTasks}
             elapsedTime={elapsedTime}
             onClearLogs={handleClearLogs}
             onDeleteLog={handleDeleteLog}
@@ -338,7 +355,6 @@ const MobileView = () => {
         photoURL: currentUser.photoURL ? getFullUrl(currentUser.photoURL) : undefined
       } : null}
       drawerContent={DrawerContent}
-      onFabClick={() => navigate("/new-project")}
       headerTitle={activeTab === 'Home' ? 'Dashboard' : activeTab}
     >
       {userMeError && currentUser && (
