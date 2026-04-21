@@ -170,6 +170,20 @@ function secondsForLogsInRange(logs: ActivityLog[], rangeStart: Date, rangeEnd: 
     return total;
 }
 
+function formatHoursMinutes(totalMinutes: number): string {
+    const safeMinutes = Math.max(0, Math.floor(totalMinutes));
+    const hours = Math.floor(safeMinutes / 60);
+    const minutes = safeMinutes % 60;
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
+function formatSecondsToHoursMinutes(totalSeconds: number): string {
+    const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
 type FeedTag = 'Commit' | 'Completed' | 'Invite' | 'Deadline' | 'Comment' | 'Session';
 
 interface FeedItem {
@@ -1233,7 +1247,7 @@ export default function ActivityLogView({
                         <div className="text-right">
                             <p className="text-[10px] text-text3 uppercase tracking-[0.15em] font-bold mb-1">Total time worked</p>
                             <h3 className="text-4xl font-bold tracking-tight text-text1">
-                                {Math.floor(totalActiveSeconds / 3600)}h {Math.floor((totalActiveSeconds % 3600) / 60)}m
+                                {formatSecondsToHoursMinutes(totalActiveSeconds)}
                             </h3>
                         </div>
                     </div>
@@ -1276,7 +1290,7 @@ export default function ActivityLogView({
                                     <p>Efficiency</p>
                                 </div>
                                 <div>
-                                    <p className="text-text1 font-bold">{Math.floor(taskStats.dailyActiveAvg / 60)}h {taskStats.dailyActiveAvg % 60}m</p>
+                                    <p className="text-text1 font-bold">{formatHoursMinutes(taskStats.dailyActiveAvg)}</p>
                                     <p>Daily Active (Avg)</p>
                                 </div>
                                 <div>

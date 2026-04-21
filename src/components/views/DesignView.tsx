@@ -127,7 +127,7 @@ const DesignView = () => {
   };
 
   return (
-    <div ref={scrollRef} className="h-full bg-background overflow-y-auto w-full">
+    <div ref={scrollRef} className="h-full bg-transparent overflow-y-auto w-full">
       {}
       <div className="w-full max-w-[1800px] mx-auto pt-16 pb-12 px-6 md:px-10 flex flex-col items-start gap-8">
         <div className="w-full flex flex-col md:flex-row justify-between items-end gap-6 border-b border-border/40 pb-6">

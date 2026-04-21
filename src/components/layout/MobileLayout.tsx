@@ -1,7 +1,7 @@
 import React from 'react';
-import { Menu, Search, Plus, Home, Folder, CheckSquare, Bell, User } from 'lucide-react';
+import { Menu, Search, Plus, Home, Video, CheckSquare, Bell, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -30,13 +30,14 @@ export const MobileLayout = ({
     onFabClick,
     rightHeaderAction
 }: MobileLayoutProps) => {
+    const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
 
     const navItems = [
         { id: 'Home', icon: Home, label: 'Home' },
-        { id: 'Projects', icon: Folder, label: 'Projects' },
+        { id: 'Meet', icon: Video, label: 'Meet' },
         { id: 'Tasks', icon: CheckSquare, label: 'Tasks' },
         { id: 'Activity', icon: Bell, label: 'Activity' },
-        { id: 'Profile', icon: User, label: 'Profile' },
+        { id: 'Settings', icon: Settings, label: 'Settings' },
     ];
 
 
@@ -47,7 +48,7 @@ export const MobileLayout = ({
             {}
             <header className="h-14 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 shrink-0 z-40">
                 <div className="flex items-center gap-3">
-                    <Sheet>
+                    <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="-ml-2 h-10 w-10">
                                 <Menu className="h-6 w-6" />
@@ -55,7 +56,12 @@ export const MobileLayout = ({
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[85%] sm:w-[350px] p-0">
-                            {}
+                            <SheetHeader className="sr-only">
+                                <SheetTitle>Navigation Menu</SheetTitle>
+                                <SheetDescription>
+                                    Open app navigation links and user account shortcuts.
+                                </SheetDescription>
+                            </SheetHeader>
                             <div className="flex flex-col h-full bg-background">
                                 {user && (
                                     <div className="p-6 border-b flex items-center gap-4 bg-muted/20">
@@ -69,7 +75,15 @@ export const MobileLayout = ({
                                         </div>
                                     </div>
                                 )}
-                                <div className="flex-1 overflow-y-auto">
+                                <div
+                                    className="flex-1 overflow-y-auto"
+                                    onClick={(event) => {
+                                        const target = event.target as HTMLElement;
+                                        if (target.closest("button, a, [data-close-drawer='true']")) {
+                                            setIsDrawerOpen(false);
+                                        }
+                                    }}
+                                >
                                     {drawerContent}
                                 </div>
                             </div>

@@ -810,7 +810,10 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
   return (
 
-    <div className="h-screen w-full bg-black text-foreground overflow-hidden relative font-sans">
+    <div className="h-screen w-full relative text-foreground overflow-hidden font-sans">
+      {/* Full-viewport canvas — main column is transparent so this is visible (not body bg-black). */}
+      <div className="pointer-events-none fixed inset-0 z-0 dashboard-backdrop" aria-hidden />
+
       {/* Full Screen Landing Page Overlay */}
       {isLanding && (
         <div className={cn(
@@ -829,7 +832,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
         </div>
       )}
 
-      <PanelGroup direction="horizontal" autoSaveId="persistence" className="w-full h-full">
+      <PanelGroup direction="horizontal" autoSaveId="persistence" className="relative z-[1] h-full w-full bg-transparent">
         {/* Sidebar Panel - Dark & Solid */}
         <Panel
           ref={sidebarRef}
@@ -937,17 +940,9 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
       <PanelResizeHandle className="w-px bg-transparent opacity-0" />
 
         {/* Main Content Panel - The "Card" Look */}
-        <Panel defaultSize={84}>
-          <div className="h-full w-full p-0 bg-black -ml-2">
-            <div className="h-full w-full bg-black rounded-r-[32px] rounded-l-none overflow-hidden relative border-none shadow-none flex flex-col">
-              {/* Matching left-edge mask to eliminate antialias seam */}
-              <div className="absolute left-0 top-0 h-full w-3 bg-black pointer-events-none z-[95]" />
-
-              {/* Background Gradients - Inside the Rounded Container */}
-              <div className="absolute top-[-10%] right-[20%] w-[500px] h-[500px] bg-rose-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
-              <div className="absolute top-[10%] right-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
-              
-
+        <Panel defaultSize={84} className="min-h-0 bg-transparent">
+          <div className="h-full w-full p-0 bg-transparent -ml-2">
+            <div className="h-full w-full bg-transparent rounded-r-[32px] rounded-l-none overflow-hidden relative border-none shadow-none flex flex-col">
               {/* Header - Always show for main app content */}
               <div className="flex items-center justify-between px-8 py-5 bg-transparent backdrop-blur-none sticky top-0 z-20">
                 <div className="flex items-center gap-4">
@@ -988,7 +983,7 @@ const DesktopView = ({ isPreview = false }: { isPreview?: boolean }) => {
 
               {/* Content Area */}
               <div
-                className="flex-1 overflow-y-auto relative z-10 w-full hover:overflow-y-overlay custom-scrollbar"
+                className="flex-1 overflow-y-auto relative z-10 w-full bg-transparent hover:overflow-y-overlay custom-scrollbar"
               >
                 {(isExiting || !isLanding) && renderActiveView()}
               </div>

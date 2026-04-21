@@ -549,17 +549,19 @@ export default function SettingsView() {
   };
 
   return (
-    <div className="flex-1 h-full overflow-y-auto bg-transparent p-6">
+    <div className="flex-1 h-full overflow-y-auto bg-transparent p-3 sm:p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="bg-black border border-white/10">
-            <TabsTrigger value="profile">My Profile</TabsTrigger>
-            <TabsTrigger value="team">Team</TabsTrigger>
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
-            <TabsTrigger value="support">Support</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto pb-1 scrollbar-thin">
+            <TabsList className="bg-black border border-white/10 inline-flex w-max min-w-full sm:min-w-0 whitespace-nowrap">
+              <TabsTrigger value="profile" className="shrink-0">My Profile</TabsTrigger>
+              <TabsTrigger value="team" className="shrink-0">Team</TabsTrigger>
+              <TabsTrigger value="preferences" className="shrink-0">Preferences</TabsTrigger>
+              <TabsTrigger value="integrations" className="shrink-0">Integrations</TabsTrigger>
+              <TabsTrigger value="support" className="shrink-0">Support</TabsTrigger>
+              <TabsTrigger value="security" className="shrink-0">Security</TabsTrigger>
+            </TabsList>
+          </div>
 
           {}
           <TabsContent value="profile">
