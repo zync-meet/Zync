@@ -34,10 +34,6 @@ if (typeof window !== "undefined" && isValidRecaptchaSiteKey(recaptchaSiteKey)) 
     provider: new ReCaptchaV3Provider(recaptchaSiteKey),
     isTokenAutoRefreshEnabled: true,
   });
-} else if (import.meta.env.DEV && typeof window !== "undefined") {
-  console.info(
-    "[Firebase] App Check skipped: set VITE_RECAPTCHA_SITE_KEY to your reCAPTCHA v3 site key to enable.",
-  );
 }
 
 export const auth = getAuth(app);
