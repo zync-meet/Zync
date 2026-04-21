@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Search, Plus, Home, Folder, CheckSquare, Bell, User } from 'lucide-react';
+import { Menu, Search, Plus, Home, Folder, CheckSquare, Bell, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -36,7 +36,7 @@ export const MobileLayout = ({
         { id: 'Projects', icon: Folder, label: 'Projects' },
         { id: 'Tasks', icon: CheckSquare, label: 'Tasks' },
         { id: 'Activity', icon: Bell, label: 'Activity' },
-        { id: 'Profile', icon: User, label: 'Profile' },
+        { id: 'Settings', icon: Settings, label: 'Settings' },
     ];
 
 

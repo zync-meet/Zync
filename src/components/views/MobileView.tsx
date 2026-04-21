@@ -12,7 +12,6 @@ import {
   FileText,
   Video,
   Settings,
-  LogOut,
   Bell
 } from "lucide-react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
@@ -20,7 +19,6 @@ import Workspace from "@/components/workspace/Workspace";
 import DashboardView from "./DashboardView";
 import TasksView from "./TasksView";
 import PeopleView from "./PeopleView";
-import ActivityLogView from "./ActivityLogView";
 import CalendarView from "./CalendarView";
 import { NotesView } from "@/components/notes/NotesView";
 import MeetView from "./MeetView";
@@ -32,15 +30,20 @@ import { WifiOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import MobileActivityLogView from "@/components/views/mobile/MobileActivityLogView";
 
 const MobileView = () => {
   const [activeTab, setActiveTab] = useState("Home");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { isError: userMeError, refetch: refetchMe } = useMe();
   const [usersList, setUsersList] = useState<any[]>([]);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [leaderTasks, setLeaderTasks] = useState<any[]>([]);
+  const [teamSessions, setTeamSessions] = useState<any[]>([]);
+  const [ownedTeams, setOwnedTeams] = useState<any[]>([]);
+  const [myTeams, setMyTeams] = useState<any[]>([]);
+  const [elapsedTime, setElapsedTime] = useState("00:00:00");
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -84,12 +87,168 @@ const MobileView = () => {
     navigate(`/projects/${id}`, { state: { from: '/dashboard/workspace' } });
   };
 
-  const handleSignOut = async () => {
+  const buildActivityLogTasks = (projects: any[]) => {
+    return projects.flatMap((project: any) =>
+      (project.steps || []).flatMap((step: any) =>
+        (step.tasks || []).map((task: any) => ({
+          ...task,
+          projectId: project._id || project.id,
+          projectName: project.name,
+          githubRepoName: project.githubRepoName,
+          githubRepoOwner: project.githubRepoOwner,
+          githubRepo: project.githubRepo,
+          repoIds: project.githubRepoIds,
+          projectOwnerId: project.ownerUid || project.ownerId,
+        }))
+      )
+    );
+  };
+
+  const filterCommitCapableTasks = (tasks: any[], userId: string) => {
+    return tasks.filter((task: any) => {
+      const assignedTo = task?.assignedTo;
+      const assignedUserIds = Array.isArray(task?.assignedUserIds) ? task.assignedUserIds : [];
+      const hasRepoLink = Boolean(
+        task?.githubRepoOwner ||
+          task?.githubRepoName ||
+          task?.githubRepo ||
+          (Array.isArray(task?.repoIds) && task.repoIds.length > 0)
+      );
+      const hasCommitCode = Boolean(task?.commitCode);
+
+      return hasRepoLink && hasCommitCode && (assignedTo === userId || assignedUserIds.includes(userId));
+    });
+  };
+
+  useEffect(() => {
+    const storedSession = localStorage.getItem("currentSession");
+    if (!storedSession) { return; }
     try {
-      await signOutAndClearState(auth);
-      navigate("/login");
+      const parsed = JSON.parse(storedSession);
+      if (parsed?.startTime) {
+        setSessionStartTime(new Date(parsed.startTime));
+      }
+    } catch {
+      // Ignore invalid local session payloads.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!sessionStartTime) { return; }
+    const timer = setInterval(() => {
+      const now = new Date();
+      const diff = Math.max(0, Math.floor((now.getTime() - sessionStartTime.getTime()) / 1000));
+      const hours = Math.floor(diff / 3600).toString().padStart(2, "0");
+      const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, "0");
+      const seconds = (diff % 60).toString().padStart(2, "0");
+      setElapsedTime(`${hours}:${minutes}:${seconds}`);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [sessionStartTime]);
+
+  useEffect(() => {
+    if (activeTab !== "Activity" || !currentUser) { return; }
+
+    let cancelled = false;
+    const fetchActivityData = async () => {
+      try {
+        const token = await currentUser.getIdToken();
+        const [sessionsRes, projectsRes, ownedTeamsRes, myTeamsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/sessions/${currentUser.uid}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/api/projects`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/api/teams/owned`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/api/teams/mine`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+
+        if (cancelled) { return; }
+
+        if (sessionsRes.ok) {
+          const logsData = await sessionsRes.json();
+          setActivityLogs(Array.isArray(logsData) ? logsData : []);
+        }
+
+        if (projectsRes.ok) {
+          const projects = await projectsRes.json();
+          if (Array.isArray(projects)) {
+            const allTasks = buildActivityLogTasks(projects);
+            const myTasks = filterCommitCapableTasks(allTasks, currentUser.uid);
+            const receivedTasks = myTasks.filter(
+              (task: any) => task.assignedBy !== currentUser.uid && task.createdBy !== currentUser.uid
+            );
+            setLeaderTasks(receivedTasks);
+          }
+        }
+
+        if (ownedTeamsRes.ok) {
+          const teams = await ownedTeamsRes.json();
+          setOwnedTeams(Array.isArray(teams) ? teams : []);
+        }
+
+        if (myTeamsRes.ok) {
+          const teams = await myTeamsRes.json();
+          setMyTeams(Array.isArray(teams) ? teams : []);
+        }
+
+        if (usersList.length > 0) {
+          const teamSessionsRes = await fetch(`${API_BASE_URL}/api/sessions/batch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ userIds: usersList.map((user) => user.uid) }),
+          });
+          if (!cancelled && teamSessionsRes.ok) {
+            const sessions = await teamSessionsRes.json();
+            setTeamSessions(Array.isArray(sessions) ? sessions : []);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load mobile activity data:", error);
+        }
+      }
+    };
+
+    fetchActivityData();
+    const intervalId = setInterval(fetchActivityData, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [activeTab, currentUser, usersList]);
+
+  const handleDeleteLog = async (logId: string) => {
+    if (!currentUser) { return; }
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await fetch(`${API_BASE_URL}/api/sessions/${logId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setActivityLogs((prev) => prev.filter((log) => log._id !== logId));
+      } else {
+        throw new Error("Failed to delete log");
+      }
     } catch (error) {
-      console.error("Error signing out", error);
+      toast({ title: "Error", description: "Failed to delete log.", variant: "destructive" });
+    }
+  };
+
+  const handleClearLogs = async () => {
+    if (!currentUser) { return; }
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await fetch(`${API_BASE_URL}/api/sessions/user/${currentUser.uid}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setActivityLogs([]);
+      } else {
+        throw new Error("Failed to clear logs");
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to clear logs.", variant: "destructive" });
     }
   };
 
@@ -123,10 +282,15 @@ const MobileView = () => {
       case "Tasks":
         return currentUser ? <TasksView currentUser={currentUser} users={usersList} /> : null;
       case "Activity":
-        // ActivityLogView needs props. For now using placeholder or minimal props if possible.
-
-
-        return <div className="p-4 text-center text-muted-foreground">Activity Log (Coming Soon on Mobile)</div>;
+        return (
+          <MobileActivityLogView
+            activityLogs={activityLogs}
+            tasks={leaderTasks}
+            elapsedTime={elapsedTime}
+            onClearLogs={handleClearLogs}
+            onDeleteLog={handleDeleteLog}
+          />
+        );
       case "People":
 
         return <PeopleView users={usersList} userStatuses={{}} onChat={() => { }} />;
@@ -138,23 +302,6 @@ const MobileView = () => {
         return <MeetView currentUser={currentUser} usersList={usersList} userStatuses={{}} />;
       case "Settings":
         return <SettingsView />;
-      case "Profile":
-        return (
-          <div className="flex flex-col items-center p-6 space-y-6">
-            <div className="flex flex-col items-center gap-2">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={getFullUrl(currentUser?.photoURL)} />
-                <AvatarFallback>{currentUser?.displayName?.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <h2 className="text-xl font-bold">{currentUser?.displayName}</h2>
-              <p className="text-muted-foreground">{currentUser?.email}</p>
-            </div>
-            <Button variant="destructive" className="w-full" onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
-        );
       default:
         return null;
     }
