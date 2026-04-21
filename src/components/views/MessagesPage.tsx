@@ -15,9 +15,10 @@ interface MessagesPageProps {
     currentUserData?: any;
     userStatuses: Record<string, any>;
     onNavigateBack: () => void;
+    initialSelectedUser?: any;
 }
 
-const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUserData, userStatuses, onNavigateBack }: MessagesPageProps) => {
+const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUserData, userStatuses, onNavigateBack, initialSelectedUser }: MessagesPageProps) => {
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -57,6 +58,12 @@ const MessagesPage = ({ users: teamUsers, currentUser, currentUserData: propUser
         };
         fetchMe();
     }, [currentUser, propUserData]);
+
+    useEffect(() => {
+        if (initialSelectedUser) {
+            setSelectedUser(initialSelectedUser);
+        }
+    }, [initialSelectedUser]);
 
     const toggleCloseFriend = async () => {
         if (!selectedUser || !currentUser) {return;}

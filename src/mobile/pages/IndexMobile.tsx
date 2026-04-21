@@ -28,8 +28,8 @@ const features = [
 
 const IndexMobile = () => {
   return (
-    <div className="min-h-screen bg-transparent px-4 py-6">
-      <div className="mx-auto max-w-md space-y-6">
+    <div className="min-h-screen bg-transparent px-4 py-5">
+      <div className="mx-auto w-full max-w-sm space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/zync-dark.webp" alt="Zync" className="h-9 w-9 rounded-lg object-contain" />
@@ -40,14 +40,14 @@ const IndexMobile = () => {
           </Link>
         </div>
 
-        <section className="space-y-3">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+        <section className="space-y-2.5">
+          <h1 className="text-[30px] leading-tight font-bold tracking-tight text-foreground">
             Build Faster With Your Team
           </h1>
           <p className="text-sm text-muted-foreground">
             Planning, tasks, chat, notes, and progress in one mobile-ready workspace.
           </p>
-          <div className="grid grid-cols-1 gap-3 pt-1">
+          <div className="grid grid-cols-1 gap-2.5 pt-1">
             <Button asChild className="w-full">
               <Link to="/signup">
                 Get Started
@@ -60,7 +60,7 @@ const IndexMobile = () => {
           </div>
         </section>
 
-        <section className="space-y-3 pb-4">
+        <section className="space-y-2.5 pb-4">
           {features.map((feature) => {
             const Icon = feature.icon;
             return (

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
-import { signOutAndClearState } from "@/lib/auth-signout";
 import { onAuthStateChanged, User } from "firebase/auth";
 import {
   LayoutDashboard,
@@ -17,7 +16,6 @@ import {
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import Workspace from "@/components/workspace/Workspace";
 import TasksView from "./TasksView";
-import PeopleView from "./PeopleView";
 import CalendarView from "./CalendarView";
 import { NotesView } from "@/components/notes/NotesView";
 import MeetView from "./MeetView";
@@ -31,12 +29,15 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MobileActivityLogView from "@/components/views/mobile/MobileActivityLogView";
 import MobileDashboardView from "@/components/views/mobile/MobileDashboardView";
+import MobileTeamView from "@/components/views/mobile/MobileTeamView";
+import MessagesPage from "./MessagesPage";
 
 const MobileView = () => {
   const [activeTab, setActiveTab] = useState("Home");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { isError: userMeError, refetch: refetchMe } = useMe();
   const [usersList, setUsersList] = useState<any[]>([]);
+  const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [leaderTasks, setLeaderTasks] = useState<any[]>([]);
   const [teamTasks, setTeamTasks] = useState<any[]>([]);
@@ -309,8 +310,25 @@ const MobileView = () => {
           />
         );
       case "People":
-
-        return <PeopleView users={usersList} userStatuses={{}} onChat={() => { }} />;
+        return (
+          <MobileTeamView
+            currentUser={currentUser}
+            onChat={(user) => {
+              setSelectedChatUser(user);
+              setActiveTab("Messages");
+            }}
+          />
+        );
+      case "Messages":
+        return (
+          <MessagesPage
+            users={usersList}
+            currentUser={currentUser}
+            userStatuses={{}}
+            initialSelectedUser={selectedChatUser}
+            onNavigateBack={() => setActiveTab("People")}
+          />
+        );
       case "Calendar":
         return <CalendarView />;
       case "Notes":
