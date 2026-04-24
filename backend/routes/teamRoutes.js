@@ -3,6 +3,7 @@ const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Team = require('../models/Team');
+const cache = require('../utils/cache');
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize');
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination');
 const {
@@ -88,6 +89,7 @@ router.post('/create', verifyToken, async (req, res) => {
         // Add team to user's memberships
         const memberships = [...(user.teamMemberships || []), teamObj.id];
         await User.updateOne({ uid }, { $set: { teamMemberships: memberships } });
+        await cache.invalidate(`user:me:${uid}`);
         await runSync('create-team', () => upsertTeamSnapshot(teamObj));
 
         if (initialInvites && Array.isArray(initialInvites) && initialInvites.length > 0) {
@@ -147,6 +149,7 @@ router.post('/join', verifyToken, async (req, res) => {
         const teamId = team._id.toString();
         const memberships = [...(user.teamMemberships || []), teamId];
         await User.updateOne({ uid }, { $set: { teamMemberships: memberships } });
+        await cache.invalidate(`user:me:${uid}`);
         await runSync('join-team-add-member', () => addMemberToTeam(teamId, uid));
         await runSync('join-team-upsert', () => upsertTeamSnapshot(updatedTeam));
 
@@ -176,13 +179,14 @@ router.delete('/:teamId', verifyToken, async (req, res) => {
             if (member) {
                 await User.updateOne(
                     { uid: memberUid },
-                    { $set: { teamMemberships: (member.teamMemberships || []).filter(id => id !== teamId) } }
+                    { $set: { teamMemberships: (member.teamMemberships || []).filter(id => String(id) !== String(teamId)) } }
                 );
             }
         }
 
         await Team.findByIdAndDelete(teamId);
         await runSync('delete-team', () => deleteTeamSnapshot(teamId, team.members, team.ownerId));
+        await cache.invalidate(...Array.from(new Set([...team.members, team.ownerId].map((memberUid) => `user:me:${memberUid}`))));
 
         res.status(200).json({ message: 'Team deleted successfully' });
     } catch (error) {
@@ -217,8 +221,9 @@ router.delete('/:teamId/members/:memberUid', verifyToken, async (req, res) => {
         if (member) {
             await User.updateOne(
                 { uid: memberUid },
-                { $set: { teamMemberships: (member.teamMemberships || []).filter(id => id !== teamId) } }
+                { $set: { teamMemberships: (member.teamMemberships || []).filter(id => String(id) !== String(teamId)) } }
             );
+            await cache.invalidate(`user:me:${memberUid}`);
         }
         await runSync('remove-member', () => removeMemberFromTeam(teamId, memberUid));
 
@@ -292,8 +297,9 @@ router.post('/:teamId/leave', verifyToken, async (req, res) => {
         if (user) {
             await User.updateOne(
                 { uid },
-                { $set: { teamMemberships: (user.teamMemberships || []).filter(id => id !== teamId) } }
+                { $set: { teamMemberships: (user.teamMemberships || []).filter(id => String(id) !== String(teamId)) } }
             );
+            await cache.invalidate(`user:me:${uid}`);
         }
         await runSync('leave-team', () => removeMemberFromTeam(teamId, uid));
 

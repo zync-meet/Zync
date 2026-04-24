@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getFullUrl, getUserInitials, API_BASE_URL } from "@/lib/utils";
 import { postLoginRedirect } from "@/lib/postLoginRedirect";
 import { LinkedinSignInButton } from "@/components/auth/LinkedinSignInButton";
+import { InstallPromptView, useAppInstallStatus } from "@/features/install-wall";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -38,6 +39,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { hasCheckedStatus, requiresInstallWall, isIOS, isAndroid } = useAppInstallStatus();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -209,6 +211,10 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  if (hasCheckedStatus && requiresInstallWall) {
+    return <InstallPromptView isIOS={isIOS} isAndroid={isAndroid} appName="ZYNC" />;
+  }
 
   if (currentUser) {
     return (

@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTheme } from "next-themes";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 const countries = [
@@ -917,6 +918,7 @@ export default function SettingsView() {
 
 
 function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLoading, setTeamLoading, setUserData }: any) {
+  const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [teamNameDraft, setTeamNameDraft] = useState("");
@@ -960,6 +962,19 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
       }
     };
   }, []);
+
+  const refreshTeamQueries = async () => {
+    if (!currentUser?.uid) {
+      return;
+    }
+
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['myTeams', currentUser.uid] }),
+      queryClient.invalidateQueries({ queryKey: ['teamUsers'] }),
+      queryClient.invalidateQueries({ queryKey: ['me', currentUser.uid] }),
+      queryClient.invalidateQueries({ queryKey: ['allUsers', currentUser.uid] }),
+    ]);
+  };
 
 
   useEffect(() => {
@@ -1044,6 +1059,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
           memberDetails: t.memberDetails.filter((m: any) => m.uid !== memberUid)
         } : t
       ));
+      await refreshTeamQueries();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -1074,6 +1090,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
         ...prev,
         teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamId) || []
       }));
+      await refreshTeamQueries();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -1107,6 +1124,7 @@ function TeamTabContent({ currentUser, userData, teamsData, setTeamsData, teamLo
         ...prev,
         teamMemberships: prev.teamMemberships?.filter((id: string) => id !== teamId) || []
       }));
+      await refreshTeamQueries();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
