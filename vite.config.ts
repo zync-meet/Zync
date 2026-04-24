@@ -81,6 +81,8 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,json}"],
         navigateFallback: "/index.html",
+        // Dashboard bundle is currently >2 MiB; raise cap to avoid SW generation failure on CI.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       devOptions: {
         enabled: true,
