@@ -30,7 +30,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@blocknote/core": "^0.45.0",
+    "@blocknote/core": "^0.47.3",
     "@blocknote/mantine": "^0.45.0",
     "@blocknote/react": "^0.45.0",
     "@dnd-kit/core": "^6.3.1",
