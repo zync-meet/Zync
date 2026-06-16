@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Note, Folder, createFolder, createNote, shareFolder, subscribeToFolders, subscribeToNotes, deleteNote, updateNote } from '../../services/notesService';
+import { Note, Folder, createFolder, createNote, shareFolder, subscribeToFolders, subscribeToNotes, deleteNote, updateNote, deleteFolder } from '../../services/notesService';
 import {
   DndContext,
   closestCenter,
@@ -148,7 +148,7 @@ const NoteListItem: React.FC<{
       >
         <FileText size={14} className={cn(
           "mt-0.5 shrink-0 transition-colors duration-200",
-          isSelected ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+          isSelected ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
         )} />
         <div className="min-w-0 flex-1">
           <p className={cn(
@@ -206,6 +206,7 @@ const FolderListItem: React.FC<{
   onSelectNote: (note: Note) => void;
   onCreateNote: () => void;
   onShare: () => void;
+  onDeleteFolder: (id: string) => void;
   onDeleteNote: (id: string) => void;
   onRenameNote: (note: Note) => void;
   onShareNote: (note: Note) => void;
@@ -217,6 +218,7 @@ const FolderListItem: React.FC<{
   onSelectNote,
   onCreateNote,
   onShare,
+  onDeleteFolder,
   onDeleteNote,
   onRenameNote,
   onShareNote
@@ -259,6 +261,10 @@ const FolderListItem: React.FC<{
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onShare}>
                     <Share2 size={14} className="mr-2" /> Share
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => onDeleteFolder(folder.id)}>
+                    <Trash size={14} className="mr-2" /> Delete Folder
                   </DropdownMenuItem>
                 </>
               )}
@@ -391,6 +397,34 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   const [noteToRename, setNoteToRename] = useState<Note | null>(null);
   const [newNoteTitle, setNewNoteTitle] = useState('');
 
+  // Top Bar Inline Editing
+  const [editingTitle, setEditingTitle] = useState('');
+  const titleDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (selectedNote) {
+      setEditingTitle(selectedNote.title || '');
+    }
+  }, [selectedNote?.id, selectedNote?.title]);
+
+  const handleTitleChangeTopBar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setEditingTitle(newTitle);
+    
+    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+    
+    titleDebounceRef.current = setTimeout(async () => {
+      if (!selectedNote) return;
+      try {
+        await updateNote(selectedNote.id, { title: newTitle });
+        setSelectedNote(prev => prev ? { ...prev, title: newTitle } : null);
+        setNotes(prev => prev.map(n => n.id === selectedNote.id ? { ...n, title: newTitle } : n));
+      } catch (error) {
+        console.error("Failed to save title", error);
+      }
+    }, 1000);
+  };
+
   // Collaborative Presence - track users viewing the selected note
   const { activeUsers, isConnected } = useNotePresence(
     selectedNote?.id,
@@ -469,8 +503,8 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
         folderId: folderId || null
       });
       const newNote: Note = {
-        id: noteRef.id,
-        _id: noteRef.id,
+        id: noteRef.id || noteRef._id,
+        _id: noteRef.id || noteRef._id,
         title: 'Untitled',
         content: [],
         ownerId: user.uid,
@@ -479,6 +513,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
         updatedAt: new Date(),
       };
       setSelectedNote(newNote);
+      setNotes(prev => [newNote, ...prev]);
     } catch (error) {
       toast.error("Failed to create note");
     }
@@ -487,7 +522,17 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
   const handleCreateFolder = async () => {
     if (!user?.uid) {return;}
     try {
-      await createFolder({ name: 'New Folder', ownerId: user.uid, type: 'personal' });
+      const folderRef = await createFolder({ name: 'New Folder', ownerId: user.uid, type: 'personal' });
+      const newFolder: Folder = {
+        id: folderRef.id || folderRef._id,
+        _id: folderRef.id || folderRef._id,
+        name: 'New Folder',
+        ownerId: user.uid,
+        parentId: null,
+        type: 'personal',
+        color: '#3b82f6'
+      };
+      setFolders(prev => [...prev, newFolder]);
       toast.success("Folder created");
     } catch (error) {
       toast.error("Failed to create folder");
@@ -505,6 +550,22 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
     }
   };
 
+  const handleDeleteFolder = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this folder and all its contents?")) return;
+    try {
+      await deleteFolder(id);
+      toast.success("Folder deleted");
+      if (selectedNote?.folderId === id) {
+        setSelectedNote(null);
+      }
+      setFolders(prev => prev.filter(f => f.id !== id));
+      setNotes(prev => prev.filter(n => n.folderId !== id));
+    } catch (error) {
+      console.error("Delete folder error:", error);
+      toast.error("Failed to delete folder");
+    }
+  };
+
   const handleDeleteNote = async (id: string) => {
     // Confirm dialog is a bit aggressive, maybe just do it? Or use a custom dialog.
     // Standard confirm is fine for now/MVP.
@@ -516,6 +577,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
       if (selectedNote?.id === id) {
         setSelectedNote(null);
       }
+      setNotes(prev => prev.filter(n => n.id !== id));
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Failed to delete note");
@@ -533,6 +595,10 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
     try {
       await updateNote(noteToRename.id, { title: newNoteTitle });
       toast.success("Note renamed");
+      setNotes(prev => prev.map(n => n.id === noteToRename.id ? { ...n, title: newNoteTitle } : n));
+      if (selectedNote?.id === noteToRename.id) {
+        setSelectedNote(prev => prev ? { ...prev, title: newNoteTitle } : null);
+      }
       setRenameDialogOpen(false);
       setNoteToRename(null);
     } catch (error) {
@@ -598,7 +664,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
             </Button>
             <Button
               size="sm"
-              className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground transition-colors duration-200"
+              className="flex-1 h-8 text-xs bg-foreground hover:bg-foreground/90 text-background transition-colors duration-200"
               onClick={() => handleCreateNote()}
             >
               <Plus size={14} className="mr-1.5" /> Note
@@ -617,7 +683,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
             {/* Shared With Me */}
             {sharedFolders.length > 0 && (
               <div>
-                <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-primary flex items-center gap-1.5">
+                <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground flex items-center gap-1.5">
                   <Users size={10} /> Shared with me
                 </div>
                 {sharedFolders.map(folder => (
@@ -630,6 +696,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
                     onSelectNote={setSelectedNote}
                     onCreateNote={() => handleCreateNote(folder.id)}
                     onShare={() => { }}
+                    onDeleteFolder={handleDeleteFolder}
                     onDeleteNote={handleDeleteNote}
                     onRenameNote={handleRenameStart}
                     onShareNote={handleShareNote}
@@ -654,6 +721,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
                     onSelectNote={setSelectedNote}
                     onCreateNote={() => handleCreateNote(folder.id)}
                     onShare={() => { setFolderToShare(folder); setShareDialogOpen(true); }}
+                    onDeleteFolder={handleDeleteFolder}
                     onDeleteNote={handleDeleteNote}
                     onRenameNote={handleRenameStart}
                     onShareNote={handleShareNote}
@@ -710,18 +778,24 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
         {selectedNote && user ? (
           <>
             {/* Slim Sticky Top Bar */}
-            <div className="h-12 shrink-0 sticky top-0 z-10 flex items-center justify-between px-4 border-b border-white/10 backdrop-blur-md bg-white/[0.04]">
+            <div className="h-12 shrink-0 sticky top-0 z-10 flex items-center justify-between px-4 border-b border-border/10 backdrop-blur-md bg-secondary/10">
               {/* Breadcrumbs */}
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 flex-1">
                 {breadcrumb.map((part, i) => (
                   <React.Fragment key={i}>
-                    {i > 0 && <ChevronRight size={12} className="text-border" />}
-                    <span className={cn(
-                      "truncate",
-                      i === breadcrumb.length - 1 ? "text-foreground font-medium" : "text-muted-foreground"
-                    )}>
-                      {part}
-                    </span>
+                    {i > 0 && <ChevronRight size={12} className="text-border shrink-0" />}
+                    {i === breadcrumb.length - 1 ? (
+                      <input
+                        value={editingTitle}
+                        onChange={handleTitleChangeTopBar}
+                        className="bg-transparent border-none outline-none text-foreground font-medium truncate min-w-[50px] w-full focus:ring-0"
+                        placeholder="Untitled"
+                      />
+                    ) : (
+                      <span className="truncate shrink-0">
+                        {part}
+                      </span>
+                    )}
                   </React.Fragment>
                 ))}
               </div>
@@ -743,7 +817,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
                         <div
                           key={activeUser.id}
                           className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white border-2 border-black",
+                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-foreground border-2 border-background",
                             index > 0 && "-ml-2"
                           )}
                           style={{ backgroundColor: activeUser.color, zIndex: 5 - index }}
@@ -763,7 +837,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
                     })}
                     {activeUsers.length > 5 && (
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold bg-muted text-muted-foreground border-2 border-black -ml-2"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold bg-secondary/50 text-foreground border-2 border-background -ml-2"
                         style={{ zIndex: 0 }}
                       >
                         +{activeUsers.length - 5}
@@ -771,10 +845,10 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
                     )}
                   </div>
                 )}
-                <Button variant="ghost" size="sm" className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-200">
+                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('open-link-task-dialog'))} className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-200">
                   <LinkIcon size={14} className="mr-1.5" /> Link Task
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-200">
+                <Button variant="ghost" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('open-share-note-dialog'))} className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-200">
                   <Share2 size={14} className="mr-1.5" /> Share
                 </Button>
                 <DropdownMenu>
@@ -787,7 +861,9 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
                     <DropdownMenuItem>Duplicate</DropdownMenuItem>
                     <DropdownMenuItem>Move to folder</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-400">Delete</DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => { if (selectedNote) handleDeleteNote(selectedNote.id) }}>
+                      <Trash size={14} className="mr-2" /> Delete
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -799,7 +875,11 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
                 key={selectedNote.id}
                 note={selectedNote}
                 user={{ uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL }}
-                onUpdate={(updated) => setSelectedNote(updated)}
+                isShared={true}
+                onUpdate={(updated) => {
+                  setSelectedNote(updated);
+                  setNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
+                }}
                 className="h-full"
               />
             </div>
@@ -816,7 +896,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ user, users = [], init
             </p>
             <Button
               onClick={() => handleCreateNote()}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground transition-colors duration-200"
+              className="bg-foreground hover:bg-foreground/90 text-background transition-colors duration-200"
             >
               <Plus size={16} className="mr-2" /> Create Note
             </Button>

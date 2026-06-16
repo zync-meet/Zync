@@ -57,7 +57,7 @@ export const MobileLayout = ({
     return (
         <div className="flex flex-col h-screen w-full bg-background text-foreground overflow-hidden">
             {}
-            <header className="h-14 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 shrink-0 z-40">
+            <header className="h-14 border-b border-border/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 shrink-0 z-40">
                 <div className="flex items-center gap-3">
                     <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
                         <SheetTrigger asChild>
@@ -76,7 +76,7 @@ export const MobileLayout = ({
                             <div className="flex flex-col h-full bg-background">
                                 {user && (
                                     <div className="p-6 border-b flex items-center gap-4 bg-muted/20">
-                                        <Avatar className="h-12 w-12 border-2 border-primary/20">
+                                        <Avatar className="h-12 w-12 border-2 border-border/10 bg-secondary/10">
                                             <AvatarImage src={user.photoURL} />
                                             <AvatarFallback>{user.displayName?.substring(0, 1) || 'U'}</AvatarFallback>
                                         </Avatar>
@@ -120,8 +120,6 @@ export const MobileLayout = ({
                 {children}
             </main>
 
-            {}
-            {}
             <nav className="h-16 border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shrink-0 z-40 pb-safe px-3">
                 <div className="flex items-center justify-between h-full max-w-lg mx-auto relative">
                     {leftItems.map((item) => {
@@ -139,7 +137,7 @@ export const MobileLayout = ({
                             >
                                 <div className={cn(
                                     "p-1.5 rounded-xl transition-all duration-200",
-                                    isActive ? "bg-primary/10" : "group-hover:bg-muted"
+                                    isActive ? "bg-foreground/5" : "group-hover:bg-muted"
                                 )}>
                                     <Icon className={cn("h-5 w-5", isActive && "fill-current")} />
                                 </div>
