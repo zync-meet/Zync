@@ -260,15 +260,31 @@ const MobilePreview = () => {
                     )}
 
                     {activeTab === "meet" && (
-                        <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                            <div className="w-12 h-12 bg-secondary/20 border border-border/10 rounded-full flex items-center justify-center mb-3">
-                                <Video className="w-6 h-6 text-foreground" />
+                        <div className="p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-bold text-foreground">Meetings</h2>
+                                <Button size="sm" className="h-6 text-[9px] px-2">
+                                    <Plus className="w-3 h-3" />
+                                </Button>
                             </div>
-                            <h3 className="text-sm font-semibold text-foreground mb-1">Video Meetings</h3>
-                            <p className="text-[9px] text-muted-foreground mb-3">Connect with your team</p>
-                            <Button size="sm" className="text-[10px] h-7 px-3">
-                                <Plus className="w-3 h-3 mr-1" /> New Meeting
-                            </Button>
+                            {[
+                                { title: "Daily Standup Meeting", time: "Today · 10:00 AM", link: "meet.google.com/abc-defg-hij" },
+                                { title: "Sprint 4 Review", time: "Friday · 3:00 PM", link: "meet.google.com/xyz-1234-uvw" }
+                            ].map((meet, idx) => (
+                                <Card key={idx} className="p-2.5 bg-secondary/5 border-border/10 rounded-2xl space-y-2">
+                                    <div className="flex justify-between items-start">
+                                        <div className="text-[10px] font-medium text-foreground truncate max-w-[150px]">{meet.title}</div>
+                                        <Badge className="text-[6px] px-1 py-0 bg-task-green/10 text-task-green border-task-green/15">Active</Badge>
+                                    </div>
+                                    <div className="text-[8px] text-muted-foreground">📅 {meet.time}</div>
+                                    <div className="flex items-center justify-between pt-1 border-t border-border/5">
+                                        <span className="text-[7px] text-blue-400 truncate max-w-[120px]">{meet.link}</span>
+                                        <Button size="sm" className="h-5 text-[7px] px-2 bg-foreground text-background">
+                                            Join
+                                        </Button>
+                                    </div>
+                                </Card>
+                            ))}
                         </div>
                     )}
                 </main>

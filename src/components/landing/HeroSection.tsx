@@ -16,10 +16,10 @@ const HeroSection = () => {
     offset: ["start start", "end center"],
   });
 
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.85]);
-  const rotateX = useTransform(scrollYProgress, [0, 1], [0, 20]);
-  const opacity = useTransform(scrollYProgress, [0, 0.8, 1], [1, 0.8, 0]);
-  const translateY = useTransform(scrollYProgress, [0, 1], [0, 100]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.85, 1.02]);
+  const rotateX = useTransform(scrollYProgress, [0, 1], [15, 0]);
+  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.85, 1, 1, 0]);
+  const translateY = useTransform(scrollYProgress, [0, 1], [50, 0]);
 
   const handleGetStarted = () => {
     navigate("/signup", { state: { email } });
@@ -88,7 +88,7 @@ const HeroSection = () => {
           <motion.div 
             className="absolute -inset-4 bg-foreground/5 rounded-[2.5rem] blur-2xl -z-10"
             style={{ 
-              scale: useTransform(scrollYProgress, [0, 1], [1, 1.1]),
+              scale: useTransform(scrollYProgress, [0, 1], [0.9, 1.12]),
               opacity: useTransform(scrollYProgress, [0, 1], [0.3, 0])
             }} 
           />

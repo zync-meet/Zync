@@ -381,19 +381,285 @@ const DesktopPreview = () => {
                         </div>
                     )}
 
-                    {}
-                    {!["My Workspace", "Dashboard", "Calendar", "People"].includes(activeSection) && (
-                        <div className="flex flex-col items-center justify-center h-full text-center">
-                            <div className="w-10 h-10 bg-secondary/50 rounded-full flex items-center justify-center mb-2">
-                                {sidebarItems.find(i => i.label === activeSection)?.icon && (
-                                    (() => {
-                                        const Icon = sidebarItems.find(i => i.label === activeSection)!.icon;
-                                        return <Icon className="w-5 h-5 text-muted-foreground" />;
-                                    })()
-                                )}
+                    {/* Design Section */}
+                    {activeSection === "Design" && (
+                        <div className="space-y-4 max-w-4xl mx-auto">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-base font-bold tracking-tight text-foreground">Design Inspiration</h2>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        Cached Behance and Dribbble inspirations for design-to-code workflow.
+                                    </p>
+                                </div>
                             </div>
-                            <h3 className="text-xs font-semibold text-foreground">{activeSection}</h3>
-                            <p className="text-[10px] text-muted-foreground mt-1">This module is part of the Zync ecosystem.</p>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { title: "Liquid Glass UI Dashboard", platform: "Dribbble", likes: "142", gradient: "from-purple-500/80 to-indigo-600/80" },
+                                    { title: "AI Collaboration App", platform: "Behance", likes: "89", gradient: "from-pink-500/80 to-rose-600/80" },
+                                    { title: "Real-time Chat Component", platform: "Dribbble", likes: "213", gradient: "from-cyan-500/80 to-blue-600/80" },
+                                    { title: "Dark Mode Design System", platform: "Behance", likes: "305", gradient: "from-emerald-500/80 to-teal-600/80" },
+                                    { title: "Kanban Board Interaction", platform: "Dribbble", likes: "97", gradient: "from-orange-500/80 to-amber-600/80" },
+                                    { title: "AI Assistant Interface", platform: "Behance", likes: "154", gradient: "from-violet-500/80 to-purple-700/80" }
+                                ].map((item, idx) => (
+                                    <Card key={idx} className="overflow-hidden border-border/10 bg-secondary/5 group hover:border-border/30 transition-all duration-300">
+                                        <div className={`aspect-video w-full bg-gradient-to-br ${item.gradient} flex items-center justify-center text-[10px] font-bold text-white relative`}>
+                                            <span className="bg-black/40 px-2 py-0.5 rounded backdrop-blur-md">{item.platform}</span>
+                                        </div>
+                                        <div className="p-2.5">
+                                            <h4 className="text-[10px] font-semibold text-foreground truncate">{item.title}</h4>
+                                            <div className="flex items-center justify-between mt-1 text-[9px] text-muted-foreground">
+                                                <span>{item.platform}</span>
+                                                <span>❤️ {item.likes}</span>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tasks Section */}
+                    {activeSection === "Tasks" && (
+                        <div className="space-y-4 max-w-4xl mx-auto">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-base font-bold tracking-tight text-foreground">Kanban Board</h2>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        Task tracking integrated directly with GitHub events.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    {
+                                        title: "To Do",
+                                        color: "border-t-blue-500",
+                                        tasks: [
+                                            { id: "TASK-102", title: "Setup Redis caching for scraper", priority: "Medium", assignee: "MW" },
+                                            { id: "TASK-104", title: "Add light mode support", priority: "Low", assignee: "ED" }
+                                        ]
+                                    },
+                                    {
+                                        title: "In Progress",
+                                        color: "border-t-amber-500",
+                                        tasks: [
+                                            { id: "TASK-89", title: "Implement Yjs editor syncing", priority: "High", assignee: "SC" },
+                                            { id: "TASK-95", title: "Google Meet OAuth linking", priority: "High", assignee: "AJ" }
+                                        ]
+                                    },
+                                    {
+                                        title: "Done",
+                                        color: "border-t-emerald-500",
+                                        tasks: [
+                                            { id: "TASK-78", title: "Landing page layout refactor", priority: "Medium", assignee: "SC" },
+                                            { id: "TASK-62", title: "Database schema migration", priority: "High", assignee: "AJ" }
+                                        ]
+                                    }
+                                ].map((col, idx) => (
+                                    <div key={idx} className={`bg-secondary/5 rounded-xl border border-border/10 p-2.5 border-t-2 ${col.color} space-y-2`}>
+                                        <div className="flex items-center justify-between pb-1.5 border-b border-border/5">
+                                            <span className="text-[10px] font-bold text-foreground">{col.title}</span>
+                                            <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-secondary/15">{col.tasks.length}</Badge>
+                                        </div>
+                                        {col.tasks.map((t, tid) => (
+                                            <Card key={tid} className="p-2 border-border/10 bg-background/50 space-y-1.5 shadow-sm hover:border-border/20 transition-all">
+                                                <div className="flex justify-between items-center text-[8px] text-muted-foreground">
+                                                    <span className="font-mono text-foreground/75">{t.id}</span>
+                                                    <Badge className={`text-[7px] px-1 py-0 h-3.5 font-normal ${t.priority === 'High' ? 'bg-red-500/10 text-red-400 border-red-500/20' : t.priority === 'Medium' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>{t.priority}</Badge>
+                                                </div>
+                                                <h4 className="text-[10px] font-medium leading-snug line-clamp-2">{t.title}</h4>
+                                                <div className="flex items-center justify-between pt-1 border-t border-border/5">
+                                                    <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
+                                                        <Github className="w-2.5 h-2.5" />
+                                                        <span>Syncing</span>
+                                                    </div>
+                                                    <Avatar className="w-4 h-4 border-0">
+                                                        <AvatarFallback className="text-[7px] bg-secondary text-foreground">{t.assignee}</AvatarFallback>
+                                                    </Avatar>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Notes Section */}
+                    {activeSection === "Notes" && (
+                        <div className="space-y-4 max-w-4xl mx-auto h-[300px] flex flex-col">
+                            <div className="flex items-center justify-between shrink-0">
+                                <div>
+                                    <h2 className="text-base font-bold tracking-tight text-foreground">Collaborative Notes</h2>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        Multiplayer document editing powered by Yjs conflict-free sync.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex-1 flex gap-3 min-h-0 bg-secondary/5 rounded-xl border border-border/10 overflow-hidden">
+                                {/* Left Folder Explorer */}
+                                <div className="w-1/3 border-r border-border/10 bg-secondary/5 p-2 flex flex-col space-y-1">
+                                    <span className="text-[8px] font-bold text-muted-foreground uppercase px-1 pb-1">Workspaces</span>
+                                    <div className="space-y-0.5">
+                                        {[
+                                            { name: "📁 Product Roadmap", active: true },
+                                            { name: "📁 System Architecture", active: false },
+                                            { name: "📄 Sprint 4 Spec", active: false },
+                                            { name: "📄 API Reference docs", active: false }
+                                        ].map((item, idx) => (
+                                            <div key={idx} className={`text-[10px] px-2 py-1 rounded cursor-pointer ${item.active ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/40'}`}>
+                                                {item.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                {/* Right Editor View */}
+                                <div className="flex-1 p-3 flex flex-col bg-background/50 relative overflow-y-auto custom-scrollbar">
+                                    <div className="border-b border-border/10 pb-2 mb-2">
+                                        <h3 className="text-xs font-bold text-foreground">📁 Product Roadmap</h3>
+                                        <div className="flex items-center gap-1.5 mt-1 text-[8px] text-muted-foreground">
+                                            <span>Active Users:</span>
+                                            <div className="flex -space-x-1.5">
+                                                <span className="w-4 h-4 rounded-full bg-blue-500 border border-background flex items-center justify-center text-[7px] text-white">AJ</span>
+                                                <span className="w-4 h-4 rounded-full bg-purple-500 border border-background flex items-center justify-center text-[7px] text-white">SC</span>
+                                            </div>
+                                            <span className="text-task-green ml-1">● Synced</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 space-y-2 text-[10px] leading-relaxed">
+                                        <p className="font-semibold text-foreground">## Zync Platform v1.0 Launch Roadmap</p>
+                                        <p className="text-muted-foreground">This roadmap outlines the milestones for the real-time team collaboration app.</p>
+                                        <div className="p-1.5 bg-blue-500/10 border border-blue-500/20 rounded-md text-[9px] text-blue-400 relative">
+                                            <span className="absolute -top-2 left-2 px-1 bg-background text-[7px] border border-blue-500/20 rounded font-semibold">Alex Johnson</span>
+                                            "Working on finalizing the meeting integration schemas and testing Google Meet token refresh scripts."
+                                        </div>
+                                        <p className="text-muted-foreground">1. Refactor WebSocket namespace connections (Done)</p>
+                                        <p className="text-muted-foreground flex items-center">
+                                            2. Integrate collaborative block editing
+                                            <span className="w-1.5 h-3 bg-purple-500 ml-0.5 animate-pulse" />
+                                            <span className="text-[7px] px-1 bg-purple-500 text-white rounded scale-90 ml-1">Sarah Chen</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Activity Section */}
+                    {activeSection === "Activity" && (
+                        <div className="space-y-4 max-w-4xl mx-auto">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-base font-bold tracking-tight text-foreground">Team Activity Log</h2>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        Real-time session updates and Git commit synchronization log.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="bg-secondary/5 rounded-xl border border-border/10 p-3 space-y-2.5">
+                                {[
+                                    { user: "Sarah Chen", action: "merged pull request #124", target: "feature/multiplayer-yjs-editor", time: "10 mins ago", avatar: "SC", color: "bg-purple-500/10 text-purple-400" },
+                                    { user: "Alex Johnson", action: "completed task", target: "TASK-62: Database schema migration", time: "1 hour ago", avatar: "AJ", color: "bg-emerald-500/10 text-emerald-400" },
+                                    { user: "Mike Wilson", action: "pushed commit 68d3e51", target: "fix(collab): force isShared to enable real-time sync", time: "2 hours ago", avatar: "MW", color: "bg-blue-500/10 text-blue-400" },
+                                    { user: "Emily Davis", action: "joined the project", target: "Zync Dashboard", time: "1 day ago", avatar: "ED", color: "bg-orange-500/10 text-orange-400" }
+                                ].map((act, idx) => (
+                                    <div key={idx} className="flex gap-3 items-start p-2 hover:bg-secondary/20 rounded-lg transition-colors">
+                                        <Avatar className="w-7 h-7 border-0 mt-0.5">
+                                            <AvatarFallback className="text-[9px] bg-secondary text-foreground">{act.avatar}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[10px]">
+                                                <span className="font-semibold text-foreground">{act.user}</span>
+                                                <span className="text-muted-foreground"> {act.action} </span>
+                                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold inline-block ${act.color}`}>{act.target}</span>
+                                            </div>
+                                            <span className="text-[8px] text-muted-foreground">{act.time}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Meet Section */}
+                    {activeSection === "Meet" && (
+                        <div className="space-y-4 max-w-4xl mx-auto">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-base font-bold tracking-tight text-foreground">Video Meetings</h2>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        Schedule calls and auto-generate Google Meet invitations inside chat.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { title: "Daily Standup Meeting", time: "Every weekday at 10:00 AM", status: "Scheduled", link: "meet.google.com/abc-defg-hij" },
+                                    { title: "Sprint 4 Review & Demo", time: "Friday, June 19 at 3:00 PM", status: "Upcoming", link: "meet.google.com/xyz-1234-uvw" }
+                                ].map((meet, idx) => (
+                                    <Card key={idx} className="p-3 border-border/10 bg-secondary/5 space-y-2.5">
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="text-xs font-bold text-foreground">{meet.title}</h3>
+                                            <Badge variant="outline" className="text-[8px] h-4 bg-task-green/10 text-task-green border-task-green/20">{meet.status}</Badge>
+                                        </div>
+                                        <div className="text-[9px] text-muted-foreground space-y-1">
+                                            <div>📅 {meet.time}</div>
+                                            <div className="text-[8px] font-mono select-all text-blue-400 bg-secondary/30 p-1 rounded mt-1 overflow-x-auto">{meet.link}</div>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-1">
+                                            <div className="flex -space-x-1.5">
+                                                <span className="w-4 h-4 rounded-full bg-blue-500 border border-background flex items-center justify-center text-[7px] text-white">AJ</span>
+                                                <span className="w-4 h-4 rounded-full bg-purple-500 border border-background flex items-center justify-center text-[7px] text-white">SC</span>
+                                                <span className="w-4 h-4 rounded-full bg-orange-500 border border-background flex items-center justify-center text-[7px] text-white">MW</span>
+                                            </div>
+                                            <Button size="sm" className="h-6 text-[8px] bg-foreground text-background hover:bg-foreground/90">
+                                                Join Meet
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Settings Section */}
+                    {activeSection === "Settings" && (
+                        <div className="space-y-4 max-w-lg mx-auto">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-base font-bold tracking-tight text-foreground">Settings</h2>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        Configure your profile, integrations, and preferences.
+                                    </p>
+                                </div>
+                            </div>
+                            <Card className="p-4 border-border/10 bg-secondary/5 space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-bold text-muted-foreground uppercase">Integrations</label>
+                                    <div className="space-y-1.5">
+                                        {[
+                                            { name: "GitHub Integration", connected: true, details: "Connected as @username" },
+                                            { name: "Google Calendar Sync", connected: true, details: "Sync enabled with your.email@gmail.com" },
+                                            { name: "LinkedIn OAuth Login", connected: false, details: "Quick login connection" }
+                                        ].map((int, idx) => (
+                                            <div key={idx} className="flex justify-between items-center p-2 bg-background/50 rounded-lg border border-border/5">
+                                                <div>
+                                                    <h4 className="text-[10px] font-semibold text-foreground">{int.name}</h4>
+                                                    <span className="text-[8px] text-muted-foreground">{int.details}</span>
+                                                </div>
+                                                <Badge className={`text-[8px] px-1 py-0 h-3.5 font-normal ${int.connected ? 'bg-task-green/10 text-task-green border-task-green/20' : 'bg-secondary text-muted-foreground'}`}>{int.connected ? "Active" : "Connect"}</Badge>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-2 pt-2 border-t border-border/10">
+                                    <label className="text-[9px] font-bold text-muted-foreground uppercase">Preferences</label>
+                                    <div className="flex justify-between items-center text-[10px]">
+                                        <span>Application Theme</span>
+                                        <Badge className="text-[8px]">Dark Mode</Badge>
+                                    </div>
+                                </div>
+                            </Card>
                         </div>
                     )}
                 </div>
