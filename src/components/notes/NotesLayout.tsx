@@ -168,6 +168,7 @@ interface NotesLayoutProps {
 interface NoteListItemProps {
   note: Note;
   isSelected: boolean;
+  ownerName?: string | null;
   onClick: () => void;
   onDelete: (id: string) => void;
   onRename: (note: Note) => void;
@@ -194,14 +195,15 @@ const SortableNoteListItem = ({ note, ...props }: NoteListItemProps) => {
   );
 };
 
-const NoteListItem: React.FC<{
-  note: Note;
-  isSelected: boolean;
-  onClick: () => void;
-  onDelete: (id: string) => void;
-  onRename: (note: Note) => void;
-  onShare: (note: Note) => void;
-}> = ({ note, isSelected, onClick, onDelete, onRename, onShare }) => {
+const NoteListItem: React.FC<NoteListItemProps> = ({
+  note,
+  isSelected,
+  ownerName,
+  onClick,
+  onDelete,
+  onRename,
+  onShare,
+}) => {
   const formattedDate = useMemo(() => {
     if (!note.updatedAt && !note.createdAt) {
       return '';
@@ -254,7 +256,9 @@ const NoteListItem: React.FC<{
           >
             {note.title || 'Untitled'}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">{formattedDate}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            {ownerName ? `${ownerName}${formattedDate ? ` • ${formattedDate}` : ''}` : formattedDate}
+          </p>
         </div>
       </div>
 
@@ -651,6 +655,25 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
   const myUnorganizedNotes = safeFilteredNotes.filter(
     (n) => !n.folderId && n.ownerId === user?.uid
   );
+  const visibleFolderIds = useMemo(() => new Set(safeFolders.map((f) => f.id)), [safeFolders]);
+  const sharedWithMeNotes = useMemo(() => {
+    return safeFilteredNotes.filter(
+      (n) => n.ownerId !== user?.uid && (!n.folderId || !visibleFolderIds.has(n.folderId))
+    );
+  }, [safeFilteredNotes, user?.uid, visibleFolderIds]);
+
+  const getOwnerName = (note: Note): string | null => {
+    if ((note as any).ownerName) return (note as any).ownerName;
+    if ((note as any).owner?.displayName) return (note as any).owner.displayName;
+    if (note.ownerId) {
+      const found = users?.find(
+        (u: any) => u.uid === note.ownerId || u._id === note.ownerId || u.id === note.ownerId
+      );
+      if (found?.displayName) return found.displayName;
+      if (found?.email) return found.email;
+    }
+    return null;
+  };
 
 
   const handleCreateNote = async (folderId?: string) => {
@@ -806,12 +829,14 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
       if (folder) {
         parts.push(folder.name);
       }
+    } else if (user?.uid && selectedNote.ownerId !== user.uid) {
+      parts.push('Shared with me');
     } else {
       parts.push('My Notes');
     }
     parts.push(selectedNote.title || 'Untitled');
     return parts;
-  }, [selectedNote, folders]);
+  }, [selectedNote, folders, user?.uid]);
 
   if (isLoading) {
     return (
@@ -868,7 +893,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <div className="flex-1 overflow-y-auto p-2 space-y-4 scrollbar-thin">
             {/* Shared With Me */}
-            {sharedFolders.length > 0 && (
+            {(sharedFolders.length > 0 || sharedWithMeNotes.length > 0) && (
               <div>
                 <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground flex items-center gap-1.5">
                   <Users size={10} /> Shared with me
@@ -889,6 +914,20 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
                     onShareNote={handleShareNote}
                   />
                 ))}
+                <div className="space-y-0.5">
+                  {sharedWithMeNotes.map((note) => (
+                    <NoteListItem
+                      key={note.id}
+                      note={note}
+                      ownerName={getOwnerName(note)}
+                      isSelected={selectedNote?.id === note.id}
+                      onClick={() => setSelectedNote(note)}
+                      onDelete={handleDeleteNote}
+                      onRename={handleRenameStart}
+                      onShare={handleShareNote}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
@@ -947,7 +986,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
                       onShare={handleShareNote}
                     />
                   ))}
-                  {myUnorganizedNotes.length === 0 && !searchQuery && (
+                  {myUnorganizedNotes.length === 0 && sharedWithMeNotes.length === 0 && !searchQuery && (
                     <p className="text-xs text-muted-foreground/60 px-3 py-2">No notes yet</p>
                   )}
                   {searchQuery && filteredNotes.length === 0 && (

@@ -190,7 +190,7 @@ const FeaturesSection = () => {
         </div>
 
         {/* Real-Time Notes */}
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-10 md:py-16 border-t border-border/30">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center py-10 md:py-16 border-t border-border/30">
           <div className="order-2 lg:order-1">
             <div className="relative z-10 flex justify-center lg:justify-start">
               <div className="w-full max-w-lg flex justify-center relative px-4 sm:px-8">
@@ -217,7 +217,7 @@ const FeaturesSection = () => {
         </div>
 
         {/* Smart Calendar */}
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-10 md:py-16 border-t border-border/30">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center py-10 md:py-16 border-t border-border/30">
           <div>
             <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
               Smart Calendar
@@ -242,7 +242,7 @@ const FeaturesSection = () => {
         </div>
 
         {/* Built-in Chat */}
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-10 md:py-16 border-t border-border/30">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center py-10 md:py-16 border-t border-border/30">
           <div className="order-2 lg:order-1">
             <div className="relative z-10 flex justify-center lg:justify-start">
               <div className="w-full max-w-sm flex justify-center relative px-4 sm:px-8">
@@ -269,7 +269,7 @@ const FeaturesSection = () => {
         </div>
 
         {/* Focused Notifications */}
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-10 md:py-16 border-t border-border/30">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center py-10 md:py-16 border-t border-border/30">
           <div>
             <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
               Focused Notifications
