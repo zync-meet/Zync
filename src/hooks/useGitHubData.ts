@@ -139,10 +139,14 @@ export const useGitHubStats = (enabled: boolean) => {
     });
 };
 
+// Users without a connected GitHub account get an error object back, not an array;
+// normalise so callers' .filter/.map can't take the whole dashboard down.
+const asArray = <T,>(data: unknown): T[] => (Array.isArray(data) ? (data as T[]) : []);
+
 export const useGitHubEvents = (enabled: boolean) => {
     return useQuery<GitHubEvent[]>({
         queryKey: ['github', 'events'],
-        queryFn: () => fetchWithAuth(`${API_BASE_URL}/api/github/events`),
+        queryFn: async () => asArray<GitHubEvent>(await fetchWithAuth(`${API_BASE_URL}/api/github/events`)),
         enabled,
     });
 };
@@ -150,7 +154,7 @@ export const useGitHubEvents = (enabled: boolean) => {
 export const useGitHubContributions = (year: number, enabled: boolean) => {
     return useQuery<Contribution[]>({
         queryKey: ['github', 'contributions', year],
-        queryFn: () => fetchWithAuth(`${API_BASE_URL}/api/github/contributions?year=${year}`),
+        queryFn: async () => asArray<Contribution>(await fetchWithAuth(`${API_BASE_URL}/api/github/contributions?year=${year}`)),
         enabled,
         placeholderData: keepPreviousData,
     });
