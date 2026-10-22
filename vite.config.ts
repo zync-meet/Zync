@@ -37,7 +37,7 @@ export default defineConfig(({ mode: _mode }) => ({
       'Content-Security-Policy':
         "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://apis.google.com https://www.googleapis.com https://www.gstatic.com https://www.google.com; " +
         "frame-src 'self' https://*.firebaseapp.com https://*.google.com https://www.google.com; " +
-        "connect-src 'self' http://localhost:* ws://localhost:* https://apis.google.com https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://www.google.com https://www.gstatic.com https://*.ws.pusherapp.com https://api.github.com https://github.com https://*.onrender.com wss://*.onrender.com; " +
+        "connect-src 'self' http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:* https://apis.google.com https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://www.google.com https://www.gstatic.com https://*.ws.pusherapp.com https://api.github.com https://github.com https://*.onrender.com wss://*.onrender.com; " +
         "worker-src 'self' blob:; " +
         "object-src 'none';",
     },

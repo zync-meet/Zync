@@ -76,11 +76,11 @@
 // Imports core Firebase initialization and app retrieval methods from the Firebase SDK to set up the client instance.
 import { initializeApp, getApps, getApp } from 'firebase/app';
 // Imports the getAuth factory function to initialize the Firebase Authentication module for this app instance.
-import { getAuth } from 'firebase/auth';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 // Imports the getStorage factory function to initialize Firebase Cloud Storage for uploading and downloading files.
-import { getStorage } from 'firebase/storage';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 // Imports the getFirestore factory function to initialize the Cloud Firestore database module for real-time data sync.
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 // Imports App Check initialization and ReCaptcha provider classes to protect the backend services from abuse.
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
@@ -140,6 +140,17 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 // Initializes and exports the Cloud Firestore database service instance tied to the configured app.
 export const db = getFirestore(app);
+
+// Connect to local Firebase emulators when opt-in flag is enabled
+if (import.meta.env.VITE_USE_FIREBASE_EMULATORS === '1') {
+  const globalAny = globalThis as any;
+  if (!globalAny.__ZYNC_FIREBASE_EMULATORS_CONNECTED__) {
+    globalAny.__ZYNC_FIREBASE_EMULATORS_CONNECTED__ = true;
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    connectFirestoreEmulator(db, '127.0.0.1', 8088);
+    connectStorageEmulator(storage, '127.0.0.1', 9199);
+  }
+}
 
 let messagingInstance: ReturnType<typeof getMessaging> | null = null;
 try {

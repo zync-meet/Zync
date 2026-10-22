@@ -448,6 +448,15 @@ router.post('/install', verifyToken, async (req, res) => {
 router.get('/installation-status', verifyToken, async (req, res) => {
   const uid = req.user.uid;
 
+  if (!process.env.GITHUB_APP_ID) {
+    return res.json({
+      connected: false,
+      installed: false,
+      notInstalled: false,
+      reason: 'disabled',
+    });
+  }
+
   try {
     const user = await User.findOne({ uid }).select('githubIntegration').lean();
     const github = user?.githubIntegration || {};

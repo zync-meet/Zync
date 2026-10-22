@@ -76,10 +76,16 @@
 const jwt = require('jsonwebtoken'); // WHAT: Imports the jsonwebtoken library. WHY: Needed to create and sign JSON Web Tokens for GitHub App authentication.
 const axios = require('axios'); // WHAT: Imports the axios HTTP client. WHY: Used to make API requests to GitHub to obtain access tokens.
 
+if (!process.env.GITHUB_APP_ID) {
+    console.log('[github] GITHUB_APP_ID not set — GitHub App features disabled');
+}
 
 const getAppJwt = () => { // WHAT: Defines a function to generate a JWT for the GitHub App. WHY: GitHub requires a signed JWT to authenticate as an App before requesting an installation token.
     const appId = process.env.GITHUB_APP_ID; // WHAT: Retrieves the GitHub App ID from environment variables. WHY: Identifies which GitHub App is making the request.
     const rawKey = process.env.GITHUB_PRIVATE_KEY || process.env.GITHUB_APP_PRIVATE_KEY || ''; // WHAT: Retrieves the GitHub private key from environment variables. WHY: Needed to cryptographically sign the JWT.
+    if (!appId || !rawKey) {
+        return null;
+    }
     const privateKey = rawKey.replace(/\\n/g, '\n'); // WHAT: Formats the private key by replacing escaped newlines. WHY: Environment variables often escape newlines, but the crypto module requires actual newline characters.
 
     const now = Math.floor(Date.now() / 1000); // WHAT: Gets the current time in seconds since epoch. WHY: JWT claims like 'iat' and 'exp' require time in seconds.
@@ -95,6 +101,9 @@ const getAppJwt = () => { // WHAT: Defines a function to generate a JWT for the 
 
 const getInstallationAccessToken = async (installationId) => { // WHAT: Defines an async function to get an installation access token. WHY: Allows the application to act on behalf of a specific installation of the GitHub App.
     const jwtToken = getAppJwt(); // WHAT: Generates a new App JWT. WHY: Required in the Authorization header to request the installation token.
+    if (!jwtToken) {
+        return null;
+    }
 
     try { // WHAT: Starts a try-catch block. WHY: To gracefully handle any potential errors during the external API request.
         const response = await axios.post( // WHAT: Makes a POST request to the GitHub API. WHY: Endpoint specifically used to generate an access token for an installation.
