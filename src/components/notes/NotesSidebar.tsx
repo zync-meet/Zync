@@ -280,8 +280,25 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
   const sharedFolders = folders.filter(f => f.ownerId !== userId);
 
 
+  const visibleFolderIds = new Set(folders.map(f => f.id));
   const visibleNotes = notes.filter(n => !hiddenNoteIds.has(n.id));
   const myUnorganizedNotes = visibleNotes.filter(n => !n.folderId && n.ownerId === userId);
+  const sharedWithMeNotes = visibleNotes.filter(
+    n => n.ownerId !== userId && (!n.folderId || !visibleFolderIds.has(n.folderId))
+  );
+
+  const getOwnerName = (note: Note): string | null => {
+    if ((note as any).ownerName) return (note as any).ownerName;
+    if ((note as any).owner?.displayName) return (note as any).owner.displayName;
+    if (note.ownerId) {
+      const found = users?.find(
+        (u: any) => u.uid === note.ownerId || u._id === note.ownerId || u.id === note.ownerId
+      );
+      if (found?.displayName) return found.displayName;
+      if (found?.email) return found.email;
+    }
+    return null;
+  };
 
 
   const handleDragStart = (e: React.DragEvent, noteId: string) => {
@@ -395,7 +412,7 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
           )}
 
           {}
-          {sharedFolders.length > 0 && (
+          {(sharedFolders.length > 0 || sharedWithMeNotes.length > 0) && (
             <div className="mb-4">
               {!effectiveCollapsed && (
                 <div className="px-2 text-xs font-bold uppercase mb-2 tracking-wider text-muted-foreground flex items-center gap-2">
@@ -422,6 +439,21 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
                   onDeleteNote={handleDeleteNote}
                   onDuplicateNote={handleDuplicateNote}
                   onRenameNote={handleRenameNote}
+                />
+              ))}
+              {sharedWithMeNotes.map(note => (
+                <NoteItem
+                  key={note.id}
+                  note={note}
+                  ownerName={getOwnerName(note)}
+                  selectedNoteId={selectedNoteId}
+                  isCollapsed={effectiveCollapsed}
+                  onSelect={onSelectNote}
+                  onDragStart={handleDragStart}
+                  onDelete={handleDeleteNote}
+                  onDuplicate={handleDuplicateNote}
+                  onRename={handleRenameNote}
+                  onCopy={handleCopy}
                 />
               ))}
               <div className="h-px bg-border/10 my-2 mx-2" />
@@ -479,6 +511,10 @@ export const NotesSidebar: React.FC<NotesSidebarProps> = ({
                 onCopy={handleCopy}
               />
             ))}
+
+            {!effectiveCollapsed && myUnorganizedNotes.length === 0 && sharedWithMeNotes.length === 0 && (
+              <p className="text-xs text-muted-foreground/60 px-2 py-1">No notes yet</p>
+            )}
 
             <button
               onClick={() => handleCreateNote()}

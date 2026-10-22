@@ -95,6 +95,7 @@ interface NoteItemProps {
     note: Note;
     selectedNoteId: string | null;
     isCollapsed: boolean;
+    ownerName?: string | null;
     onSelect: (note: Note) => void;
     onDragStart: (e: React.DragEvent, id: string) => void;
     onDelete: (id: string) => void;
@@ -104,7 +105,7 @@ interface NoteItemProps {
 }
 
 export const NoteItem: React.FC<NoteItemProps> = ({
-    note, selectedNoteId, isCollapsed, onSelect, onDragStart,
+    note, selectedNoteId, isCollapsed, ownerName, onSelect, onDragStart,
     onDelete, onDuplicate, onRename, onCopy
 }) => {
     const [isRenaming, setIsRenaming] = useState(false);
@@ -150,7 +151,8 @@ export const NoteItem: React.FC<NoteItemProps> = ({
                     onClick={() => onSelect(note)}
                     onContextMenu={() => onCopy(note.id)}
                     className={cn(
-                        "w-full text-left flex items-center rounded-sm text-sm mb-1 font-serif-elegant tracking-wide transition-all",
+                        "w-full text-left flex rounded-sm text-sm mb-1 font-serif-elegant tracking-wide transition-all",
+                        ownerName && !isCollapsed ? "items-start" : "items-center",
                         isCollapsed ? "justify-center px-0 py-2" : "px-2 py-1.5 border-l-2",
                         selectedNoteId === note.id
                             ? (isCollapsed
@@ -162,8 +164,19 @@ export const NoteItem: React.FC<NoteItemProps> = ({
                     )}
                     title={isCollapsed ? (note.title || "Untitled") : undefined}
                 >
-                    <FileText size={16} className={cn(selectedNoteId === note.id ? "text-foreground" : "opacity-70", isCollapsed ? "" : "mr-2")} />
-                    {!isCollapsed && <span className="truncate">{note.title || "Untitled"}</span>}
+                    <FileText size={16} className={cn(selectedNoteId === note.id ? "text-foreground" : "opacity-70", isCollapsed ? "" : "mr-2 shrink-0", ownerName && !isCollapsed ? "mt-0.5" : "")} />
+                    {!isCollapsed && (
+                        ownerName ? (
+                            <div className="min-w-0 flex-1">
+                                <span className="block truncate">{note.title || "Untitled"}</span>
+                                <span className="block text-[11px] text-muted-foreground truncate leading-tight font-sans">
+                                    {ownerName}
+                                </span>
+                            </div>
+                        ) : (
+                            <span className="truncate">{note.title || "Untitled"}</span>
+                        )
+                    )}
                 </button>
             </ContextMenuTrigger>
 

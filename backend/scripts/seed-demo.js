@@ -823,12 +823,40 @@ async function runSeed() {
     });
   }
 
-  // 9. Create Messages (~25 messages across 2 threads)
+  // 9. Create Messages (~33 messages across 3 threads: Alex↔Sneha, Alex↔Rahul, Alex↔Priya)
   console.log('💬 Creating Chat Messages...');
-  const chat1Id = [alexUid, priyaUid].sort().join('_');
-  const chat2Id = [alexUid, rahulUid].sort().join('_');
+  const chatSnehaId = [alexUid, snehaUid].sort().join('_');
+  const chatRahulId = [alexUid, rahulUid].sort().join('_');
+  const chatPriyaId = [alexUid, priyaUid].sort().join('_');
 
-  const thread1 = [
+  const threadSneha = [
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Hey Sneha, how did the accessibility and contrast audit go on the new dashboard components?' },
+    { sender: snehaUid, senderName: 'Sneha Rao', text: 'Hey Alex! All the contrast ratios and ARIA landmark roles look great now. Fixed a small focus trap in the mobile drawer yesterday.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Awesome catch. Did you get a chance to run the Playwright test suite against the local emulator fixtures?' },
+    { sender: snehaUid, senderName: 'Sneha Rao', text: 'Yes! 48/48 test specs passing in under 45 seconds. CI pipeline integration is fully green on GitHub Actions.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Incredible speed. What is next on your radar for Sprint 14?' },
+    { sender: snehaUid, senderName: 'Sneha Rao', text: 'Verifying the Firebase App Check integration with reCAPTCHA v3 tokens to protect our authentication endpoints.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Let me know if you need any adjustments to the client auth headers or token refresh handling.' },
+    { sender: snehaUid, senderName: 'Sneha Rao', text: 'Will do! I also reviewed your Architecture Plan note — the offline fallback strategy is rock-solid.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Glad to hear. Let us do a quick walkthrough before the demo on Friday.' },
+    { sender: snehaUid, senderName: 'Sneha Rao', text: 'Sounds like a plan! See you in the team sync.' },
+  ];
+
+  const threadRahul = [
+    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Alex, I just pushed the new mobile navigation drawer component.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Nice! Does it support the smooth gesture dismissal we discussed?' },
+    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Yes! Using react-native-gesture-handler with native springs. Feels completely fluid.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'That is great. How is offline task caching looking with WatermelonDB?' },
+    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Got the schema synchronized. When offline, changes queue up and sync immediately on reconnect.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Huge win for mobile users. Are we on track for the Sprint 14 demo on Friday?' },
+    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Definitely. Just wrapping up haptic feedback triggers on the checkbox items.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Subtle haptics make all the difference. Keep up the great work!' },
+    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Thanks! Going to test the build on both iOS and Android emulators tonight.' },
+    { sender: alexUid, senderName: 'Alex Designer', text: 'Catch you in tomorrow morning standup.' },
+    { sender: rahulUid, senderName: 'Rahul Patel', text: 'See you tomorrow!' },
+  ];
+
+  const threadPriya = [
     { sender: alexUid, senderName: 'Alex Designer', text: 'Hey Priya, how is the API Gateway load shedding implementation coming along?' },
     { sender: priyaUid, senderName: 'Priya Sharma', text: 'Hey Alex! Going really well. The Redis sliding window counter is fully working with atomic Lua scripts.' },
     { sender: alexUid, senderName: 'Alex Designer', text: 'Awesome. What happens when Redis is briefly restarting or offline?' },
@@ -845,50 +873,57 @@ async function runSeed() {
     { sender: priyaUid, senderName: 'Priya Sharma', text: 'Will do! Thanks Alex.' },
   ];
 
-  const thread2 = [
-    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Alex, I just pushed the new mobile navigation drawer component.' },
-    { sender: alexUid, senderName: 'Alex Designer', text: 'Nice! Does it support the smooth gesture dismissal we discussed?' },
-    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Yes! Using react-native-gesture-handler with native springs. Feels completely fluid.' },
-    { sender: alexUid, senderName: 'Alex Designer', text: 'That is great. How is offline task caching looking with WatermelonDB?' },
-    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Got the schema synchronized. When offline, changes queue up and sync immediately on reconnect.' },
-    { sender: alexUid, senderName: 'Alex Designer', text: 'Huge win for mobile users. Are we on track for the Sprint 14 demo on Friday?' },
-    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Definitely. Just wrapping up haptic feedback triggers on the checkbox items.' },
-    { sender: alexUid, senderName: 'Alex Designer', text: 'Subtle haptics make all the difference. Keep up the great work!' },
-    { sender: rahulUid, senderName: 'Rahul Patel', text: 'Thanks! Going to test the build on both iOS and Android emulators tonight.' },
-    { sender: alexUid, senderName: 'Alex Designer', text: 'Catch you in tomorrow morning standup.' },
-    { sender: rahulUid, senderName: 'Rahul Patel', text: 'See you tomorrow!' },
-  ];
+  const nowMs = Date.now();
 
-  let msgTime = Date.now() - 3 * 86400000;
-  for (const m of thread1) {
-    const receiverId = m.sender === alexUid ? priyaUid : alexUid;
+  // Thread 1: Alex <-> Sneha (recent timestamps, within last ~2 hours)
+  let msgTimeSneha = nowMs - (110 * 60 * 1000);
+  for (const m of threadSneha) {
+    const receiverId = m.sender === alexUid ? snehaUid : alexUid;
     await Message.create({
-      chatId: chat1Id,
+      chatId: chatSnehaId,
       text: m.text,
       senderId: m.sender,
       senderName: m.senderName,
       receiverId,
       seen: true,
       delivered: true,
-      createdAt: new Date(msgTime),
+      createdAt: new Date(msgTimeSneha),
     });
-    msgTime += 12 * 60 * 1000;
+    msgTimeSneha += 8 * 60 * 1000;
   }
 
-  msgTime = Date.now() - 2 * 86400000;
-  for (const m of thread2) {
+  // Thread 2: Alex <-> Rahul (within last ~6 hours)
+  let msgTimeRahul = nowMs - (320 * 60 * 1000);
+  for (const m of threadRahul) {
     const receiverId = m.sender === alexUid ? rahulUid : alexUid;
     await Message.create({
-      chatId: chat2Id,
+      chatId: chatRahulId,
       text: m.text,
       senderId: m.sender,
       senderName: m.senderName,
       receiverId,
       seen: true,
       delivered: true,
-      createdAt: new Date(msgTime),
+      createdAt: new Date(msgTimeRahul),
     });
-    msgTime += 15 * 60 * 1000;
+    msgTimeRahul += 15 * 60 * 1000;
+  }
+
+  // Thread 3: Alex <-> Priya (within last ~18 hours)
+  let msgTimePriya = nowMs - (18 * 3600 * 1000);
+  for (const m of threadPriya) {
+    const receiverId = m.sender === alexUid ? priyaUid : alexUid;
+    await Message.create({
+      chatId: chatPriyaId,
+      text: m.text,
+      senderId: m.sender,
+      senderName: m.senderName,
+      receiverId,
+      seen: true,
+      delivered: true,
+      createdAt: new Date(msgTimePriya),
+    });
+    msgTimePriya += 15 * 60 * 1000;
   }
 
   // 10. Create Meetings (5 Meetings across this week and next)
