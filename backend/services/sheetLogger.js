@@ -84,6 +84,9 @@ const { google } = require('googleapis'); // WHAT: Imports the Google API client
 
 const SPREADSHEET_ID = '1dSLg9N40XzLgPxogA-sHyFXhN3GL5MVWcoxxnvVug7E'; // WHAT: Hardcodes the ID of the target Google Sheet. WHY: Determines exactly which spreadsheet the data will be appended to.
 
+if (!process.env.GOOGLE_SHEETS_CLIENT_EMAIL || !process.env.GOOGLE_SHEETS_PRIVATE_KEY) {
+    console.log('[sheets] GOOGLE_SHEETS_CLIENT_EMAIL not set — Google Sheets logging disabled');
+}
 
 const getAuth = () => { // WHAT: Defines a function to construct the Google API authentication object. WHY: Encapsulates credential retrieval and auth logic.
     const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL; // WHAT: Retrieves the service account email from environment variables. WHY: Required to authenticate the API request as a specific service account.
@@ -108,6 +111,9 @@ const getAuth = () => { // WHAT: Defines a function to construct the Google API 
 
 
 const appendRow = async (name, email, date = new Date().toISOString()) => { // WHAT: Defines an async function to append a row of data. WHY: Provides a reusable interface for logging user signups or events.
+    if (!process.env.GOOGLE_SHEETS_CLIENT_EMAIL || !process.env.GOOGLE_SHEETS_PRIVATE_KEY) {
+        return null;
+    }
     try {
         const auth = getAuth(); // WHAT: Retrieves the authenticated GoogleAuth object. WHY: Required to initialize the API client.
         const sheets = google.sheets({ version: 'v4', auth }); // WHAT: Initializes the Google Sheets API client (v4). WHY: Provides the methods to interact with the spreadsheets endpoint.

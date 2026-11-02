@@ -84,7 +84,9 @@ if (!getApps().length) {
 
   if (!getApps().length) {
     try {
-      initializeApp();
+      initializeApp({
+        projectId: process.env.GCLOUD_PROJECT || process.env.VITE_FIREBASE_PROJECT_ID || 'demo-zync',
+      });
       console.log('Initializing Firebase Admin with default credentials');
     } catch (error) {
       console.warn('Firebase Admin failed to initialize:', error.message);

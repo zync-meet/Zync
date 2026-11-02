@@ -123,7 +123,10 @@ const corsOptions = {
     if (!origin) {
       return callback(null, true);
     }
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Any localhost port is allowed only outside production (local dev / emulator runs).
+    const isLocalDevOrigin =
+      process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    if (allowedOrigins.indexOf(origin) !== -1 || isLocalDevOrigin) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -389,13 +392,22 @@ async function connectWithRetry(attempt = 1) {
     );
     return;
   }
+  const isLocalMongo = mongoUri.includes('127.0.0.1') || mongoUri.includes('localhost');
+  const mongoOpts = {
+    ...MONGO_OPTIONS,
+    tls: isLocalMongo ? false : true,
+    ...(isLocalMongo ? {} : { dbName: 'ZYNC_USER' }),
+  };
+  if (isLocalMongo) {
+    delete mongoOpts.dbName;
+  }
   try {
-    const conn = await mongoose.connect(mongoUri, MONGO_OPTIONS);
-    console.log(`✅ Oracle ADB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(mongoUri, mongoOpts);
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`   Database Name: ${conn.connection.name}`);
   } catch (err) {
     console.error(
-      `❌ Oracle ADB Connection Error (attempt ${attempt}/${MAX_RETRIES}): ${err.message}`
+      `❌ MongoDB Connection Error (attempt ${attempt}/${MAX_RETRIES}): ${err.message}`
     );
     if (attempt < MAX_RETRIES) {
       console.log(`   Retrying in ${RETRY_DELAY_MS / 1000}s...`);

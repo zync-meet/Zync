@@ -130,10 +130,25 @@ const getFirestoreAdmin = () => {
 
     // WHAT: Check if already initialized. WHY: Prevents "app already exists" errors.
     if (!getApps().length) {
+      const projectId =
+        serviceAccount.project_id ||
+        process.env.GCLOUD_PROJECT ||
+        process.env.VITE_FIREBASE_PROJECT_ID ||
+        'demo-zync';
+
+      let credential;
+      try {
+        if (serviceAccount.private_key && serviceAccount.client_email) {
+          credential = cert(serviceAccount);
+        }
+      } catch (certError) {
+        console.warn('[FirebaseAdmin] cert() initialization skipped (using emulator mode):', certError.message);
+      }
+
       // WHAT: Initialize default app. WHY: Establishes connection.
       initializeApp({
-        credential: cert(serviceAccount),
-        projectId: serviceAccount.project_id || process.env.VITE_FIREBASE_PROJECT_ID,
+        ...(credential ? { credential } : {}),
+        projectId,
       });
     }
 

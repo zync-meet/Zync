@@ -92,6 +92,8 @@ const oauth2Client = new google.auth.OAuth2(
 // WHAT: Check refresh token. WHY: Needed for long-lived server auth.
 if (process.env.GOOGLE_REFRESH_TOKEN) {
     oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN.trim() });
+} else {
+    console.log('[mailer] GOOGLE_REFRESH_TOKEN not set — Email sending disabled');
 }
 
 // WHAT: Create Meet space. WHY: Generates on-demand meeting links.
@@ -100,9 +102,10 @@ const create_meeting = async () => {
         console.log('Creating Google Meet space with Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 10) + '...');
 
 
-        // WHAT: Verify refresh token. WHY: Will fail without it.
+        // WHAT: Verify refresh token. WHY: Fallback gracefully if unconfigured.
         if (!process.env.GOOGLE_REFRESH_TOKEN) {
-            throw new Error('GOOGLE_REFRESH_TOKEN is missing');
+            console.warn('[googleMeet] GOOGLE_REFRESH_TOKEN is missing — using local fallback meeting URL');
+            return `https://meet.jit.si/zync-${Date.now()}`;
         }
 
         // WHAT: Init Meet client. WHY: Prepare service requests.
@@ -142,11 +145,11 @@ const create_meeting = async () => {
 // WHAT: Send email via Gmail. WHY: Automates notifications.
 const send_ZYNC_email = async (to, subject, bodyHtml, bodyText = null) => {
     try {
-        console.log(`Sending email to ${to}...`);
-
         if (!process.env.GOOGLE_REFRESH_TOKEN) {
-            throw new Error('GOOGLE_REFRESH_TOKEN is missing');
+            return null;
         }
+
+        console.log(`Sending email to ${to}...`);
 
         // WHAT: Init Gmail client. WHY: Interface to send messages.
         const gmail = google.gmail({ version: 'v1', auth: oauth2Client });

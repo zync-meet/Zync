@@ -12,6 +12,10 @@ const KILO_CODE_GATEWAY_URL = process.env.KILO_CODE_GATEWAY_URL || '';
 const KILO_CODE_GATEWAY_API_KEY = process.env.KILO_CODE_GATEWAY_API_KEY || '';
 const KILO_CODE_GATEWAY_MODEL = process.env.KILO_CODE_GATEWAY_MODEL || 'kilo-auto/free';
 
+if (!KILO_CODE_GATEWAY_URL) {
+  console.log('[kilo] KILO_CODE_GATEWAY_URL not set — Kilo Code Gateway disabled (using local fallback architecture)');
+}
+
 /**
  * Repair + parse a model reply into JSON. The model sometimes leaks stray
  * ASCII/smart quotes into string values (e.g. `JWT"s signature`) and fuzzy
@@ -165,12 +169,13 @@ const callAiProvider = async (prompt, selectedModel) => {
       const response = await axios.post(
         'https://api.groq.com/openai/v1/chat/completions',
         {
-          model: 'llama-3.3-70b-versatile',
+          model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
           messages: [
             { role: 'system', content: 'You are a helpful assistant that returns only valid JSON.' },
             { role: 'user', content: prompt },
           ],
           response_format: { type: 'json_object' },
+          max_tokens: 2048,
           temperature: 0.2,
         },
         {

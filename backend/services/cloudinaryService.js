@@ -92,6 +92,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+if (!process.env.CLOUDINARY_CLOUD_NAME) {
+  console.log('[cloudinary] CLOUDINARY_CLOUD_NAME not set — Cloudinary media upload disabled');
+}
+
 /**
  * Extracts the public_id from a Cloudinary URL.
  * @param {string} url - The Cloudinary image URL.
@@ -146,6 +150,7 @@ const extractPublicId = (url) => {
  */
 // WHAT: Async function to delete asset. WHY: Needed to remove files from Cloudinary.
 const deleteCloudinaryAsset = async (url) => {
+  if (!process.env.CLOUDINARY_CLOUD_NAME) return null;
   // WHAT: Extract public_id. WHY: Cloudinary destroy API requires it.
   const publicId = extractPublicId(url);
   // WHAT: Return null if no public_id. WHY: Prevents invalid requests.
@@ -158,7 +163,7 @@ const deleteCloudinaryAsset = async (url) => {
     return await cloudinary.uploader.destroy(publicId);
   } catch (error) {
     console.error('Cloudinary deletion failed:', error);
-    throw error;
+    return null;
   }
 };
 
@@ -170,6 +175,7 @@ const deleteCloudinaryAsset = async (url) => {
  */
 // WHAT: Async function to upload photo. WHY: Facilitates avatar updates.
 const uploadProfilePhoto = async (filePath, uid) => {
+  if (!process.env.CLOUDINARY_CLOUD_NAME) return null;
   try {
 
     // WHAT: Generate unique public_id. WHY: Prevents overwriting and ensures cache invalidation.
@@ -186,7 +192,7 @@ const uploadProfilePhoto = async (filePath, uid) => {
     });
   } catch (error) {
     console.error('Cloudinary upload failed:', error);
-    throw error;
+    return null;
   }
 };
 
@@ -198,6 +204,7 @@ const uploadProfilePhoto = async (filePath, uid) => {
  * @returns {Promise<any>} - Cloudinary upload result
  */
 const uploadImageBuffer = (buffer, folder, publicId) => {
+  if (!process.env.CLOUDINARY_CLOUD_NAME) return Promise.resolve(null);
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {

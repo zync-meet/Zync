@@ -13,6 +13,7 @@
     "dev:watch": "nodemon index.js",
     "build": "npx prisma generate",
     "create-meet": "node scripts/meet/create_meet_space.js",
+    "seed:demo": "node scripts/seed-demo.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
   },
   "keywords": [

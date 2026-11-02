@@ -82,6 +82,9 @@ const isAuthoritativeMissing = (error) => {
 
 const appRequest = async (path) => {
   const jwtToken = getAppJwt();
+  if (!jwtToken) {
+    return { data: null };
+  }
   return axios.get(`${GITHUB_API}${path}`, {
     headers: {
       Authorization: `Bearer ${jwtToken}`,
@@ -204,6 +207,10 @@ const discoverInstallationId = async (login) => {
  */
 const resolveInstallation = async (uid, options = {}) => {
   const { forceRefresh = false } = options;
+
+  if (!process.env.GITHUB_APP_ID) {
+    return { installationId: null, reason: RESOLUTION.NOT_INSTALLED, login: null };
+  }
 
   if (!uid) {
     return { installationId: null, reason: RESOLUTION.NOT_CONNECTED, login: null };

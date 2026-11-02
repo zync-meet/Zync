@@ -88,9 +88,13 @@ const { getAuth } = require('firebase-admin/auth');
 // Checks if the Firebase Admin SDK has already been initialized by checking the length of the 'apps' array.
 // This is needed to ensure Firebase Admin SDK is initialized only once, preventing errors if the module is loaded multiple times in a development environment or during hot-reloading.
 if (!getApps().length) {
-  // Initializes the Firebase Admin SDK with default credentials (usually from environment variables or a service account file).
-  // This is needed to configure the SDK so it can communicate with Firebase services.
-  initializeApp();
+  try {
+    initializeApp({
+      projectId: process.env.GCLOUD_PROJECT || process.env.VITE_FIREBASE_PROJECT_ID || 'demo-zync',
+    });
+  } catch (err) {
+    console.warn('[linkedin] Firebase Admin init failed:', err.message);
+  }
 }
 
 // Declares a constant variable 'LINKEDIN_CLIENT_ID' and assigns it the value of the environment variable 'LINKEDIN_CLIENT_ID'.
@@ -100,6 +104,10 @@ const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID;
 // This is needed to securely retrieve the LinkedIn application's client secret, which is crucial for server-side token exchange, without hardcoding it.
 const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;
 
+if (!LINKEDIN_CLIENT_ID) {
+  console.log('[linkedin] LINKEDIN_CLIENT_ID not set — LinkedIn features disabled');
+}
+
 // Declares a constant variable 'FRONTEND_URL' and assigns it the value of the environment variable 'FRONTEND_URL'.
 // If 'FRONTEND_URL' is not defined, it defaults to 'http://localhost:5173'.
 // This is needed to define the URL of the frontend application, which is used for redirecting users after authentication, allowing for different environments (production, development).
@@ -108,6 +116,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 // Defines an HTTP GET route for the '/auth' path using the Express router.
 // This endpoint initiates the LinkedIn OAuth flow by redirecting the user to LinkedIn's authorization page.
 router.get('/auth', (req, res) => {
+  if (!LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET) {
+    return res.status(503).json({ message: 'LinkedIn OAuth is not configured' });
+  }
   // Constructs the 'redirectUri' dynamically using the request's protocol and host.
   // This is needed to dynamically construct the callback URL that LinkedIn will redirect to after the user grants permission, ensuring it matches the current server's address.
   const redirectUri = `${req.protocol}://${req.get('host')}/api/linkedin/callback`;
@@ -130,6 +141,9 @@ router.get('/auth', (req, res) => {
 // Defines an asynchronous HTTP GET route for the '/callback' path.
 // This endpoint handles the redirect from LinkedIn after the user has authorized the application, processing the authorization code to obtain an access token.
 router.get('/callback', async (req, res) => {
+  if (!LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET) {
+    return res.redirect(`${FRONTEND_URL}/login?error=LinkedInNotConfigured`);
+  }
   // Uses destructuring assignment to extract 'code', 'error', and 'error_description' from the request's query parameters.
   // This is needed to retrieve the authorization code (if successful) or error information (if unsuccessful) sent by LinkedIn in the redirect URL.
   const { code, error, error_description } = req.query;
