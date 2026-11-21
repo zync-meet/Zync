@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zync Architecture - Easy Learning Diagram</title>
+<style>
+  * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #0f1115; color: #fff; margin: 0; padding: 24px; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .sub { text-align: center; color: #9ca3af; margin-bottom: 24px; }
+  .layer { border-radius: 16px; padding: 16px; margin: 0 auto 8px auto; max-width: 900px; border: 2px solid transparent; }
+  .layer h2 { margin: 0 0 8px 0; font-size: 18px; }
+  .layer p { margin: 4px 0; color: #e5e7eb; font-size: 14px; }
+  .boxes { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .box { flex: 1 1 160px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 10px; min-width: 160px; }
+  .box b { display: block; font-size: 14px; margin-bottom: 4px; }
+  .box span { font-size: 12px; color: #d1d5db; }
+  .tag { display: inline-block; font-size: 11px; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 20px; margin: 2px 4px 2px 0; }
+  .l1 { background: linear-gradient(135deg,#1d4ed8,#3b82f6); }
+  .l2 { background: linear-gradient(135deg,#6d28d9,#a855f7); }
+  .l3 { background: linear-gradient(135deg,#b45309,#f59e0b); color:#fff; }
+  .l4 { background: linear-gradient(135deg,#065f46,#10b981); }
+  .l5 { background: linear-gradient(135deg,#374151,#6b7280); }
+  .arrow { text-align: center; font-size: 28px; line-height: 1; color: #fff; max-width: 900px; margin: 0 auto; }
+  .arrow small { display: block; font-size: 12px; color: #9ca3af; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 900px; margin: 16px auto; }
+  @media(max-width:700px){ .two{ grid-template-columns: 1fr; } }
+  .card { background: #1f2937; border-radius: 14px; padding: 14px; border: 1px solid #374151; }
+  .card h3 { margin: 0 0 8px 0; }
+  .step { background:#111827; border-left:4px solid #3b82f6; padding:8px 10px; margin:8px 0; border-radius:8px; font-size:14px; }
+  .flow { max-width: 900px; margin: 0 auto; }
+  a { color: #93c5fd; }
+</style>
+</head>
+<body>
+<h1>🔗 Zync Architecture - Learn in 5 Layers</h1>
+<div class="sub">Start at TOP (you click) → request goes DOWN → answer comes back UP. Open this file in browser.</div>
+
+<div class="layer l1">
+  <h2>Layer 1 — YOU + Browser (Frontend SPA :8081)</h2>
+  <p><b>What you see:</b> React pages - Dashboard, Chat, Notes, Kanban, Meet</p>
+  <div class="boxes">
+    <div class="box"><b>⚛️ React 19 + Vite 8</b><span>Builds fast UI. File: src/App.tsx, src/pages/</span></div>
+    <div class="box"><b>🔥 Firebase Client</b><span>Login + gives JWT token. File: src/lib/firebase.ts</span></div>
+    <div class="box"><b>📦 TanStack Query</b><span>Saves REST data in localStorage, works offline 7 days</span></div>
+    <div class="box"><b>⚡ Yjs + Socket Client</b><span>Live typing, no refresh. File: src/lib/SocketIOProvider.ts</span></div>
+  </div>
+  <p><span class="tag">auth-headers.ts adds Bearer JWT</span><span class="tag">Vite proxy /api → :5000</span><span class="tag">BlockNote editor</span><span class="tag">Dexie IndexedDB</span></p>
+</div>
+<div class="arrow">⬇️ <small>1. REST JSON (save/load) + WebSocket Binary (live) — both carry userId + JWT</small> ⬇️</div>
+
+<div class="layer l2">
+  <h2>Layer 2 — Gate (Backend Entry :5000) backend/index.js</h2>
+  <p>All requests must pass this security line in order:</p>
+  <div class="boxes">
+    <div class="box"><b>🪖 Helmet</b><span>Safe headers, blocks XSS</span></div>
+    <div class="box"><b>🌐 CORS</b><span>Only allows localhost:8081 + Vercel URL</span></div>
+    <div class="box"><b>🚦 RateLimit 100/15min</b><span>Stops spam/DDoS</span></div>
+    <div class="box"><b>🔥 LoadShed</b><span>If server busy → 503 to save live sockets</span></div>
+    <div class="box"><b>🔑 verifyIdToken</b><span>Checks Firebase JWT → req.user</span></div>
+  </div>
+</div>
+<div class="arrow">⬇️ <small>2. If check fails → 401/403/429 STOP. If pass → go to routes</small> ⬇️</div>
+
+<div class="layer l3">
+  <h2>Layer 3 — Brain (Routes + Sockets + Services)</h2>
+  <p><b>Two roads:</b> REST for save/load, Socket for live.</p>
+  <div class="boxes">
+    <div class="box"><b>🛣️ 23 REST Routes</b><span>/api/users /projects /tasks /notes /chat /teams /github /google /meet /upload /generate-project /architecture-agent</span></div>
+    <div class="box"><b>🔌 4 Sockets</b><span>/notes (typing) /chat (msg) /tasks (kanban) /presence (green dot)</span></div>
+    <div class="box"><b>🤖 Services</b><span>kiloGateway, groq taskGenerator, mailer, cloudinary, scraper, webhookQueue+Worker</span></div>
+  </div>
+  <p><span class="tag">Zero-decoding relay: server forwards Yjs bytes without opening</span><span class="tag">HMAC verify for GitHub webhooks</span></p>
+</div>
+<div class="arrow">⬇️ <small>3. Controller asks DB / Cache / AI / External</small> ⬇️</div>
+
+<div class="layer l4">
+  <h2>Layer 4 — Memory (Data Layer)</h2>
+  <div class="boxes">
+    <div class="box"><b>🍃 MongoDB Atlas DB:ZYNC_USER</b><span>Main truth. Prisma (Projects Teams Users) + Mongoose (Chat Notes AI blobs)</span></div>
+    <div class="box"><b>⚡ Redis Cloud</b><span>Fast memory: cache 60s-30m, AI quota, Socket pub/sub. Fail-open if down.</span></div>
+  </div>
+</div>
+<div class="arrow">⬇️ <small>4. If needs outside help → call external</small> ⬇️</div>
+
+<div class="layer l5">
+  <h2>Layer 5 — Outside Helpers (External Cloud)</h2>
+  <div class="boxes">
+    <div class="box"><b>🔥 Firebase Auth</b><span>Google/Email login, token verify</span></div>
+    <div class="box"><b>🐙 GitHub API</b><span>Repos, commits, Issues sync via Octokit</span></div>
+    <div class="box"><b>🧠 Kilo Gateway</b><span>Architecture chat → JSON map</span></div>
+    <div class="box"><b>⚡ Groq LPU</b><span>Fast project + commit summary &lt;2s</span></div>
+    <div class="box"><b>☁️ Cloudinary + Google</b><span>Images + Meet/Calendar + Gmail mail</span></div>
+  </div>
+</div>
+<div class="arrow">⬆️ <small>5. Answer travels back UP: DB → Backend → Frontend → you see update</small> ⬆️</div>
+
+<div class="two">
+  <div class="card">
+    <h3>📩 Path A - Normal Save (REST) Example: Create Task</h3>
+    <div class="step"><b>1.</b> You drag Kanban card → React calls <code>fetch('/api/tasks', {Bearer JWT})</code></div>
+    <div class="step"><b>2.</b> Vite proxy :8081 → :5000</div>
+    <div class="step"><b>3.</b> Middleware checks JWT → OK</div>
+    <div class="step"><b>4.</b> taskRoutes.js → ProjectTask.create() → MongoDB saves</div>
+    <div class="step"><b>5.</b> Redis clears project cache + Socket /tasks emits to teammates</div>
+    <div class="step"><b>6.</b> 200 OK goes back up → TanStack Query updates UI, no reload</div>
+  </div>
+  <div class="card">
+    <h3>⚡ Path B - Live Typing (Socket) Example: Notes</h3>
+    <div class="step"><b>1.</b> You type → Yjs updates local screen in 0ms + saves to IndexedDB</div>
+    <div class="step"><b>2.</b> SocketIOProvider emits <code>note-update [12,45,200...]</code> to /notes room</div>
+    <div class="step"><b>3.</b> Server does NOT open it, just forwards <code>socket.to(noteId).emit()</code> to friend</div>
+    <div class="step"><b>4.</b> Friend Yjs merges bytes → text appears live</div>
+    <div class="step"><b>5.</b> Later background worker saves full blob to MongoDB (debounced)</div>
+  </div>
+</div>
+
+<div class="flow card">
+  <h3>🐙 Path C - Reverse (GitHub → You) Example: git push</h3>
+  <div class="step"><b>1.</b> You push code → GitHub POSTs to /api/github-app with signature</div>
+  <div class="step"><b>2.</b> verifyGithub HMAC checks rawBody → queue (202 Accepted) → worker finds linked Project</div>
+  <div class="step"><b>3.</b> Groq analyzes commits OR regex finds TASK-102 → Mongo updates lastWebhookAiSummary</div>
+  <div class="step"><b>4.</b> /tasks socket pushes projectUpdate → your Kanban auto-refreshes</div>
+  <h3 style="margin-top:16px">📚 Core Packages in 1 line each</h3>
+  <p style="font-size:13px;line-height:1.7">
+  Frontend: <b>react</b>=UI, <b>vite</b>=fast build+proxy, <b>firebase</b>=login, <b>axios/fetch+getAuthHeaders</b>=talk to backend, <b>tanstack-query</b>=cache, <b>yjs+y-protocols+y-indexeddb+dexie</b>=offline live docs, <b>blocknote</b>=Notion editor, <b>socket.io-client</b>=live wire, <b>tailwind+radix+mantine+framer</b>=design, <b>dnd-kit</b>=kanban drag, <b>xyflow+elkjs</b>=architecture diagram (Z-LAM).<br>
+  Backend: <b>express5</b>=roads, <b>helmet/cors/rate-limit</b>=guards, <b>firebase-admin</b>=token check, <b>zod</b>=validate, <b>mongoose+prisma</b>=talk to Mongo, <b>redis</b>=fast memory, <b>socket.io</b>=live server, <b>octokit</b>=github, <b>groq-sdk+kilo-gateway</b>=AI, <b>nodemailer+googleapis</b>=mail/meet, <b>multer+sharp+cloudinary</b>=files, <b>puppeteer+cheerio</b>=scrape designs, <b>crypto-js</b>=encrypt tokens.
+  </p>
+  <h3>🚀 How to learn (do in this order)</h3>
+  <p style="font-size:14px">1. Login flow: Login.tsx → firebase.ts → auth-headers.ts → authMiddleware.js → userRoutes sync → Mongo User<br>
+  2. One REST: useProjects.ts → projectRoutes.js → Project.js → Mongo → Redis<br>
+  3. One Socket: ChatView.tsx → chatSocketService → chatSocketHandler.js → Message.js<br>
+  4. One AI: generateProjectRoutes.js → taskGenerator.js (Groq) → bulk insert<br>
+  5. One webhook: githubAppWebhook.js → webhookQueue → githubWebhookWorker.js</p>
+</div>
+
+<p style="text-align:center;color:#9ca3af;margin:24px">File: docs/architecture-learning-diagram.html — double-click to reopen in browser. Mermaid source in docs/architecture/ARCHITECTURE.md:49-119</p>
+</body>
+</html>
