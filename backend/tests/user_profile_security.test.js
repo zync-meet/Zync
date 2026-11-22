@@ -74,10 +74,6 @@ jest.mock('../services/cloudinaryService', () => ({
 jest.mock('../services/geoService', () => ({
   resolveIp: jest.fn(() => Promise.resolve(null)),
 }));
-jest.mock('../services/haveIBeenPwnedService', () => ({
-  checkPassword: jest.fn(() => Promise.resolve({ breached: false })),
-}));
-
 const mockUserModel = jest.requireMock('../models/User');
 const userRoutes = require('../routes/userRoutes');
 
@@ -198,6 +194,15 @@ describe('user profile & phone-verification route security', () => {
       expect(res.status).toBe(200);
       const [filter] = mockUserModel.findOne.mock.calls[0];
       expect(filter).toEqual({ uid: 'alice_uid' });
+    });
+  });
+
+  describe('public breached-password endpoint removed (review #11)', () => {
+    test('POST /api/users/check-breached-password no longer exists (404)', async () => {
+      const res = await request(app)
+        .post('/api/users/check-breached-password')
+        .send({ password: 'hunter2' });
+      expect(res.status).toBe(404);
     });
   });
 });

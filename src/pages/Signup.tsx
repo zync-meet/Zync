@@ -89,6 +89,7 @@ import { Github } from '@/components/ui/GithubIcon';
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/utils";
 import { postLoginRedirect } from "@/lib/postLoginRedirect";
+import { checkPwnedPassword } from "@/services/pwnedPasswordCheck";
 
 const Signup = () => {
   // What: State variables for user inputs (email, password, phone).
@@ -143,23 +144,18 @@ const Signup = () => {
     setLoading(true);
     try {
 
-      const breachRes = await fetch(`${API_BASE_URL}/api/users/check-breached-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-
-      if (breachRes.ok) {
-        const breachData = await breachRes.json();
-        if (breachData.isCompromised) {
-          toast({
-            variant: 'destructive',
-            title: 'Compromised password',
-            description: `This password has appeared in ${breachData.count.toLocaleString()} known data breaches. Please choose a different password.`,
-          });
-          setLoading(false);
-          return;
-        }
+      // k-anonymity breach check, done in-browser: only a 5-char SHA-1
+      // prefix is sent to HIBP and the plaintext password never reaches
+      // any of our servers (the old public backend endpoint was removed).
+      const breachData = await checkPwnedPassword(password);
+      if (breachData.isCompromised) {
+        toast({
+          variant: 'destructive',
+          title: 'Compromised password',
+          description: `This password has appeared in ${breachData.count.toLocaleString()} known data breaches. Please choose a different password.`,
+        });
+        setLoading(false);
+        return;
       }
 
       const result = await createUserWithEmailAndPassword(auth, email, password);

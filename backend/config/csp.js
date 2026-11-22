@@ -48,6 +48,9 @@ const CSP_DIRECTIVES = {
     'https://www.gstatic.com',
     'https://*.firebaseio.com',
     'https://*.firebase.google.com',
+    // Client-side HIBP k-anonymity password check (signup): only a
+    // 5-char SHA-1 prefix is sent, never the password itself.
+    'https://api.pwnedpasswords.com',
   ],
   'img-src': [
     "'self'",
