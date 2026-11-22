@@ -75,6 +75,7 @@
  */
 const Message = require('../models/Message'); // WHAT: Import Message model. WHY: Needed to query and save chat messages in the database.
 const mongoose = require('mongoose'); // WHAT: Import mongoose. WHY: Needed to check database connection status before performing operations.
+const { verifySocketHandshake } = require('./socketAuth'); // WHAT: Import socket auth. WHY: Verify the Firebase ID token in the handshake so users cannot impersonate other uids.
 const logger = console; // WHAT: Assign console to logger. WHY: Provides a simple logging mechanism for socket events.
 
 /** Helper: is Mongoose connected? */
@@ -126,8 +127,11 @@ module.exports = (io) => { // WHAT: Export a function accepting the Socket.IO in
 
 
   chatNamespace.on('connection', async (socket) => { // WHAT: Listen for new connections. WHY: Entry point for client interactions in the chat namespace.
-    const userId = socket.handshake.query.userId; // WHAT: Extract userId from connection query. WHY: Authenticates/identifies the user connecting.
-    if (!userId) { // WHAT: Check if userId exists. WHY: Prevents anonymous or malformed connections.
+    // SECURITY: identity comes from a verified Firebase ID token, never from
+    // the client-supplied query (which anyone could set to any uid).
+    const userId = await verifySocketHandshake(socket); // WHAT: Verify handshake token. WHY: Prevents impersonation.
+    if (!userId) { // WHAT: No valid token. WHY: Reject anonymous/forged connections.
+      logger.warn(`[ChatSocket] ❌ Unauthenticated connection rejected (${socket.id})`); // WHAT: Log rejection. WHY: Visibility into attacks.
       socket.disconnect(); // WHAT: Disconnect invalid socket. WHY: Security and resource protection.
       return; // WHAT: Stop execution. WHY: Socket is closed.
     }

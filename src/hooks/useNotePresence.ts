@@ -74,8 +74,9 @@
  * ============================================================================
  */
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import { API_BASE_URL, SOCKET_BASE_URL } from '@/lib/utils';
+import { createAuthedSocket } from '@/lib/authed-socket';
 
 
 export interface ActiveUser {
@@ -147,12 +148,11 @@ export const useNotePresence = (
     console.log('[NotePresence] 👤 Current User ID:', user.uid);
 
 
-    const socket = io(`${socketUrl}/notes`, {
-      transports: ['websocket', 'polling'],
+    // Authenticated connection: the server verifies the Firebase ID token in
+    // the handshake and derives identity from it (the query userId is ignored
+    // server-side). See src/lib/authed-socket.ts.
+    const socket = createAuthedSocket(`${socketUrl}/notes`, {
       query: { userId: user.uid },
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
     });
 
     socketRef.current = socket;

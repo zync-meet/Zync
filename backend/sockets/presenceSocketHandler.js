@@ -73,15 +73,21 @@
  * @license AGPL-3.0-only
  * ============================================================================
  */
+const { verifySocketHandshake } = require('./socketAuth'); // WHAT: Import socket auth. WHY: Verify the Firebase ID token so users cannot impersonate other uids.
+const logger = console; // WHAT: Assign console to logger. WHY: Simple logging mechanism for socket events.
+
 const onlineUsers = new Map(); // WHAT: Map to store online users. WHY: Central source of truth for who is currently online.
 
 module.exports = (io) => { // WHAT: Export the socket handler. WHY: Allows integration into the main Socket.IO server.
     const presenceNamespace = io.of('/presence'); // WHAT: Create a namespace for presence. WHY: Isolates presence logic from other features like chat or notes.
 
     presenceNamespace.on('connection', async (socket) => { // WHAT: Listen for new connections. WHY: Detect when a user comes online.
-        const { userId } = socket.handshake.query; // WHAT: Extract userId from connection query. WHY: Identifies the user connecting.
+        // SECURITY: identity comes from a verified Firebase ID token, never
+        // from the client-supplied query (which anyone could set to any uid).
+        const userId = await verifySocketHandshake(socket); // WHAT: Verify handshake token. WHY: Prevents presence impersonation.
 
-        if (!userId) { // WHAT: Validate userId presence. WHY: Prevents anonymous or invalid connections.
+        if (!userId) { // WHAT: No valid token. WHY: Reject anonymous/forged connections.
+            logger.warn(`[PresenceSocket] ❌ Unauthenticated connection rejected (${socket.id})`); // WHAT: Log rejection. WHY: Visibility into attacks.
             socket.disconnect(); // WHAT: Disconnect if no userId. WHY: Protects the system from tracking bad state.
             return; // WHAT: Stop execution. WHY: Connection is terminated.
         }

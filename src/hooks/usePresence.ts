@@ -74,8 +74,9 @@
  * ============================================================================
  */
 import { useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import { SOCKET_BASE_URL } from '@/lib/utils';
+import { createAuthedSocket } from '@/lib/authed-socket';
 
 export interface UserStatus {
     status: 'online' | 'offline' | 'away';
@@ -90,12 +91,11 @@ export const usePresence = (userId: string | undefined) => {
 
         const socketUrl = SOCKET_BASE_URL;
 
-        const socket = io(`${socketUrl}/presence`, {
+        // Authenticated connection: the server verifies the Firebase ID token
+        // in the handshake (the query userId is ignored server-side).
+        const socket = createAuthedSocket(`${socketUrl}/presence`, {
             query: { userId },
-            transports: ['websocket', 'polling'],
-            reconnection: true,
             reconnectionAttempts: 3,
-            reconnectionDelay: 1000,
         });
 
         socket.on('connect', () => {

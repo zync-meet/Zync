@@ -74,12 +74,13 @@
  * ============================================================================
  */
 const logger = console; // WHAT: Assign console to logger. WHY: To provide basic logging for task socket events.
+const { verifySocketHandshake } = require('./socketAuth'); // WHAT: Import socket auth. WHY: Verify the Firebase ID token so users cannot impersonate other uids.
 
 /**
  * Task Socket Handler — real-time task & activity updates.
  *
  * Protocol:
- *   Client connects to  io.of('/tasks')  with query  { userId }
+ *   Client connects to  io.of('/tasks')  with auth  { token } (Firebase ID token)
  *   Events IN  → join-project, leave-project
  *   Events OUT → task-created, task-updated, task-deleted, activity-update
  */
@@ -149,9 +150,14 @@ module.exports = (io) => { // WHAT: Export the socket handler initialization fun
   };
 
 
-  taskNamespace.on('connection', (socket) => { // WHAT: Listen for connections. WHY: Main entry point for clients.
-    const userId = socket.handshake.query.userId; // WHAT: Get userId from handshake. WHY: Authentication/identification.
-    if (!userId) { socket.disconnect(); return; } // WHAT: Disconnect invalid users. WHY: Security.
+  taskNamespace.on('connection', async (socket) => { // WHAT: Listen for connections. WHY: Main entry point for clients.
+    // SECURITY: identity comes from a verified Firebase ID token, never from
+    // the client-supplied query (which anyone could set to any uid).
+    const userId = await verifySocketHandshake(socket); // WHAT: Verify handshake token. WHY: Prevents task impersonation.
+    if (!userId) { // WHAT: No valid token. WHY: Reject anonymous/forged connections.
+      logger.warn(`[TaskSocket] ❌ Unauthenticated connection rejected (${socket.id})`); // WHAT: Log rejection. WHY: Visibility into attacks.
+      socket.disconnect(); return; // WHAT: Disconnect invalid users. WHY: Security.
+    }
 
     addSocket(userId, socket.id); // WHAT: Track new connection. WHY: Updates server state.
     logger.log(`[TaskSocket] ✅ ${userId} connected (${socket.id})`); // WHAT: Log it. WHY: Debugging.
