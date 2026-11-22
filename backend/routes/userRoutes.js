@@ -648,8 +648,15 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/:uid', async (req, res) => {
+// NOTE: These routes were previously unauthenticated — anyone could read or
+// modify ANY user record by guessing a Firebase uid (profile/phone/email/
+// integration takeover). They now require a valid token AND ownership of the
+// target uid.
+router.get('/:uid', verifyToken, async (req, res) => {
   try {
+    if (req.params.uid !== req.user.uid) {
+      return res.status(403).json({ message: 'Unauthorized: can only view your own profile' });
+    }
     const user = await User.findOne({ uid: req.params.uid })
       .select(
         '-githubIntegration.accessToken -deleteConfirmationCode -deleteConfirmationExpires -phoneVerificationCode -phoneVerificationCodeExpires'
@@ -662,8 +669,11 @@ router.get('/:uid', async (req, res) => {
   }
 });
 
-router.put('/:uid', async (req, res) => {
+router.put('/:uid', verifyToken, async (req, res) => {
   try {
+    if (req.params.uid !== req.user.uid) {
+      return res.status(403).json({ message: 'Unauthorized: can only update your own profile' });
+    }
     const { uid } = req.params;
     const updates = req.body;
 
@@ -803,8 +813,12 @@ router.post('/delete/confirm', verifyToken, async (req, res) => {
   }
 });
 
-router.post('/verify-phone/request', async (req, res) => {
-  const { uid, phoneNumber } = req.body;
+// NOTE: Previously unauthenticated — anyone could set an arbitrary phone
+// number on any user record. Now requires a valid token and operates only on
+// the authenticated user.
+router.post('/verify-phone/request', verifyToken, async (req, res) => {
+  const uid = req.user.uid;
+  const { phoneNumber } = req.body;
   try {
     const user = await User.findOne({ uid }).lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -833,8 +847,11 @@ router.post('/verify-phone/request', async (req, res) => {
   }
 });
 
-router.post('/verify-phone/confirm', async (req, res) => {
-  const { uid, code } = req.body;
+// NOTE: Now requires a valid token and operates only on the authenticated
+// user (previously any uid could be passed in the body unauthenticated).
+router.post('/verify-phone/confirm', verifyToken, async (req, res) => {
+  const uid = req.user.uid;
+  const { code } = req.body;
   try {
     const user = await User.findOne({ uid }).lean();
     if (!user) return res.status(404).json({ message: 'User not found' });

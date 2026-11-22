@@ -77,6 +77,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import ProfilePhotoCropper from '@/components/ProfilePhotoCropper';
 import { auth } from '@/lib/firebase';
 import { signOutAndClearState } from '@/lib/auth-signout';
+import { getAuthHeaders } from '@/lib/auth-headers';
 import {
   updateProfile,
   GithubAuthProvider,
@@ -230,9 +231,10 @@ export default function SettingsView({ isPreview, mockMe, mockTeams }: SettingsV
     e.preventDefault();
     setIsSavingProfile(true);
     try {
+      // PUT /api/users/:uid requires an auth token and ownership of the uid.
       const res = await fetch(`${API_BASE_URL}/api/users/${currentUser?.uid}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(profileForm),
       });
 
