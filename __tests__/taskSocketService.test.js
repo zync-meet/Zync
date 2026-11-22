@@ -2,16 +2,25 @@ jest.mock('socket.io-client', () => {
   const handlers = {};
   const mockSocket = {
     connected: false,
+    active: true,
+    auth: {},
     on: jest.fn((event, cb) => { handlers[event] = cb; }),
     emit: jest.fn(),
+    connect: jest.fn(),
     disconnect: jest.fn(() => { mockSocket.connected = false; }),
+    // manager (socket.io) used by createAuthedSocket for token refresh
+    io: { on: jest.fn() },
     _fire: (event, data) => handlers[event]?.(data),
-    _setConnected: (val) => { mockSocket.connected = val; },
+    _setConnected: (val) => { mockSocket.connected = val; mockSocket.active = val; },
   };
   return { io: jest.fn(() => mockSocket), __mockSocket: mockSocket };
 });
 
 jest.mock('@/lib/utils', () => ({ SOCKET_BASE_URL: 'http://localhost:3000' }));
+
+// No logged-in user in these tests — createAuthedSocket returns the socket
+// without fetching a token.
+jest.mock('@/lib/firebase', () => ({ auth: { currentUser: null } }));
 
 const { io, __mockSocket } = require('socket.io-client');
 const {

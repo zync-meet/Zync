@@ -74,6 +74,7 @@
  * ============================================================================
  */
 const logger = require('../utils/logger'); // WHAT: Import logger. WHY: To log socket events for debugging.
+const { verifySocketHandshake } = require('./socketAuth'); // WHAT: Import socket auth. WHY: Verify the Firebase ID token so users cannot impersonate other uids.
 
 module.exports = (io) => { // WHAT: Export function. WHY: To initialize note socket namespace.
   const notesNamespace = io.of('/notes'); // WHAT: Create /notes namespace. WHY: Isolates note-related events.
@@ -96,18 +97,29 @@ module.exports = (io) => { // WHAT: Export function. WHY: To initialize note soc
     notesNamespace.to(noteId).emit('presence_update', userList); // WHAT: Emit presence_update. WHY: To update UI avatars.
   };
 
-  notesNamespace.on('connection', (socket) => { // WHAT: Listen for new connections. WHY: Entry point for notes socket.
-    logger.info('[NoteSocket] ✅ User connected:', socket.id); // WHAT: Log connection. WHY: Tracking.
+  notesNamespace.on('connection', async (socket) => { // WHAT: Listen for new connections. WHY: Entry point for notes socket.
+    // SECURITY: identity comes from a verified Firebase ID token, never from
+    // the client-supplied join_note userId (which anyone could forge).
+    const authenticatedUid = await verifySocketHandshake(socket); // WHAT: Verify handshake token. WHY: Prevents note-presence impersonation.
+    if (!authenticatedUid) { // WHAT: No valid token. WHY: Reject anonymous/forged connections.
+      logger.warn(`[NoteSocket] ❌ Unauthenticated connection rejected (${socket.id})`); // WHAT: Log rejection. WHY: Visibility into attacks.
+      socket.disconnect(); // WHAT: Disconnect invalid socket. WHY: Security and resource protection.
+      return; // WHAT: Stop execution. WHY: Socket is closed.
+    }
+
+    socket.uid = authenticatedUid; // WHAT: Store verified uid on socket. WHY: Canonical identity for all note events.
+    logger.info('[NoteSocket] ✅ User connected:', socket.id, authenticatedUid); // WHAT: Log connection. WHY: Tracking.
 
 
-    socket.on('join_note', ({ noteId, userId, userName, userAvatar, userColor }) => { // WHAT: Listen for join_note. WHY: When user opens a note.
+    socket.on('join_note', ({ noteId, userName, userAvatar, userColor }) => { // WHAT: Listen for join_note. WHY: When user opens a note.
+      const userId = socket.uid; // WHAT: Use verified uid, not the client-supplied one. WHY: Prevents impersonation.
 
       logger.debug(`[NoteSocket] 🚪 join_note received:`, { noteId, userId, userName }); // WHAT: Log join. WHY: Tracking.
 
 
       socket.join(noteId); // WHAT: Join socket room for note. WHY: To receive events for this note.
       socket.noteId = noteId; // WHAT: Attach noteId to socket. WHY: Easy access on disconnect.
-      socket.odId = userId; // WHAT: Attach userId to socket. WHY: Easy access on disconnect.
+      socket.odId = userId; // WHAT: Attach verified userId to socket. WHY: Easy access on disconnect.
 
 
       if (!notePresence.has(noteId)) { // WHAT: Check if note map exists. WHY: Initialization.
@@ -139,8 +151,9 @@ module.exports = (io) => { // WHAT: Export function. WHY: To initialize note soc
       socket.to(noteId).emit('user-joined-yjs'); // WHAT: Emit yjs join. WHY: Triggers Yjs sync.
     });
 
-    socket.on('presence-join', ({ noteId, odId, displayName, photoURL, color }) => { // WHAT: Alternate presence join event. WHY: Different client integration.
-      socket.odId = odId; // WHAT: Attach odId. WHY: Cleanup.
+    socket.on('presence-join', ({ noteId, displayName, photoURL, color }) => { // WHAT: Alternate presence join event. WHY: Different client integration.
+      const odId = socket.uid; // WHAT: Use verified uid, not the client-supplied one. WHY: Prevents impersonation.
+      socket.odId = odId; // WHAT: Attach verified odId. WHY: Cleanup.
 
       if (!notePresence.has(noteId)) { // WHAT: Initialize if needed. WHY: Setup.
         notePresence.set(noteId, new Map()); // WHAT: Create map. WHY: Setup.
@@ -160,7 +173,8 @@ module.exports = (io) => { // WHAT: Export function. WHY: To initialize note soc
     });
 
 
-    socket.on('cursor_move', ({ noteId, userId, blockId }) => { // WHAT: Listen for cursor movement. WHY: Show where others are typing.
+    socket.on('cursor_move', ({ noteId, blockId }) => { // WHAT: Listen for cursor movement. WHY: Show where others are typing.
+      const userId = socket.uid; // WHAT: Use verified uid, not the client-supplied one. WHY: Prevents impersonation.
 
       logger.debug(`[NoteSocket] 📍 cursor_move received:`, { noteId, userId, blockId }); // WHAT: Log movement. WHY: Tracing.
 
@@ -189,7 +203,8 @@ module.exports = (io) => { // WHAT: Export function. WHY: To initialize note soc
     });
 
 
-    socket.on('presence-cursor', ({ noteId, odId, blockId }) => { // WHAT: Alternate cursor event. WHY: Other client integrations.
+    socket.on('presence-cursor', ({ noteId, blockId }) => { // WHAT: Alternate cursor event. WHY: Other client integrations.
+      const odId = socket.uid; // WHAT: Use verified uid, not the client-supplied one. WHY: Prevents impersonation.
       if (!notePresence.has(noteId)) return; // WHAT: Check note. WHY: Safety.
 
       const users = notePresence.get(noteId); // WHAT: Get users. WHY: Update.
@@ -202,7 +217,8 @@ module.exports = (io) => { // WHAT: Export function. WHY: To initialize note soc
     });
 
 
-    socket.on('leave_note', ({ noteId, userId }) => { // WHAT: Listen for user leaving. WHY: Clean up state.
+    socket.on('leave_note', ({ noteId }) => { // WHAT: Listen for user leaving. WHY: Clean up state.
+      const userId = socket.uid; // WHAT: Use verified uid, not the client-supplied one. WHY: Prevents impersonation.
       socket.leave(noteId); // WHAT: Leave room. WHY: Stop receiving events.
 
       if (notePresence.has(noteId)) { // WHAT: Check if note exists. WHY: Safety.
@@ -224,7 +240,8 @@ module.exports = (io) => { // WHAT: Export function. WHY: To initialize note soc
       socket.leave(noteId); // WHAT: Leave room. WHY: Socket.io group.
     });
 
-    socket.on('presence-leave', ({ noteId, odId }) => { // WHAT: Alternate leave event. WHY: Client integration.
+    socket.on('presence-leave', ({ noteId }) => { // WHAT: Alternate leave event. WHY: Client integration.
+      const odId = socket.uid; // WHAT: Use verified uid, not the client-supplied one. WHY: Prevents impersonation.
       if (notePresence.has(noteId)) { // WHAT: Check map. WHY: Safety.
         const users = notePresence.get(noteId); // WHAT: Get map. WHY: To delete.
         users.delete(odId); // WHAT: Delete. WHY: Cleanup.
@@ -245,7 +262,7 @@ module.exports = (io) => { // WHAT: Export function. WHY: To initialize note soc
 
     socket.on('disconnect', () => { // WHAT: Listen for socket disconnection. WHY: Clean up if user closes browser.
       const noteId = socket.noteId; // WHAT: Get cached noteId. WHY: Identify room.
-      const odId = socket.odId || socket.handshake?.query?.userId; // WHAT: Get cached userId. WHY: Identify user.
+      const odId = socket.uid || socket.odId; // WHAT: Get verified userId. WHY: Identify user.
 
       if (noteId && odId && notePresence.has(noteId)) { // WHAT: Check if all exist. WHY: Ensure safe cleanup.
         const users = notePresence.get(noteId); // WHAT: Get users. WHY: To remove disconnected one.

@@ -151,6 +151,9 @@ require('./sockets/noteSocketHandler')(io);
 require('./sockets/presenceSocketHandler')(io);
 require('./sockets/chatSocketHandler')(io);
 const taskIO = require('./sockets/taskSocketHandler')(io);
+// The root namespace carries project/task broadcasts (full project data),
+// so it must be authenticated too — anonymous connections are rejected.
+require('./sockets/rootSocketHandler')(io);
 
 app.set('taskIO', taskIO);
 

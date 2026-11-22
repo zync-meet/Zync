@@ -75,12 +75,14 @@
  */
 // Imports the entire Yjs library as 'Y' to handle Conflict-free Replicated Data Types (CRDTs) for real-time collaboration.
 import * as Y from 'yjs';
-// Imports the Socket.IO client library which establishes a persistent websocket connection to the backend server.
-import { io, Socket } from 'socket.io-client';
+// Imports the Socket.IO client types (connection is created via createAuthedSocket below).
+import { Socket } from 'socket.io-client';
 // Imports Yjs Awareness protocols to track and broadcast ephemeral user states like cursor positions and selections.
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness';
 // Imports the base URL for the socket server from the local utilities file.
 import { SOCKET_BASE_URL } from '@/lib/utils';
+// Imports the authenticated socket factory which attaches a Firebase ID token to the handshake.
+import { createAuthedSocket } from '@/lib/authed-socket';
 // Imports the Observable class from lib0 to allow this provider to emit and listen to custom events.
 import { Observable } from 'lib0/observable';
 
@@ -115,18 +117,12 @@ export class SocketIOProvider extends Observable<string> {
     // Retrieves the socket URL from the environment config.
     const socketUrl = SOCKET_BASE_URL;
 
-    // Initializes the Socket.IO connection specifically to the '/notes' namespace.
-    this.socket = io(`${socketUrl}/notes`, {
-      // Prioritizes WebSockets for better performance but falls back to polling if necessary.
-      transports: ['websocket', 'polling'],
-      // Passes the user's ID in the connection query string so the server can identify them.
-      query: { userId: user.uid || 'anonymous' },
-      // Enables automatic reconnection if the network drops.
-      reconnection: true,
-      // Limits reconnection attempts to prevent infinite loops when the server is down.
-      reconnectionAttempts: 5,
-      // Waits 1 second between reconnection attempts.
-      reconnectionDelay: 1000,
+    // Initializes the Socket.IO connection specifically to the '/notes'
+    // namespace. Authenticated: the server verifies the Firebase ID token in
+    // the handshake and derives identity from it (the query userId is ignored
+    // server-side). See src/lib/authed-socket.ts.
+    this.socket = createAuthedSocket(`${socketUrl}/notes`, {
+      query: { userId: user.uid },
     });
 
     // Listens for the successful connection event from the socket server.

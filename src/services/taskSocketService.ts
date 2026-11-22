@@ -73,8 +73,9 @@
  * @license AGPL-3.0-only
  * ============================================================================
  */
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import { SOCKET_BASE_URL } from '@/lib/utils';
+import { createAuthedSocket } from '@/lib/authed-socket';
 
 export interface TaskEvent {
   projectId: string;
@@ -101,17 +102,16 @@ const joinedProjects = new Set<string>();
  * Connect to the /tasks namespace. Safe to call multiple times.
  */
 export function connectTaskSocket(userId: string): Socket {
-  if (socket?.connected) { return socket; }
+  // The socket connects asynchronously once its ID token resolves, so check
+  // `active` (not `connected`) to avoid creating duplicates while pending.
+  if (socket?.active) { return socket; }
 
   const socketUrl = SOCKET_BASE_URL;
 
-  socket = io(`${socketUrl}/tasks`, {
-    query: { userId },
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-  });
+  // Authenticated connection: the server verifies the Firebase ID token in
+  // the handshake and derives identity from it (the query userId is ignored
+  // server-side). See src/lib/authed-socket.ts.
+  socket = createAuthedSocket(`${socketUrl}/tasks`, { query: { userId } });
 
   socket.on('task-created', (data: TaskEvent) => {
     createdListeners.forEach(cb => cb(data));

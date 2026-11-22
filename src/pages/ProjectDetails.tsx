@@ -91,7 +91,7 @@ import { auth } from "@/lib/firebase";
 import { sendMessage as socketSendMessage } from "@/services/chatSocketService";
 import { useTaskUpdates } from "@/hooks/use-task-updates";
 import { ActivityGraph } from "@/components/views/ActivityGraph";
-import { io } from "socket.io-client";
+import { createAuthedSocket } from "@/lib/authed-socket";
 import { toast } from "sonner";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -429,12 +429,10 @@ const ProjectDetails = () => {
 
   useEffect(() => {
 
-    const socket = io(SOCKET_BASE_URL || API_BASE_URL, {
-      transports: ["websocket", "polling"],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    // Authenticated connection: the server verifies the Firebase ID token in
+    // the handshake (the root namespace carries full project broadcasts, so
+    // anonymous eavesdropping is not allowed). See src/lib/authed-socket.ts.
+    const socket = createAuthedSocket(SOCKET_BASE_URL || API_BASE_URL, {});
 
     socket.on('connect', () => {
       console.log('Connected to WebSocket');
