@@ -80,7 +80,6 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const helmet = require('helmet');
 const { Server } = require('socket.io');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
@@ -178,66 +177,9 @@ const supportRoutes = require('./routes/supportRoutes');
 const internalMetricsRoutes = require('./routes/internalMetrics');
 const collaboratorRoutes = require('./routes/collaboratorRoutes');
 const architectureAgentRoutes = require('./routes/architectureAgentRoutes');
+const { createSecurityMiddleware } = require('./config/csp');
 
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        'default-src': ["'self'"],
-        'script-src': [
-          "'self'",
-          "'unsafe-inline'",
-          "'unsafe-eval'",
-          'blob:',
-          'https://apis.google.com',
-          'https://www.googleapis.com',
-          'https://www.gstatic.com',
-          'https://www.google.com',
-        ],
-        'connect-src': [
-          "'self'",
-          'https://github.com',
-          'https://api.github.com',
-          'http://localhost:*',
-          'ws://localhost:*',
-          'wss://*.glitch.me',
-          'https://*.googleapis.com',
-          'https://www.google.com',
-          'https://www.gstatic.com',
-          'https://*.firebaseio.com',
-          'https://*.firebase.google.com',
-        ],
-        'img-src': [
-          "'self'",
-          'data:',
-          'https://avatars.githubusercontent.com',
-          'https://*.githubusercontent.com',
-          'https://*.googleusercontent.com',
-          'https://*.google.com',
-          'blob:',
-          'https://ui-avatars.com',
-          'https://res.cloudinary.com',
-        ],
-        'style-src': [
-          "'self'",
-          "'unsafe-inline'",
-          'https://fonts.googleapis.com',
-        ],
-        'worker-src': ["'self'", 'blob:'],
-        'frame-src': [
-          "'self'",
-          'https://github.com',
-          'https://*.firebaseapp.com',
-          'https://*.google.com',
-        ],
-        'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  })
-);
+app.use(createSecurityMiddleware());
 
 app.use(cors(corsOptions));
 
