@@ -116,25 +116,13 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-const corsOptions = {
-  origin: (origin, callback) => {
-
-    if (!origin) {
-      return callback(null, true);
-    }
-    // Any localhost port is allowed only outside production (local dev / emulator runs).
-    const isLocalDevOrigin =
-      process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-    if (allowedOrigins.indexOf(origin) !== -1 || isLocalDevOrigin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
+// CORS config lives in config/cors.js so it is unit-testable; rejection
+// behaviour (403, not 500) is covered by tests/cors_rejection.test.js.
+const { createCorsOptions } = require('./config/cors');
+const corsOptions = createCorsOptions({
+  allowedOrigins,
+  isProduction: process.env.NODE_ENV === 'production',
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -178,6 +166,7 @@ const internalMetricsRoutes = require('./routes/internalMetrics');
 const collaboratorRoutes = require('./routes/collaboratorRoutes');
 const architectureAgentRoutes = require('./routes/architectureAgentRoutes');
 const { createSecurityMiddleware } = require('./config/csp');
+const errorHandler = require('./middleware/errorHandler');
 
 app.use(createSecurityMiddleware());
 
@@ -407,10 +396,4 @@ const startServer = (port) => {
 
 startServer(PORT);
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
-});
+app.use(errorHandler);
