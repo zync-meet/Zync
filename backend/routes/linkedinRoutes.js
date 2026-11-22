@@ -76,6 +76,7 @@
 // Declares a constant variable 'express' and assigns it the Express.js module, which is a web framework for Node.js.
 // This is needed to create and manage the server and routes for the API.
 const express = require('express');
+const crypto = require('crypto');
 // Declares a constant variable 'router' and initializes it with a new Express router instance.
 // This is needed to define a modular, mountable route handler for LinkedIn-specific API endpoints, keeping the main application file clean.
 const router = express.Router();
@@ -125,9 +126,11 @@ router.get('/auth', (req, res) => {
   // Defines the 'scope' variable, specifying the permissions requested from the user on LinkedIn.
   // This is needed to specify the permissions (scopes) requested from the user on LinkedIn, allowing the application to access basic profile information and email.
   const scope = 'openid profile email';
-  // Generates a random string for the 'state' parameter.
-  // This is needed to generate a unique, random string that acts as a CSRF (Cross-Site Request Forgery) token, which will be verified in the callback to prevent malicious attacks.
-  const state = Math.random().toString(36).substring(7);
+  // Generates a cryptographically random string for the 'state' parameter.
+  // This acts as a CSRF (Cross-Site Request Forgery) token, verified in the
+  // callback to prevent malicious attacks. crypto.randomBytes is used because
+  // Math.random() is predictable and could be guessed by an attacker.
+  const state = crypto.randomBytes(16).toString('hex');
 
   // Constructs the full LinkedIn authorization URL with all necessary parameters.
   // This is needed to build the complete URL for LinkedIn's authorization endpoint, including all necessary parameters like client ID, redirect URI, state, and requested scopes, to initiate the OAuth flow.

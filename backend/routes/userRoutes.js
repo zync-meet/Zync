@@ -74,6 +74,7 @@
  * ============================================================================
  */
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const verifyToken = require('../middleware/authMiddleware');
@@ -713,7 +714,8 @@ router.post('/delete/request', verifyToken, async (req, res) => {
     const user = await User.findOne({ uid }).lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Cryptographically secure 6-digit code (Math.random() is predictable).
+    const code = String(crypto.randomInt(100000, 1000000));
 
     await User.updateOne(
       { uid },
@@ -823,7 +825,8 @@ router.post('/verify-phone/request', verifyToken, async (req, res) => {
     const user = await User.findOne({ uid }).lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Cryptographically secure 6-digit code (Math.random() is predictable).
+    const code = String(crypto.randomInt(100000, 1000000));
 
     await User.updateOne(
       { uid },
