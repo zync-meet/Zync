@@ -217,8 +217,11 @@ const ChatView = ({ selectedUser, onBack, currentUserData, isQuickChat, onOpenFu
       formData.append('file', file);
 
       try {
+        // POST /api/upload requires a Firebase ID token.
+        const uploadToken = await currentUser?.getIdToken();
         const response = await fetch(`${API_BASE_URL}/api/upload`, {
           method: 'POST',
+          headers: uploadToken ? { Authorization: `Bearer ${uploadToken}` } : {},
           body: formData,
         });
 
