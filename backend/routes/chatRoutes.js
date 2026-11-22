@@ -75,6 +75,7 @@
  */
 const express = require('express'); // Declares a constant variable named 'express' and assigns it the Express.js framework module, which is a web application framework for Node.js, used here to build the API server.
 const router = express.Router(); // Declares a constant variable named 'router' and initializes it as an instance of an Express router, which is used to define routes for the chat API endpoints.
+const { sendInternalError } = require('../utils/errorResponses');
 const mongoose = require('mongoose'); // Declares a constant variable named 'mongoose' and assigns it the Mongoose library module, which is an ODM (Object Data Modeling) library for MongoDB and Node.js, used here to interact with the MongoDB database.
 const Message = require('../models/Message'); // Declares a constant variable named 'Message' and assigns it the Mongoose model for messages, imported from the specified path, which defines the structure and behavior of message documents in the database.
 const verifyToken = require('../middleware/authMiddleware'); // Declares a constant variable named 'verifyToken' and assigns it the authentication middleware function, imported from the specified path, which is used to validate user tokens before allowing access to protected routes.
@@ -118,7 +119,7 @@ router.get('/history/:chatId', verifyToken, requireDb, async (req, res) => { // 
     res.json(result); // Sends the 'result' array as a JSON response to the client, containing the paginated chat history.
   } catch (error) { // Catches any errors that occur within the try block.
     console.error('[ChatRoutes] history error:', error); // Logs the error to the console with a specific prefix for debugging purposes.
-    res.status(500).json({ error: error.message }); // Sends an HTTP 500 (Internal Server Error) status code and a JSON error message containing the error's message property to the client.
+    sendInternalError(res, error);
   }
 });
 
@@ -154,7 +155,7 @@ router.get('/conversations', verifyToken, requireDb, async (req, res) => { // De
     res.json(items); // Sends the 'items' array (the paginated list of conversations) as a JSON response to the client.
   } catch (error) { // Catches any errors that occur within the try block.
     console.error('[ChatRoutes] conversations error:', error); // Logs the error to the console with a specific prefix for debugging purposes.
-    res.status(500).json({ error: error.message }); // Sends an HTTP 500 (Internal Server Error) status code and a JSON error message containing the error's message property to the client.
+    sendInternalError(res, error);
   }
 });
 
@@ -170,7 +171,7 @@ router.get('/unread-count', verifyToken, requireDb, async (req, res) => { // Def
     });
     res.json({ count }); // Sends a JSON response to the client containing an object with a 'count' property, representing the total number of unread messages for the current user.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sends an HTTP 500 (Internal Server Error) status code and a JSON error message containing the error's message property to the client.
+    sendInternalError(res, error);
   }
 });
 

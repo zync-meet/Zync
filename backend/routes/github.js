@@ -75,6 +75,7 @@
  */
 const express = require('express');
 const router = express.Router();
+const { sendInternalError } = require('../utils/errorResponses');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const User = require('../models/User');
@@ -673,12 +674,7 @@ router.get('/user-repos', verifyToken, async (req, res) => {
     res.json(userReposResult);
   } catch (error) {
     console.error('Error fetching installation repos:', error);
-    res.status(500).json({
-      message: 'Failed to fetch repositories due to an internal error.',
-      error: error.message,
-      notInstalled: false,
-      repos: [],
-    });
+    sendInternalError(res, error, 'Failed to fetch repositories due to an internal error.', { notInstalled: false, repos: [] });
   }
 });
 
@@ -986,7 +982,7 @@ router.patch('/repos/:owner/:repo/settings', verifyToken, async (req, res) => {
     res.status(200).json({ message: 'Repository settings updated successfully' });
   } catch (error) {
     console.error('Error updating repository settings:', error);
-    res.status(500).json({ message: 'Failed to update repository settings', error: error.message });
+    sendInternalError(res, error, 'Failed to update repository settings');
   }
 });
 

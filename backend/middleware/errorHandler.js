@@ -9,8 +9,12 @@
  * - CORS policy rejections (err.code === 'CORS_REJECTED', produced by
  *   config/cors.js) → 403 + warn-level log. These are client-side
  *   conditions (a disallowed origin) and must not count as server 5xx.
- * - Everything else → 500 + error-level log with the stack.
+ * - Everything else → 500 via utils/errorResponses.sendInternalError:
+ *   error-level log with the stack, generic message to the client, raw
+ *   error detail only in development.
  */
+
+const { sendInternalError } = require('../utils/errorResponses');
 
 /**
  * @param {import('express').ErrorRequestHandler}
@@ -27,11 +31,7 @@ function errorHandler(err, req, res, next) {
     return res.status(err.status || 403).json({ message: 'Not allowed by CORS' });
   }
 
-  console.error(err.stack);
-  res.status(500).json({
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
+  return sendInternalError(res, err, 'Internal Server Error');
 }
 
 module.exports = errorHandler;

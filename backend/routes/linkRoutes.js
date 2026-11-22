@@ -75,6 +75,7 @@
  */
 const express = require('express'); // Declares a constant variable named 'express' and assigns it the Express.js framework, which is a web application framework for Node.js, making it available to create and manage server routes and HTTP requests.
 const router = express.Router(); // Initializes a new router instance from Express, which allows us to define modular, mountable route handlers for specific paths, keeping our API routes organized.
+const { sendInternalError } = require('../utils/errorResponses');
 const authMiddleware = require('../middleware/authMiddleware'); // Declares a constant variable named 'authMiddleware' and assigns it the authentication middleware function imported from its relative path, which will be used to protect routes by verifying user authentication.
 const Project = require('../models/Project'); // Declares a constant variable named 'Project' and assigns it the Mongoose Project model imported from its relative path, enabling interaction with the 'projects' collection in the database.
 const Repository = require('../models/Repository'); // Declares a constant variable named 'Repository' and assigns it the Mongoose Repository model imported from its relative path, enabling interaction with the 'repositories' collection in the database.
@@ -113,7 +114,7 @@ router.post('/link-repo', authMiddleware, async (req, res) => {
     res.json(updatedProject); // Sends the 'updatedProject' object as a JSON response with a 200 OK status, indicating successful linking and providing the latest project data.
   } catch (error) {
     console.error('Error linking repo:', error); // Logs the error message to the console, prefixed with 'Error linking repo:', for debugging purposes when an exception occurs.
-    res.status(500).json({ message: 'Server error', error: error.message }); // Sends a 500 Internal Server Error status with a generic error message and the specific error message, indicating a problem on the server side.
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -138,7 +139,7 @@ router.post('/unlink-repo', authMiddleware, async (req, res) => {
     res.json(updatedProject); // Sends the 'updatedProject' object as a JSON response with a 200 OK status, indicating successful unlinking and providing the latest project data.
   } catch (error) {
     console.error('Error unlinking repo:', error); // Logs the error message to the console, prefixed with 'Error unlinking repo:', for debugging purposes when an exception occurs.
-    res.status(500).json({ message: 'Server error', error: error.message }); // Sends a 500 Internal Server Error status with a generic error message and the specific error message, indicating a problem on the server side.
+    sendInternalError(res, error, 'Server error');
   }
 });
 

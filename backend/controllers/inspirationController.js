@@ -77,6 +77,7 @@ const fs = require('fs'); // Imports the built-in Node.js 'fs' (file system) mod
 const path = require('path'); // Imports the built-in Node.js 'path' module, which provides utilities for working with file and directory paths. This is needed to construct a consistent and platform-independent path to the data file.
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination'); // Destructures and imports specific functions 'paginateArray' and 'setPaginationHeaders' from the 'pagination.js' utility file located in the 'utils' directory. These functions are essential for handling pagination logic and setting appropriate HTTP response headers for paginated data.
 const { getSharedBrowser, scrapeDribbble } = require('../services/scraperService'); // Destructures and imports specific functions 'getSharedBrowser' and 'scrapeDribbble' from the 'scraperService.js' file located in the 'services' directory. These functions are crucial for managing a browser instance and performing web scraping operations.
+const { sendInternalError } = require('../utils/errorResponses');
 
 const DATA_FILE = path.join(__dirname, '../data/inspiration.json'); // Declares a constant variable 'DATA_FILE' and assigns it the absolute path to the 'inspiration.json' file. 'path.join' concatenates path segments, '__dirname' provides the current directory, and '../data/inspiration.json' specifies the relative path to the data file, ensuring the application can locate its static data.
 
@@ -138,7 +139,7 @@ async function getInspiration(req, res) { // Defines an asynchronous function 'g
     });
   } catch (error) { // Catches any error that occurs within the try block. The error object is passed as 'error'.
     console.error('Inspiration Controller Error:', error); // Logs the error to the console for debugging purposes, prefixed with a descriptive message.
-    res.status(500).json({ ok: false, error: error.message }); // Sends an HTTP 500 (Internal Server Error) status code and a JSON response indicating failure, including the error message.
+    sendInternalError(res, error, 'Internal Server Error', { ok: false });
   }
 }
 

@@ -77,6 +77,7 @@ const express = require('express');
 // This line declares a constant variable named 'express' and assigns it the Express application framework.
 // It's needed to create and manage the server, define routes, and handle HTTP requests and responses for the API.
 const router = express.Router();
+const { sendInternalError } = require('../utils/errorResponses');
 // This line declares a constant variable named 'router' and initializes it as an instance of an Express router.
 // This router is used to group related route handlers and middleware, making the API structure modular and organized.
 const Session = require('../models/Session');
@@ -154,7 +155,7 @@ router.post('/start', async (req, res) => {
     if (!res.headersSent) {
       // This line checks if the HTTP headers have already been sent in the response.
       // This condition prevents attempting to send a response multiple times, which would cause an error.
-      res.status(500).json({ message: 'Server error', error: error.message });
+      sendInternalError(res, error, 'Server error');
       // This line sends an HTTP response with a 500 (Internal Server Error) status code and a JSON object containing a generic error message and the specific error details.
       // It informs the client that an unexpected server-side error occurred during session creation.
     }

@@ -75,6 +75,7 @@
  */
 const express = require('express'); // Declares a constant variable named 'express' and assigns it the Express application framework, which is imported using Node.js's 'require' function to enable building web servers and APIs.
 const router = express.Router(); // Declares a constant variable named 'router' and initializes it as an instance of an Express router, which is used to define modular, mountable route handlers for different API endpoints.
+const { sendInternalError } = require('../utils/errorResponses');
 const Note = require('../models/Note'); // Declares a constant variable named 'Note' and assigns it the Mongoose Note model, imported from the specified path, to interact with the 'notes' collection in the MongoDB database.
 const Folder = require('../models/Folder'); // Declares a constant variable named 'Folder' and assigns it the Mongoose Folder model, imported from the specified path, to interact with the 'folders' collection in the MongoDB database.
 const verifyToken = require('../middleware/authMiddleware'); // Declares a constant variable named 'verifyToken' and assigns it the authentication middleware function, imported from the specified path, which is used to protect routes by validating user tokens.
@@ -134,7 +135,7 @@ router.post('/folders', verifyToken, async (req, res) => { // Defines a POST rou
           error: 'A folder with this name already exists in this location', // Provides a user-friendly error message indicating a duplicate folder name.
         });
     }
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any other unexpected errors.
+    sendInternalError(res, error);
   }
 });
 
@@ -156,7 +157,7 @@ router.get('/folders', verifyToken, async (req, res) => { // Defines a GET route
 
     res.json(items); // Sends a JSON response containing the paginated and normalized folder items to the client.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during folder retrieval.
+    sendInternalError(res, error);
   }
 });
 
@@ -186,7 +187,7 @@ router.post('/folders/:id/share', verifyToken, async (req, res) => { // Defines 
 
     res.json(normalizeDoc(folder)); // Sends a JSON response containing the normalized, updated folder document to the client.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during folder sharing.
+    sendInternalError(res, error);
   }
 });
 
@@ -206,7 +207,7 @@ router.put('/folders/:id', verifyToken, async (req, res) => { // Defines a PUT r
     );
     res.json(normalizeDoc(updated)); // Sends a JSON response containing the normalized, updated folder document to the client.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during folder update.
+    sendInternalError(res, error);
   }
 });
 
@@ -225,7 +226,7 @@ router.delete('/folders/:id', verifyToken, async (req, res) => { // Defines a DE
     await Folder.findByIdAndDelete(id); // Asynchronously finds and deletes the folder document from the 'folders' collection using its ID, removing the folder itself.
     res.json({ message: 'Folder deleted successfully' }); // Sends a JSON response with a success message, confirming that the folder and its associated notes have been deleted.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during folder deletion.
+    sendInternalError(res, error);
   }
 });
 
@@ -252,7 +253,7 @@ router.post('/folders/:id/unshare', verifyToken, async (req, res) => { // Define
     );
     res.json(normalizeDoc(updated)); // Sends a JSON response containing the normalized, updated folder document to the client.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during folder unsharing.
+    sendInternalError(res, error);
   }
 });
 
@@ -277,7 +278,7 @@ router.post('/', verifyToken, async (req, res) => { // Defines a POST route hand
 
     res.status(201).json(normalizeDoc(note.toObject())); // Sets the HTTP response status code to 201 (Created) and sends a JSON response containing the newly created note document, after converting it to a plain JavaScript object and normalizing its structure for the client.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during note creation.
+    sendInternalError(res, error);
   }
 });
 
@@ -330,7 +331,7 @@ router.get('/', verifyToken, async (req, res) => { // Defines a GET route handle
 
     res.json(items); // Sends a JSON response containing the paginated and normalized note items to the client.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during note retrieval.
+    sendInternalError(res, error);
   }
 });
 
@@ -361,7 +362,7 @@ router.get('/:id', verifyToken, async (req, res) => { // Defines a GET route han
 
     res.json(normalizeDoc(note)); // Sends a JSON response containing the normalized note document to the client, as the user has been authorized to view it.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during note retrieval.
+    sendInternalError(res, error);
   }
 });
 
@@ -507,7 +508,7 @@ router.delete('/:id', verifyToken, async (req, res) => { // Defines a DELETE rou
     await Note.findByIdAndDelete(req.params.id); // Asynchronously finds and deletes the note document from the 'notes' collection using its ID, removing the note itself.
     res.json({ message: 'Note deleted successfully' }); // Sends a JSON response with a success message, confirming that the note has been deleted.
   } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during note deletion.
+    sendInternalError(res, error);
   }
 });
 

@@ -76,6 +76,7 @@
 const express = require('express');
 // This line imports the Express.js framework, which is a popular Node.js web application framework, to create and manage the server and routes.
 const router = express.Router();
+const { sendInternalError } = require('../utils/errorResponses');
 // This line creates a new router object from Express, which allows for defining modular, mountable route handlers for specific paths.
 const verifyToken = require('../middleware/authMiddleware');
 // This line imports the 'verifyToken' middleware function, which is used to authenticate requests by validating a JSON Web Token (JWT) before allowing access to protected routes.
@@ -370,7 +371,7 @@ router.post('/schedule', verifyToken, async (req, res) => {
     // This block catches any errors that occurred within the try block during meeting scheduling.
         console.error('Error scheduling meeting:', error);
         // This line logs the error message to the console, aiding in debugging.
-        res.status(500).json({ message: 'Server error', error: error.message });
+        sendInternalError(res, error, 'Server error');
         // This line sends a 500 Internal Server Error status code and a JSON error message (including the specific error message) to the client.
     }
 });
@@ -530,7 +531,7 @@ router.post('/invite', verifyToken, async (req, res) => {
     // This block catches any errors that occurred within the main try block during instant meeting creation or invite processing.
         console.error('Error creating meeting/invites:', error);
         // This line logs the error message to the console, aiding in debugging.
-        res.status(500).json({ message: 'Server error', error: error.message });
+        sendInternalError(res, error, 'Server error');
         // This line sends a 500 Internal Server Error status code and a JSON error message (including the specific error message) to the client.
     }
 });

@@ -75,6 +75,7 @@
  */
 const express = require('express'); // Imports the Express framework, which is a fast, unopinionated, minimalist web framework for Node.js, needed to create and manage server routes.
 const router = express.Router(); // Creates a new router object from Express, which allows defining modular, mountable route handlers for specific paths.
+const { sendInternalError } = require('../utils/errorResponses');
 const authMiddleware = require('../middleware/authMiddleware'); // Imports a custom authentication middleware, which is used to verify user authentication before allowing access to certain routes.
 const User = require('../models/User'); // Imports the Mongoose User model, which provides an interface to interact with the 'users' collection in the database.
 const Project = require('../models/Project'); // Imports the Mongoose Project model, which provides an interface to interact with the 'projects' collection in the database.
@@ -392,7 +393,7 @@ router.post('/', authMiddleware, async (req, res) => { // Defines a POST route h
     res.status(201).json(responsePayload); // Sends a 201 Created status response along with the fully populated project object, indicating successful project generation and creation.
   } catch (error) { // Catches any error that occurred within the try block.
     console.error('Error generating project:', error); // Logs the error message to the console for debugging purposes.
-    res.status(500).json({ message: 'Failed to generate project', error: error.message }); // Sends a 500 Internal Server Error response with a generic failure message and the specific error message, informing the client about the server-side issue.
+    sendInternalError(res, error, 'Failed to generate project');
   }
 });
 
