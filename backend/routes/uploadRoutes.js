@@ -179,7 +179,9 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => { //
       return res.status(429).json({ message: `Daily upload limit of ${DAILY_UPLOAD_LIMIT} reached` });
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`; // Constructs the URL where the uploaded file can be accessed, based on the temporary storage path and filename.
+    // Served through the authenticated GET /files/:filename route below.
+    // Filenames are 128-bit random hex (un-guessable capability URLs).
+    const fileUrl = `/api/upload/files/${req.file.filename}`;
     res.json({ // Sends a JSON response back to the client.
       fileUrl, // Includes the public URL of the uploaded file in the response.
       originalname: req.file.originalname, // Includes the original name of the uploaded file in the response.
@@ -308,6 +310,51 @@ router.post(
   }
 );
 
+
+/**
+ * Authenticated file download for generic uploads (chat attachments, etc.).
+ *
+ * SECURITY MODEL: filenames are 128-bit random hex with a fixed extension
+ * allowlist, so a valid filename acts as an un-guessable capability. Any
+ * authenticated user may fetch a file they hold the URL for; the filename
+ * pattern check below prevents path traversal regardless.
+ */
+const UPLOAD_FILENAME_RE = /^[a-f0-9]{32}\.(png|jpe?g|gif|webp|pdf|zip|json|csv|txt)$/i;
+
+router.get('/files/:filename', authMiddleware, (req, res) => {
+  const filename = req.params.filename;
+  if (!UPLOAD_FILENAME_RE.test(filename)) {
+    return res.status(400).json({ message: 'Invalid filename' });
+  }
+  const filePath = path.join(uploadDir, filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'File not found or expired' });
+  }
+  res.setHeader('Content-Type', mime.lookup(filename) || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  res.sendFile(filePath);
+});
+
+/**
+ * Periodic cleanup: uploaded files are temporary (24h TTL) — without this
+ * the uploads directory grows unbounded on long-lived hosts.
+ */
+const UPLOAD_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const cleanupInterval = setInterval(() => {
+  try {
+    const now = Date.now();
+    for (const name of fs.readdirSync(uploadDir)) {
+      if (!UPLOAD_FILENAME_RE.test(name)) continue; // never touch anything unexpected
+      const stat = fs.statSync(path.join(uploadDir, name));
+      if (now - stat.mtimeMs > UPLOAD_TTL_MS) {
+        fs.unlinkSync(path.join(uploadDir, name));
+      }
+    }
+  } catch (err) {
+    console.warn('[upload] stale-file cleanup failed:', err.message);
+  }
+}, 30 * 60 * 1000); // every 30 minutes
+if (typeof cleanupInterval.unref === 'function') cleanupInterval.unref();
 
 router.use((err, req, res, next) => { // Defines an error-handling middleware for the router, which catches errors passed by 'next(err)'.
   if (err instanceof multer.MulterError) { // Checks if the error is an instance of a Multer-specific error.
