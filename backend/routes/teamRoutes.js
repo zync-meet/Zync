@@ -75,6 +75,7 @@
  */
 // Imports the Express.js framework, which is used to build web applications and APIs.
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 // Imports the 'verifyToken' middleware, which is responsible for authenticating requests by validating a JWT.
@@ -120,8 +121,9 @@ const generateInviteCode = async () => {
   let isUnique = false;
   // Starts a while loop that continues as long as 'isUnique' is false, ensuring a unique code is generated.
   while (!isUnique) {
-    // Generates a random 6-digit number (between 100000 and 999999) and converts it to a string. This creates the invite code.
-    code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generates a cryptographically secure 6-digit invite code
+    // (Math.random() is predictable and would let attackers guess invites).
+    code = String(crypto.randomInt(100000, 1000000));
     // Queries the database to check if a team with the newly generated 'code' already exists. '.lean()' optimizes the query by returning a plain JavaScript object instead of a Mongoose document.
     const existingTeam = await Team.findOne({ inviteCode: code }).lean();
     // Checks if no existing team was found with the generated code.

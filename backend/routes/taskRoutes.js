@@ -74,6 +74,7 @@
  * ============================================================================
  */
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
 const User = require('../models/User');
@@ -137,7 +138,8 @@ const generateUniqueCommitCode = async () => {
   let exists = true;
 
   while (exists) {
-    code = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    // Cryptographically secure 10-digit code (Math.random() is predictable).
+    code = String(crypto.randomInt(1000000000, 10000000000));
     const found = await ProjectTask.findOne({ commitCode: code }).select('_id').lean();
     exists = !!found;
   }
