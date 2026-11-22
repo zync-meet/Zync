@@ -106,7 +106,10 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     const [loading, setLoading] = useState(false);
 
 
-    const publicLink = `${window.location.origin}/notes/${noteId}`;
+    // Deep link into the app's Notes view (the SPA has no /notes/:id route).
+    // DesktopView reads the ?note= param and opens that note; recipients who
+    // aren't signed in are sent through the normal login flow first.
+    const publicLink = `${window.location.origin}/dashboard/notes?note=${noteId}`;
 
     const handleInvite = async () => {
         if (!email) { return; }

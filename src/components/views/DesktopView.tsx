@@ -73,7 +73,7 @@
  * @license AGPL-3.0-only
  * ============================================================================
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL, getFullUrl } from '@/lib/utils';
 import {
@@ -364,6 +364,26 @@ const sectionToPath: Record<string, string> = {
       connectGitHub();
     }
   }, [location.search, currentUser, navigate, toast]);
+
+  // Stable callback: NotesLayout calls this once the deep-link note has been
+  // opened, so we clear the id and it isn't re-selected on later visits.
+  const handleInitialNoteConsumed = useCallback(() => {
+    setActiveNoteId(null);
+  }, []);
+
+  // One-time deep link from a shared note: /dashboard/notes?note=<noteId>.
+  // Opens the Notes section on that note, then clears the param so the note
+  // isn't re-selected on subsequent navigation.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const noteId = params.get('note');
+    if (noteId && location.pathname.startsWith('/dashboard/notes')) {
+      setActiveNoteId(noteId);
+      params.delete('note');
+      const qs = params.toString();
+      navigate(`/dashboard/notes${qs ? `?${qs}` : ''}`, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
 
   const userStatuses = usePresence(currentUser?.uid);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -985,6 +1005,7 @@ const sectionToPath: Record<string, string> = {
             }
             users={usersList}
             initialNoteId={activeNoteId}
+            onInitialNoteConsumed={handleInitialNoteConsumed}
           />
         );
 

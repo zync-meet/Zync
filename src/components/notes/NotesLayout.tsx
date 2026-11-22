@@ -160,6 +160,8 @@ interface NotesLayoutProps {
   user: { uid: string; displayName?: string; email?: string; photoURL?: string } | null;
   users?: any[];
   initialNoteId?: string | null;
+  /** Called once after initialNoteId has been applied (so callers can clear it). */
+  onInitialNoteConsumed?: () => void;
   className?: string;
   isPreview?: boolean;
   mockFolders?: Folder[];
@@ -413,6 +415,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
   user,
   users = [],
   initialNoteId,
+  onInitialNoteConsumed,
   className,
   isPreview,
   mockFolders,
@@ -638,8 +641,11 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
       if (target && target.id !== selectedNote?.id) {
         setSelectedNote(target);
       }
+      // Signal that the deep-link note was applied so the caller can clear
+      // initialNoteId (prevents re-selecting it on later visits).
+      onInitialNoteConsumed?.();
     }
-  }, [initialNoteId, notes]);
+  }, [initialNoteId, notes, onInitialNoteConsumed]);
 
 
   const filteredNotes = useMemo(() => {
