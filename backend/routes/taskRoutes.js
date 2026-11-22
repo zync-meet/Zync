@@ -76,6 +76,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
+const { sendInternalError } = require('../utils/errorResponses');
 const verifyToken = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Team = require('../models/Team');
@@ -371,7 +372,7 @@ router.post('/assign', verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error assigning task:', error);
-    return res.status(500).json({ message: 'Failed to assign task', error: error.message });
+    return sendInternalError(res, error, 'Failed to assign task');
   }
 });
 

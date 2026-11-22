@@ -75,6 +75,7 @@
  */
 const express = require('express'); // Imports the 'express' module, which is a web framework for Node.js, to create and manage server-side applications.
 const router = express.Router(); // Creates a new router object from Express, which allows for modular, mountable route handlers to organize API endpoints.
+const { sendInternalError } = require('../utils/errorResponses');
 const multer = require('multer'); // Imports the 'multer' module, a Node.js middleware for handling `multipart/form-data`, primarily used for uploading files.
 const path = require('path'); // Imports the 'path' module, a built-in Node.js module, to handle and transform file paths, ensuring cross-platform compatibility.
 const fs = require('fs'); // Imports the 'fs' (file system) module, a built-in Node.js module, to interact with the file system, such as reading or writing files.
@@ -189,7 +190,7 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => { //
     });
   } catch (error) { // Catches any errors that occurred within the try block.
     console.error('Error uploading file:', error); // Logs the error to the console for debugging purposes.
-    res.status(500).json({ message: 'Upload failed', error: error.message }); // Sends a 500 Internal Server Error response with a generic upload failed message and the specific error details.
+    sendInternalError(res, error, 'Upload failed');
   }
 });
 
@@ -243,7 +244,7 @@ router.post( // Defines another POST route.
           /* ignore */ // An empty comment indicating that errors during temporary file cleanup are intentionally ignored to avoid masking the primary upload error.
         }
       }
-      res.status(500).json({ message: 'Upload failed', error: error.message }); // Sends a 500 Internal Server Error response with a generic upload failed message and the specific error details.
+      sendInternalError(res, error, 'Upload failed');
     }
   }
 );
@@ -305,7 +306,7 @@ router.post(
           fs.unlinkSync(req.file.path);
         } catch (e) {}
       }
-      res.status(500).json({ message: 'Upload failed', error: error.message });
+      sendInternalError(res, error, 'Upload failed');
     }
   }
 );

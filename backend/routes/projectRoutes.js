@@ -75,6 +75,7 @@
  */
 const express = require('express');
 const router = express.Router();
+const { sendInternalError } = require('../utils/errorResponses');
 const { sendZyncEmail } = require('../services/mailer');
 const { getTaskAssignmentEmailHtml } = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../utils/regexUtils');
@@ -520,7 +521,7 @@ router.post('/new-repo', authMiddleware, async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error('Error creating project with new repo:', error);
-    res.status(500).json({ message: 'Failed to create project', error: error.message });
+    sendInternalError(res, error, 'Failed to create project');
   }
 });
 
@@ -589,9 +590,7 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error('Error creating project:', error);
-    res
-      .status(500)
-      .json({ message: 'Failed to create project', error: error.message });
+    sendInternalError(res, error, 'Failed to create project');
   }
 });
 
@@ -741,12 +740,7 @@ router.post('/:id/analyze-architecture', authMiddleware, async (req, res) => {
     res.json(full);
   } catch (error) {
     console.error('Architecture analysis failed:', error);
-    res
-      .status(500)
-      .json({
-        message: 'Failed to analyze architecture',
-        error: error.message,
-      });
+    sendInternalError(res, error, 'Failed to analyze architecture');
   }
 });
 
@@ -808,7 +802,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
     res.json({ updatedCount, deletedCount });
   } catch (error) {
     console.error('Error syncing GitHub repos:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -894,7 +888,7 @@ router.get('/', authMiddleware, async (req, res) => {
     cache.setJson(cacheKey, allProjects, 60);
     res.json(items);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -924,7 +918,7 @@ router.post('/:id/team', authMiddleware, async (req, res) => {
     });
     res.json(full);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -985,7 +979,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const full = await getProjectWithSteps(req.params.id);
     res.json(full);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -1012,7 +1006,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     invalidateProjectCache(project);
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -1052,7 +1046,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
     res.json(updatedProject);
   } catch (error) {
     console.error('Error updating project:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -1157,7 +1151,7 @@ router.post(
       res.status(201).json(updatedProject);
     } catch (error) {
       console.error('Error creating task:', error);
-      res.status(500).json({ message: 'Server error', error: error.message });
+      sendInternalError(res, error, 'Server error');
     }
   }
 );
@@ -1252,7 +1246,7 @@ router.put(
       res.json(updatedProject);
     } catch (error) {
       console.error('Error updating task:', error);
-      res.status(500).json({ message: 'Server error', error: error.message });
+      sendInternalError(res, error, 'Server error');
     }
   }
 );
@@ -1707,12 +1701,7 @@ router.get(
       return res.json(responsePayload);
     } catch (error) {
       console.error('Error fetching collaborator assignees:', error);
-      return res
-        .status(500)
-        .json({
-          message: 'Failed to fetch collaborator assignees',
-          error: error.message,
-        });
+      return sendInternalError(res, error, 'Failed to fetch collaborator assignees');
     }
   }
 );
@@ -1842,12 +1831,7 @@ router.post(
       });
     } catch (error) {
       console.error('Error inviting repository collaborator:', error);
-      return res
-        .status(500)
-        .json({
-          message: 'Failed to invite collaborator',
-          error: error.message,
-        });
+      return sendInternalError(res, error, 'Failed to invite collaborator');
     }
   }
 );
@@ -1928,7 +1912,7 @@ router.patch('/:id/github-settings', authMiddleware, async (req, res) => {
     }
   } catch (error) {
     console.error('Error updating github settings:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -1998,7 +1982,7 @@ router.get('/:projectId/steps/:stepId/tasks/:taskId/git-activity', authMiddlewar
     res.json(base);
   } catch (error) {
     console.error('Error fetching task git activity:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 
@@ -2082,7 +2066,7 @@ router.post('/tasks/:taskId/merge-pr', authMiddleware, async (req, res) => {
     }
   } catch (error) {
     console.error('Error merging PR:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    sendInternalError(res, error, 'Server error');
   }
 });
 

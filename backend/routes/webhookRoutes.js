@@ -75,6 +75,7 @@
  */
 const express = require('express');
 const router = express.Router();
+const { sendInternalError } = require('../utils/errorResponses');
 const verifyGithub = require('../middleware/verifyGithub');
 const { analyzeCommit } = require('../utils/commitAnalysisService');
 const ProjectTask = require('../models/ProjectTask');
@@ -241,7 +242,7 @@ router.post('/github', verifyGithub, async (req, res) => {
     res.json({ message: 'Webhook processed', results });
   } catch (error) {
     console.error('Webhook processing error:', error);
-    res.status(500).json({ message: 'Webhook processing failed', error: error.message });
+    sendInternalError(res, error, 'Webhook processing failed');
   }
 });
 

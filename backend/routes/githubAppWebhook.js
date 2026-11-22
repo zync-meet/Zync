@@ -75,6 +75,7 @@
  */
 const express = require('express'); // Imports the Express.js framework, which is essential for building web applications and APIs in Node.js.
 const router = express.Router(); // Creates a new router object from Express, allowing for modular route definitions separate from the main application.
+const { sendInternalError } = require('../utils/errorResponses');
 const authMiddleware = require('../middleware/authMiddleware'); // Authenticates the request before allowing access to the job-status endpoint.
 const verifyGithub = require('../middleware/verifyGithub'); // Imports a custom middleware function responsible for verifying the authenticity of incoming GitHub webhooks.
 const { processGithubWebhookJob } = require('../services/githubWebhookWorker'); // Imports the function that contains the core logic for processing a GitHub webhook event.
@@ -127,7 +128,7 @@ router.post('/webhook', verifyGithub, async (req, res) => { // Defines an HTTP P
     });
   } catch (error) { // Catches any errors that occur within the try block.
     console.error('[GitHub App Webhook] Error:', error); // Logs the error to the console, providing details for debugging.
-    return res.status(500).json({ message: 'Webhook enqueue failed', error: error.message }); // Sends an HTTP 500 (Internal Server Error) response with a JSON body, indicating a failure during enqueueing.
+    return sendInternalError(res, error, 'Webhook enqueue failed');
   }
 });
 
