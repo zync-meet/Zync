@@ -93,7 +93,6 @@ const {
   getAccountDeletionCodeEmailHtml,
 } = require('../utils/emailTemplates');
 const { deleteCloudinaryAsset } = require('../services/cloudinaryService');
-const { checkPassword } = require('../services/haveIBeenPwnedService');
 const { resolveIp } = require('../services/geoService');
 const cache = require('../utils/cache');
 
@@ -159,20 +158,7 @@ const sendVerificationEmail = async (email, code) => {
   );
 };
 
-router.post('/check-breached-password', async (req, res) => {
-  const { password } = req.body;
-  if (!password || typeof password !== 'string') {
-    return res.status(400).json({ message: 'Password is required' });
-  }
 
-  try {
-    const result = await checkPassword(password);
-    res.json(result);
-  } catch (error) {
-    console.error('Breached password check error:', error.message);
-    res.status(429).json({ message: error.message });
-  }
-});
 
 router.get('/me', verifyToken, async (req, res) => {
   try {
