@@ -86,7 +86,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
-import { updateNotePermissions } from '../../../services/notesService';
+import { updateNotePermissions, inviteToShareNote, unshareNote } from '../../../services/notesService';
 
 interface ShareDialogProps {
     noteId: string;
@@ -112,12 +112,14 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
         if (!email) { return; }
         setLoading(true);
         try {
-
-
-            toast.info("Invite by email coming soon! Please share the link.");
-
+            await inviteToShareNote(noteId, email.trim());
+            toast.success("Invitation sent");
+            setEmail("");
         } catch (e: any) {
-            toast.error("Failed to invite user");
+            console.error(e);
+            // Surface the specific backend reason (e.g. "No Zync user with
+            // that email address") instead of a generic failure.
+            toast.error(e?.message || "Failed to invite user");
         } finally {
             setLoading(false);
         }
@@ -130,7 +132,14 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
         delete newPermissions[userId];
 
         try {
-            await updateNotePermissions(noteId, newPermissions);
+            // Prefer the dedicated unshare endpoint (it updates the
+            // permissions map server-side); fall back to a full permissions
+            // update if it is unavailable.
+            try {
+                await unshareNote(noteId, userId);
+            } catch {
+                await updateNotePermissions(noteId, newPermissions);
+            }
             toast.success("Collaborator removed");
         } catch (e: any) {
             console.error(e);
@@ -168,7 +177,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 
                     { }
                     <div className="space-y-2">
-                        <Label>Invite by Email (Coming Soon)</Label>
+                        <Label>Invite by Email</Label>
                         <div className="flex gap-2">
                             <Input
                                 placeholder="colleague@example.com"

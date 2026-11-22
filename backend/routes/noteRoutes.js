@@ -80,6 +80,30 @@ const Folder = require('../models/Folder'); // Declares a constant variable name
 const verifyToken = require('../middleware/authMiddleware'); // Declares a constant variable named 'verifyToken' and assigns it the authentication middleware function, imported from the specified path, which is used to protect routes by validating user tokens.
 const { normalizeDoc, normalizeDocs } = require('../utils/normalize'); // Declares constant variables 'normalizeDoc' and 'normalizeDocs' and assigns them functions imported from the 'normalize' utility file, which are used to transform Mongoose documents into a consistent, client-friendly format.
 const { paginateArray, setPaginationHeaders } = require('../utils/pagination'); // Declares constant variables 'paginateArray' and 'setPaginationHeaders' and assigns them functions imported from the 'pagination' utility file, which are used to handle array pagination logic and set HTTP pagination response headers.
+const User = require('../models/User'); // Declares a constant variable named 'User' and assigns it the Mongoose 'User' model. Used to resolve an invitee's email to a uid when sharing a note.
+const { sendZyncEmail } = require('../services/mailer'); // Declares a constant variable named 'sendZyncEmail' and assigns it the email-sending helper. Used to notify an invited user that a note was shared with them.
+const { getNoteSharedEmailHtml } = require('../utils/emailTemplates'); // Declares a constant variable named 'getNoteSharedEmailHtml' and assigns it the note-sharing email HTML builder.
+const { escapeRegExp } = require('../utils/regexUtils'); // Declares a constant variable named 'escapeRegExp' and assigns it the regex-escaping helper used to build a safe email matcher.
+
+/**
+ * Determine the caller's access level to a note.
+ * Returns 'owner' | 'editor' | 'viewer' | null.
+ *
+ * A user has access when they are the owner, have an entry in the
+ * `permissions` role map, or are listed in the legacy `sharedWith` array
+ * (treated as editor for backwards compatibility).
+ */
+const getNoteAccessLevel = (note, uid) => {
+  if (!note || !uid) return null;
+  if (note.ownerId === uid) return 'owner';
+  const role = note.permissions && note.permissions[uid];
+  if (role === 'editor' || role === 'viewer') return role;
+  if (Array.isArray(note.sharedWith) && note.sharedWith.includes(uid)) return 'editor';
+  return null;
+};
+
+/** True when the given access level may edit the note (owner or editor). */
+const canEditWithLevel = (level) => level === 'owner' || level === 'editor';
 
 router.post('/folders', verifyToken, async (req, res) => { // Defines a POST route handler for the '/folders' endpoint, which is used to create new folders, applying the 'verifyToken' middleware first to ensure the user is authenticated before executing the asynchronous callback function.
   try { // Starts a try block to encapsulate code that might throw an error, allowing for graceful error handling.
@@ -292,6 +316,7 @@ router.get('/', verifyToken, async (req, res) => { // Defines a GET route handle
           { ownerId: userId }, // Condition 1: Notes where the 'ownerId' matches the authenticated user's ID (personal notes).
           { folderId: { $in: sharedFolderIds } }, // Condition 2: Notes whose 'folderId' is present in the 'sharedFolderIds' array (notes within shared folders).
           { sharedWith: userId }, // Condition 3: Notes where the 'sharedWith' array contains the authenticated user's ID (notes explicitly shared with the user).
+          { permissions: { [userId]: { $exists: true } } }, // Condition 4: Notes whose permissions map grants the user a role (note-level sharing).
         ],
       };
     }
@@ -314,10 +339,9 @@ router.get('/:id', verifyToken, async (req, res) => { // Defines a GET route han
     const note = await Note.findById(req.params.id).lean(); // Declares a constant variable 'note' and asynchronously queries the 'notes' collection to find a note by its ID, extracted from the request parameters, converting it to a plain JavaScript object.
     if (!note) return res.status(404).json({ error: 'Note not found' }); // Checks if no note was found, returns from the function, sets the HTTP response status code to 404 (Not Found), and sends a JSON error message.
 
-    const isOwner = note.ownerId === req.user.uid; // Declares a constant boolean 'isOwner' and sets it to true if the authenticated user is the owner of the note, otherwise false.
-    const isShared = note.sharedWith && note.sharedWith.includes(req.user.uid); // Declares a constant boolean 'isShared' and sets it to true if the note has a 'sharedWith' array and the authenticated user's ID is included in it, otherwise false.
+    const accessLevel = getNoteAccessLevel(note, req.user.uid); // Determines the caller's access level (owner/editor/viewer/null) via the shared helper.
 
-    if (!isOwner && !isShared) { // Checks if the authenticated user is neither the owner nor explicitly shared with the note.
+    if (!accessLevel) { // Checks if the authenticated user has no direct access to the note.
       if (note.folderId) { // Checks if the note belongs to a folder.
         const folder = await Folder.findById(note.folderId).lean(); // Declares a constant variable 'folder' and asynchronously queries the 'folders' collection to find the parent folder by its ID, converting it to a plain JavaScript object.
         if ( // Checks if the folder exists AND if the authenticated user is either the owner of the folder OR a collaborator in that folder.
@@ -343,32 +367,129 @@ router.get('/:id', verifyToken, async (req, res) => { // Defines a GET route han
 
 router.put('/:id', verifyToken, async (req, res) => { // Defines a PUT route handler for the '/:id' endpoint (for a specific note), which is used to update a single note, applying the 'verifyToken' middleware first to ensure the user is authenticated before executing the asynchronous callback function.
   try { // Starts a try block to encapsulate code that might throw an error, allowing for graceful error handling.
-    const { title, content, folderId } = req.body; // Uses object destructuring to extract 'title', 'content', and 'folderId' properties from the request body, which contain the data to update the note.
+    const { title, content, folderId, permissions } = req.body; // Uses object destructuring to extract 'title', 'content', 'folderId', and 'permissions' properties from the request body.
 
-    const note = await Note.findById(req.params.id).lean(); // Declares a constant variable 'note' and asynchronously queries the 'notes' collection to find a note by its ID, extracted from the request parameters, converting it to a plain JavaScript object.
-    if (!note) return res.status(404).json({ error: 'Note not found' }); // Checks if no note was found, returns from the function, sets the HTTP response status code to 404 (Not Found), and sends a JSON error message.
+    const note = await Note.findById(req.params.id).lean(); // Declares a constant variable 'note' and asynchronously queries the 'notes' collection to find a note by its ID.
+    if (!note) return res.status(404).json({ error: 'Note not found' });
 
-    const isOwner = note.ownerId === req.user.uid; // Declares a constant boolean 'isOwner' and sets it to true if the authenticated user is the owner of the note, otherwise false.
-    const isShared = note.sharedWith && note.sharedWith.includes(req.user.uid); // Declares a constant boolean 'isShared' and sets it to true if the note has a 'sharedWith' array and the authenticated user's ID is included in it, otherwise false.
-
-    if (!isOwner && !isShared) { // Checks if the authenticated user is neither the owner nor explicitly shared with the note, meaning they don't have permission to update it.
-      return res.status(403).json({ error: 'Unauthorized' }); // Returns from the function, sets the HTTP response status code to 403 (Forbidden), and sends a JSON error message, indicating the user is not authorized to update this note.
+    const accessLevel = getNoteAccessLevel(note, req.user.uid); // Determines the caller's access level (owner/editor/viewer/null).
+    if (!accessLevel) { // No access at all.
+      return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    const updateData = {}; // Declares a mutable object 'updateData' and initializes it as empty, which will store the fields to be updated in the note.
-    if (title !== undefined) updateData.title = title; // Checks if 'title' was provided in the request body and, if so, adds it to the 'updateData' object.
-    if (content !== undefined) updateData.content = content; // Checks if 'content' was provided in the request body and, if so, adds it to the 'updateData' object.
-    if (folderId !== undefined) updateData.folderId = folderId; // Checks if 'folderId' was provided in the request body and, if so, adds it to the 'updateData' object.
+    const isOwner = accessLevel === 'owner'; // True when the caller owns the note — required for permission changes.
 
-    const updatedNote = await Note.findByIdAndUpdate( // Declares a constant variable 'updatedNote' and asynchronously finds a note by its ID and updates it using Mongoose's 'findByIdAndUpdate' method.
-      req.params.id, // Specifies the ID of the note to update, extracted from the request parameters.
-      { $set: updateData }, // Uses the '$set' operator to update the note document with the fields and values contained in the 'updateData' object, allowing for partial updates.
-      { returnDocument: 'after', lean: true } // Specifies options: 'returnDocument: 'after'' ensures the updated document is returned, and 'lean: true' converts it to a plain JavaScript object for efficiency.
+    const updateData = {}; // Collects the fields to update.
+
+    // Content edits (title/content/folder) require owner or editor access.
+    if (canEditWithLevel(accessLevel)) {
+      if (title !== undefined) updateData.title = title;
+      if (content !== undefined) updateData.content = content;
+      if (folderId !== undefined) updateData.folderId = folderId;
+    }
+
+    // Permission changes are owner-only and validated (uid -> viewer|editor).
+    if (permissions !== undefined) {
+      if (!isOwner) {
+        return res.status(403).json({ error: 'Only the note owner can change permissions' });
+      }
+      if (typeof permissions !== 'object' || permissions === null || Array.isArray(permissions)) {
+        return res.status(400).json({ error: 'Invalid permissions object' });
+      }
+      const clean = {};
+      for (const [uid, role] of Object.entries(permissions)) {
+        if (role === 'viewer' || role === 'editor') clean[uid] = role;
+      }
+      updateData.permissions = clean;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await Note.findByIdAndUpdate(req.params.id, { $set: updateData }, { returnDocument: 'after', lean: true });
+    }
+
+    // Re-fetch so the response reflects any concurrent changes.
+    const updatedNote = await Note.findById(req.params.id).lean();
+    res.json(normalizeDoc(updatedNote)); // Sends the normalized, updated note document to the client.
+  } catch (error) { // Catches any errors that occur within the try block.
+    res.status(500).json({ error: 'Failed to update note' });
+  }
+});
+
+router.post('/:id/share', verifyToken, async (req, res) => { // Invites a user (by email) to a note as an editor. Owner-only.
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ error: 'A valid email address is required' });
+    }
+
+    const note = await Note.findById(req.params.id).lean();
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+    if (note.ownerId !== req.user.uid) {
+      return res.status(403).json({ error: 'Only the note owner can share' });
+    }
+
+    // Resolve the invitee's email to a uid (case-insensitive exact match).
+    const invitee = await User.findOne({
+      email: { $regex: `^${escapeRegExp(email.trim())}$`, $options: 'i' },
+    }).lean();
+    if (!invitee) {
+      return res.status(404).json({ error: 'No Zync user with that email address' });
+    }
+
+    if (invitee.uid === note.ownerId) {
+      return res.status(400).json({ error: 'The note owner cannot be invited again' });
+    }
+
+    const permissions = { ...(note.permissions || {}) };
+    permissions[invitee.uid] = 'editor';
+    const updated = await Note.findByIdAndUpdate(
+      note._id,
+      { $set: { permissions } },
+      { returnDocument: 'after', lean: true }
     );
 
-    res.json(normalizeDoc(updatedNote)); // Sends a JSON response containing the normalized, updated note document to the client.
-  } catch (error) { // Catches any errors that occur within the try block.
-    res.status(500).json({ error: error.message }); // Sets the HTTP response status code to 500 (Internal Server Error) and sends a JSON response containing the error message, for any unexpected errors during note update.
+    // Notify the invitee (best-effort — a mailer misconfig must not fail the share).
+    const ownerDoc = await User.findOne({ uid: note.ownerId }).lean();
+    const ownerName = ownerDoc?.displayName || 'A teammate';
+    sendZyncEmail(
+      invitee.email,
+      'You were invited to a shared note on Zync',
+      getNoteSharedEmailHtml({
+        noteTitle: note.title || 'Untitled note',
+        ownerName,
+        appUrl: process.env.FRONTEND_URL || '',
+      }),
+      `${ownerName} shared the note "${note.title || 'Untitled note'}" with you on Zync.`
+    ).catch((err) => console.error('Failed to send note-share email:', err.message));
+
+    res.json(normalizeDoc(updated));
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to share note' });
+  }
+});
+
+router.post('/:id/unshare', verifyToken, async (req, res) => { // Removes a user's note-level access. Owner-only.
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+    const note = await Note.findById(req.params.id).lean();
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+    if (note.ownerId !== req.user.uid) {
+      return res.status(403).json({ error: 'Only the note owner can remove access' });
+    }
+
+    const permissions = { ...(note.permissions || {}) };
+    delete permissions[userId];
+    const updated = await Note.findByIdAndUpdate(
+      note._id,
+      { $set: { permissions } },
+      { returnDocument: 'after', lean: true }
+    );
+
+    res.json(normalizeDoc(updated));
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update note sharing' });
   }
 });
 

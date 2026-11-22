@@ -286,6 +286,42 @@ export const updateNotePermissions = async (noteId: string, permissions: Record<
         headers: h,
         body: JSON.stringify({ permissions })
     });
-    if (!res.ok) {throw new Error('Failed to update permissions');}
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update permissions');
+    }
+    return res.json();
+};
+
+/**
+ * Invite a Zync user (by email) to a note as an editor.
+ * The backend resolves the email to a uid and notifies the invitee.
+ */
+export const inviteToShareNote = async (noteId: string, email: string) => {
+    const h = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/notes/${noteId}/share`, {
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify({ email })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to invite user');
+    }
+    return res.json();
+};
+
+/** Remove a user's note-level access (owner only). */
+export const unshareNote = async (noteId: string, userId: string) => {
+    const h = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/notes/${noteId}/unshare`, {
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify({ userId })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update sharing');
+    }
     return res.json();
 };

@@ -84,6 +84,9 @@ const noteSchema = new mongoose.Schema(
     folderId:   { type: String, default: null },
     projectId:  { type: String, default: null },
     sharedWith: { type: [String], default: [] },
+    // Per-user roles for note-level sharing: { [uid]: 'viewer' | 'editor' | 'owner' }.
+    // 'owner' is implicit for ownerId and not stored here.
+    permissions: { type: mongoose.Schema.Types.Mixed, default: {} },
 
 
     yjsState: { type: Buffer, default: null },

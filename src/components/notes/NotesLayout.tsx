@@ -85,6 +85,7 @@ import {
   deleteNote,
   updateNote,
   deleteFolder,
+  inviteToShareNote,
 } from '../../services/notesService';
 import {
   DndContext,
@@ -570,6 +571,11 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
   const [folderToShare, setFolderToShare] = useState<Folder | null>(null);
   const [selectedUserId, setSelectedUserId] = useState('');
 
+  // Note-level sharing (invite by email)
+  const [noteToShare, setNoteToShare] = useState<Note | null>(null);
+  const [noteShareEmail, setNoteShareEmail] = useState('');
+  const [noteShareLoading, setNoteShareLoading] = useState(false);
+
 
   useEffect(() => {
     if (isPreview) {
@@ -813,9 +819,34 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
   };
 
   const handleShareNote = (note: Note) => {
-    toast('Note sharing is coming soon!', {
-      description: 'For now, move this note to a Shared Folder to collaborate.',
-    });
+    // Only the owner can share a note; non-owners (e.g. in a shared folder)
+    // get the folder-level sharing flow instead.
+    if (user?.uid && note.ownerId && note.ownerId !== user.uid) {
+      toast('Only the note owner can share this note by email', {
+        description: 'Ask the owner to invite you, or share the containing folder.',
+      });
+      return;
+    }
+    setNoteToShare(note);
+    setNoteShareEmail('');
+  };
+
+  const handleNoteShareSubmit = async () => {
+    if (!noteToShare || !noteShareEmail.trim()) {
+      return;
+    }
+    setNoteShareLoading(true);
+    try {
+      await inviteToShareNote(noteToShare.id, noteShareEmail.trim());
+      toast.success('Invitation sent');
+      setNoteToShare(null);
+      setNoteShareEmail('');
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.message || 'Failed to invite user');
+    } finally {
+      setNoteShareLoading(false);
+    }
   };
 
 
@@ -1215,6 +1246,41 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({
               Share
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Note Dialog (invite by email) */}
+      <Dialog open={noteToShare !== null} onOpenChange={(open) => !open && setNoteToShare(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Note</DialogTitle>
+            <DialogDescription>
+              Invite a Zync user by email to collaborate on “{noteToShare?.title || 'Untitled'}”.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="note-share-email">Email address</Label>
+            <div className="flex gap-2">
+              <Input
+                id="note-share-email"
+                type="email"
+                placeholder="colleague@example.com"
+                value={noteShareEmail}
+                onChange={(e) => setNoteShareEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleNoteShareSubmit();
+                  }
+                }}
+              />
+              <Button
+                onClick={handleNoteShareSubmit}
+                disabled={!noteShareEmail.trim() || noteShareLoading}
+              >
+                {noteShareLoading ? 'Sending…' : 'Invite'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
