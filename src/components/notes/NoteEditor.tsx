@@ -471,7 +471,11 @@ const NoteEditorInner: React.FC<
         noteId={note.id}
         isOpen={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
-        currentPermissions={note.permissions || {}}
+        // The owner is implicit server-side; surface them in the dialog list.
+        currentPermissions={{
+          ...(note.permissions || {}),
+          ...(note.ownerId ? { [note.ownerId]: 'owner' as const } : {}),
+        }}
       />
     </div>
   );

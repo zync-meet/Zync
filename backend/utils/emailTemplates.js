@@ -201,6 +201,14 @@ const getChatRequestEmailHtml = ({ senderName, message }) =>
 const getAccountDeletionCodeEmailHtml = ({ code }) =>
   renderEmailTemplate('account-deletion-code.html', { code: code ?? '' }); // WHAT: Render the account deletion template. WHY: To send a confirmation code for sensitive account operations.
 
+/** Note shared with you — `email template/note-shared.html` */
+const getNoteSharedEmailHtml = ({ noteTitle, ownerName, appUrl }) =>
+  renderEmailTemplate('note-shared.html', { // WHAT: Render the note-sharing template. WHY: To notify a user that a note was shared with them.
+    noteTitle: noteTitle ?? '', // WHAT: Pass the note title. WHY: To identify which note was shared.
+    ownerName: ownerName ?? '', // WHAT: Pass the owner's display name. WHY: To show who shared the note.
+    appUrl: appUrl ?? '', // Pass the app URL (currently informational only).
+  });
+
 /**
  * Task assignment — `email template/task-assignment.html`
  * @param {{ projectName: string, lines: { label: string, value: string }[] }} opts
@@ -266,6 +274,7 @@ module.exports = { // WHAT: Export all the builder functions. WHY: So controller
   getPhoneVerificationEmailHtml,
   getChatRequestEmailHtml,
   getAccountDeletionCodeEmailHtml,
+  getNoteSharedEmailHtml,
   getTaskAssignmentEmailHtml,
   getTestReportEmailHtml,
 };
